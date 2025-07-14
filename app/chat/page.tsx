@@ -32,7 +32,9 @@ import {
   ThumbsUp,
   Copy,
   Edit,
+  Lock,
   Sparkles,
+  Check,
   CheckCircle,
   Crown,
   Menu,
@@ -236,34 +238,49 @@ const PaymentDialog = ({
 
   return (
    <Dialog open={open} onOpenChange={onOpenChange}>
-  <DialogContent className="max-w-md p-6 rounded-lg">
-    <DialogHeader>
+  <DialogContent className="max-w-md p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl bg-white dark:bg-gray-900 transition-all duration-300">
+    <DialogHeader className="space-y-3 text-center">
       <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">
         {paymentSuccess ? (
           <div className="flex flex-col items-center gap-3">
-            <div className="flex items-center justify-center w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full">
-              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+            <div className="flex items-center justify-center w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-full">
+              <CheckCircle className="h-7 w-7 text-green-600 dark:text-green-400" />
             </div>
-            <span className="text-center">Payment Successful!</span>
+            <span className="text-lg font-semibold">Payment Successful!</span>
           </div>
         ) : (
-          <div className="flex flex-col gap-1">
-            <span>Upgrade to {plan === 'premium' ? 'Premium' : 'Base'} Plan</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              ${plan === 'premium' ? '9.99/month' : '4.99/month'}
-            </span>
-          </div>
+          <>
+            Upgrade to{" "}
+            <span className="text-blue-600 dark:text-blue-400">
+              {plan === "premium" ? "Premium" : "Base"}
+            </span>{" "}
+            Plan
+            <div className="text-sm font-normal text-muted-foreground">
+              ${plan === "premium" ? "9.99/month" : "4.99/month"}
+            </div>
+          </>
         )}
       </DialogTitle>
-      <DialogDescription className="text-center text-gray-600 dark:text-gray-400">
-        {paymentSuccess
-          ? 'Your subscription is now active. You can start using premium features immediately.'
-          : 'Secure payment processed by Stripe. Your financial information is encrypted.'}
+
+      <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
+        {paymentSuccess ? (
+          <>
+            Your subscription is now active. Enjoy all the premium features.
+          </>
+        ) : (
+          <>
+            Secured via{" "}
+            <span className="font-medium text-blue-600 dark:text-blue-400">
+              Stripe
+            </span>
+            . Your data is encrypted and protected.
+          </>
+        )}
       </DialogDescription>
     </DialogHeader>
 
     {paymentSuccess ? (
-      <div className="flex flex-col items-center gap-4 py-4">
+      <div className="flex flex-col items-center gap-6 py-6">
         <div className="w-full max-w-[200px]">
           <svg viewBox="0 0 200 100" className="w-full h-auto">
             <path
@@ -278,45 +295,55 @@ const PaymentDialog = ({
         </div>
         <Button
           onClick={() => onOpenChange(false)}
-          className="w-full bg-green-600 hover:bg-green-700 text-white"
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-md transition-colors duration-200"
         >
           Continue to App
         </Button>
       </div>
     ) : (
       <Elements stripe={stripePromise}>
-        <div className="space-y-4">
-          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="flex justify-between items-center">
-              <span className="font-medium">Plan</span>
-              <span className="font-semibold">
-                {plan === 'premium' ? 'Premium' : 'Base'}
+        <div className="space-y-6 pt-2">
+          <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600 dark:text-gray-300 font-medium">
+                Plan
+              </span>
+              <span className="font-semibold text-gray-800 dark:text-white">
+                {plan === "premium" ? "Premium" : "Base"}
               </span>
             </div>
-            <div className="flex justify-between items-center mt-2">
-              <span className="font-medium">Price</span>
-              <span className="font-semibold">
-                ${plan === 'premium' ? '9.99' : '4.99'}
-                <span className="text-sm text-gray-500"> / month</span>
+            <div className="flex justify-between items-center mt-3 text-sm">
+              <span className="text-gray-600 dark:text-gray-300 font-medium">
+                Price
+              </span>
+              <span className="font-semibold text-gray-800 dark:text-white">
+                ${plan === "premium" ? "9.99" : "4.99"}
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {" "}
+                  / month
+                </span>
               </span>
             </div>
           </div>
 
-          <PaymentForm 
-            plan={plan} 
-            onSuccess={handleSuccess} 
-            onCancel={() => onOpenChange(false)} 
+          <PaymentForm
+            plan={plan}
+            onSuccess={handleSuccess}
+            onCancel={() => onOpenChange(false)}
           />
 
-          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-            /
-            <span>Payments are secure and encrypted</span>
-          </div>
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 pt-2">
+            <span className="h-3.5 w-3.5">
+              <Lock className="h-4 w-4" />
+            </span>
+            <span>Payments are secure and end-to-end encrypted</span>
+            </div>
         </div>
       </Elements>
     )}
   </DialogContent>
 </Dialog>
+
   );
 };
 
@@ -1425,42 +1452,67 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
     </Button>
 
     {/* Plan Selector */}
-   // Replace your existing Select component with this:
-<Select 
-  value={selectedPlan} 
+<Select
+  value={selectedPlan}
   onValueChange={(value) => {
     setSelectedPlan(value);
     setSelectedPlanForPayment(value);
     setPaymentDialogOpen(true);
   }}
 >
-  <SelectTrigger className="h-9 bg-gray-100 dark:bg-gray-700 text-sm font-medium text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-full px-4 hover:bg-gray-200/50 dark:hover:bg-gray-600/50">
+  {/* Trigger Button */}
+  <SelectTrigger className="h-10 bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-full px-4 hover:bg-gray-200/70 dark:hover:bg-gray-600/60 transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:outline-none w-[240px]">
     <div className="flex items-center space-x-2">
       {selectedPlan === "premium" ? (
         <Crown className="h-4 w-4 text-yellow-500" />
       ) : (
         <Sparkles className="h-4 w-4 text-blue-500" />
       )}
-      <SelectValue placeholder="Select Plan" />
+      <span>Medibot</span>
     </div>
   </SelectTrigger>
-  <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 w-[240px]">
-    <SelectItem 
-      value="base" 
-      className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+
+  {/* Dropdown Content */}
+  <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 border-[0.5px] w-[280px] p-1 space-y-1">
+    
+    {/* Premium Plan */}
+    <SelectItem
+      value="premium"
+      className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
     >
-      <Sparkles className="h-4 w-4 text-blue-500" />
-      Base Plan ($4.99/month)
+      <div className="flex items-center gap-3">
+        <Crown className="h-4 w-4 text-yellow-500" />
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold">Premium Plan</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">₹100 / $2 per month</span>
+        </div>
+      </div>
+      {selectedPlan === "premium" && (
+        <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
+      )}
     </SelectItem>
-    <SelectItem 
-      value="premium" 
-      className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+
+    {/* Base Plan */}
+    <SelectItem
+      value="base"
+      className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
     >
-      <Crown className="h-4 w-4 text-yellow-500" />
-      Premium Plan ($9.99/month)
+      <div className="flex items-center gap-3">
+        <Sparkles className="h-4 w-4 text-blue-500" />
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold">Base Plan</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">Free access</span>
+        </div>
+      </div>
+      {selectedPlan === "base" && (
+        <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
+      )}
     </SelectItem>
   </SelectContent>
 </Select>
+
+
+
 
     {/* Title */}
     <h1 className="text-xl font-bold text-gray-800 dark:text-white">
