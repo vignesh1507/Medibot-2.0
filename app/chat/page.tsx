@@ -60,8 +60,6 @@ import {
 } from "@/lib/firestore";
 import { toast } from "sonner";
 import Link from "next/link";
-import { debounce } from "lodash";
-import firebase from "firebase/firestore";
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -69,6 +67,8 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
+import { useSearchParams } from 'next/navigation';
+
 declare global {
   interface Window {
     puter: any;
@@ -118,9 +118,14 @@ interface GeminiResponse {
     };
   }>;
 }
+
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
-const PaymentForm = ({ plan, onSuccess, onCancel }: { 
+const PaymentForm = ({ 
+  plan, 
+  onSuccess, 
+  onCancel 
+}: { 
   plan: string, 
   onSuccess: () => void, 
   onCancel: () => void 
@@ -138,7 +143,6 @@ const PaymentForm = ({ plan, onSuccess, onCancel }: {
     setError(null);
 
     try {
-      // Create payment intent on your backend
       const response = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: {
@@ -146,10 +150,12 @@ const PaymentForm = ({ plan, onSuccess, onCancel }: {
         },
         body: JSON.stringify({
           plan,
-          amount: plan === 'premium' ? 999 : 499, // $9.99 or $4.99
+          amount: plan === 'premium' ? 999 : 499,
           currency: 'usd',
         }),
       });
+
+      if (!response.ok) throw new Error('Failed to create payment intent');
 
       const { clientSecret } = await response.json();
 
@@ -193,9 +199,7 @@ const PaymentForm = ({ plan, onSuccess, onCancel }: {
           },
         }}
       />
-      
       {error && <p className="text-red-500 text-sm">{error}</p>}
-      
       <div className="flex space-x-3 pt-2">
         <Button
           type="button"
@@ -208,7 +212,7 @@ const PaymentForm = ({ plan, onSuccess, onCancel }: {
         <Button
           type="submit"
           disabled={!stripe || loading}
-          className="flex-1 bg-purple-600 hover:bg-purple-700"
+          className="flex-1 bg-blue-600 hover:bg-blue-700"
         >
           {loading ? 'Processing...' : `Pay $${plan === 'premium' ? '9.99' : '4.99'}`}
         </Button>
@@ -237,113 +241,78 @@ const PaymentDialog = ({
   };
 
   return (
-   <Dialog open={open} onOpenChange={onOpenChange}>
-  <DialogContent className="max-w-md p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl bg-white dark:bg-gray-900 transition-all duration-300">
-    <DialogHeader className="space-y-3 text-center">
-      <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md p-6">
+        <DialogHeader className="space-y-3 text-center">
+          <DialogTitle className="text-2xl font-bold">
+            {paymentSuccess ? (
+              <div className="flex flex-col items-center gap-3">
+                <CheckCircle className="h-7 w-7 text-green-500" />
+                <span>Payment Successful!</span>
+              </div>
+            ) : (
+              <>
+                Upgrade to <span className="text-blue-600">{plan === "premium" ? "Premium" : "Base"} Plan</span>
+                <div className="text-sm font-normal text-gray-500">
+                  ${plan === "premium" ? "9.99/month" : "4.99/month"}
+                </div>
+              </>
+            )}
+          </DialogTitle>
+          <DialogDescription className="text-sm text-gray-500">
+            {paymentSuccess ? (
+              "Your subscription is now active. Enjoy all the premium features."
+            ) : (
+              <>
+                Secured via <span className="font-medium text-blue-600">Stripe</span>. Your data is encrypted and protected.
+              </>
+            )}
+          </DialogDescription>
+        </DialogHeader>
         {paymentSuccess ? (
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex items-center justify-center w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-full">
-              <CheckCircle className="h-7 w-7 text-green-600 dark:text-green-400" />
-            </div>
-            <span className="text-lg font-semibold">Payment Successful!</span>
+          <div className="flex flex-col items-center gap-6 py-6">
+            <svg viewBox="0 0 200 100" className="w-full max-w-[200px]">
+              <path
+                d="M20,50 Q50,20 80,50 T140,50"
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="4"
+                strokeDasharray="0"
+                className="animate-drawLine"
+              />
+            </svg>
+            <Button
+              onClick={() => onOpenChange(false)}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-md"
+            >
+              Continue to App
+            </Button>
           </div>
         ) : (
-          <>
-            Upgrade to{" "}
-            <span className="text-blue-600 dark:text-blue-400">
-              {plan === "premium" ? "Premium" : "Base"}
-            </span>{" "}
-            Plan
-            <div className="text-sm font-normal text-muted-foreground">
-              ${plan === "premium" ? "9.99/month" : "4.99/month"}
+          <Elements stripe={stripePromise}>
+            <div className="space-y-6 pt-2">
+              <div className="rounded-lg bg-gray-50 p-4 shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">Plan</span>
+                  <span className="font-semibold">{plan === "premium" ? "Premium" : "Base"}</span>
+                </div>
+                <div className="flex justify-between items-center mt-3 text-sm">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">Price</span>
+                  <span className="font-semibold">
+                    ${plan === "premium" ? "9.99" : "4.99"} <span className="text-xs text-gray-400">/ month</span>
+                  </span>
+                </div>
+              </div>
+              <PaymentForm plan={plan} onSuccess={handleSuccess} onCancel={() => onOpenChange(false)} />
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Lock className="h-4 w-4" />
+                <span>Payments are secure and end-to-end encrypted</span>
+              </div>
             </div>
-          </>
+          </Elements>
         )}
-      </DialogTitle>
-
-      <DialogDescription className="text-sm text-gray-600 dark:text-gray-400">
-        {paymentSuccess ? (
-          <>
-            Your subscription is now active. Enjoy all the premium features.
-          </>
-        ) : (
-          <>
-            Secured via{" "}
-            <span className="font-medium text-blue-600 dark:text-blue-400">
-              Stripe
-            </span>
-            . Your data is encrypted and protected.
-          </>
-        )}
-      </DialogDescription>
-    </DialogHeader>
-
-    {paymentSuccess ? (
-      <div className="flex flex-col items-center gap-6 py-6">
-        <div className="w-full max-w-[200px]">
-          <svg viewBox="0 0 200 100" className="w-full h-auto">
-            <path
-              d="M20,50 Q50,20 80,50 T140,50"
-              fill="none"
-              stroke="#10B981"
-              strokeWidth="4"
-              strokeDasharray="0"
-              className="animate-drawLine"
-            />
-          </svg>
-        </div>
-        <Button
-          onClick={() => onOpenChange(false)}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-md transition-colors duration-200"
-        >
-          Continue to App
-        </Button>
-      </div>
-    ) : (
-      <Elements stripe={stripePromise}>
-        <div className="space-y-6 pt-2">
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-600 dark:text-gray-300 font-medium">
-                Plan
-              </span>
-              <span className="font-semibold text-gray-800 dark:text-white">
-                {plan === "premium" ? "Premium" : "Base"}
-              </span>
-            </div>
-            <div className="flex justify-between items-center mt-3 text-sm">
-              <span className="text-gray-600 dark:text-gray-300 font-medium">
-                Price
-              </span>
-              <span className="font-semibold text-gray-800 dark:text-white">
-                ${plan === "premium" ? "9.99" : "4.99"}
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {" "}
-                  / month
-                </span>
-              </span>
-            </div>
-          </div>
-
-          <PaymentForm
-            plan={plan}
-            onSuccess={handleSuccess}
-            onCancel={() => onOpenChange(false)}
-          />
-
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 pt-2">
-            <span className="h-3.5 w-3.5">
-              <Lock className="h-4 w-4" />
-            </span>
-            <span>Payments are secure and end-to-end encrypted</span>
-            </div>
-        </div>
-      </Elements>
-    )}
-  </DialogContent>
-</Dialog>
-
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -366,15 +335,18 @@ function ChatContent() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [displayedResponse, setDisplayedResponse] = useState<{ [messageId: string]: string }>({});
   const [isTyping, setIsTyping] = useState<{ [messageId: string]: boolean }>({});
-  const [selectedPlan, setSelectedPlan] = useState<string>("base"); // Added state for plan selection
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>("base");
+  const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<string>("base");
   const { user, userProfile } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
-const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
+  const searchParams = useSearchParams();
+
   // Initialize Speech Recognition
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -395,14 +367,14 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
             event.error === "no-speech"
               ? "No speech detected. Please try again."
               : event.error === "not-allowed"
-              ? "Microphone access denied. Please allow microphone permissions in browser settings."
-              : "Speech recognition failed. Try again or check browser support."
+              ? "Microphone access denied. Please allow microphone permissions."
+              : "Speech recognition failed. Try again."
           );
           setIsRecording(false);
         };
         recognitionRef.current.onend = () => setIsRecording(false);
       } else {
-        toast.error("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
+        toast.error("Speech recognition not supported in this browser.");
       }
     }
   }, []);
@@ -412,11 +384,11 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
     if (typeof window !== "undefined" && navigator.permissions) {
       navigator.permissions.query({ name: "microphone" as PermissionName }).then((permissionStatus) => {
         if (permissionStatus.state === "denied") {
-          toast.error("Microphone access denied. Please enable it in browser settings.");
+          toast.error("Microphone access denied. Please enable it in settings.");
         }
         permissionStatus.onchange = () => {
           if (permissionStatus.state === "denied") {
-            toast.error("Microphone access revoked. Please enable it in browser settings.");
+            toast.error("Microphone access revoked. Please enable it in settings.");
           }
         };
       });
@@ -446,22 +418,23 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
       id: msg.id || uuidv4(),
       timestamp: msg.timestamp instanceof Date
         ? msg.timestamp
-        : (msg.timestamp as firebase.Timestamp)?.toDate?.() || new Date(),
+        : (msg.timestamp as any)?.toDate?.() || new Date(),
       image: msg.image && typeof msg.image === "string" && msg.image.startsWith("https://") ? msg.image : null,
     })),
     createdAt: session.createdAt instanceof Date
       ? session.createdAt
-      : (session.createdAt as firebase.Timestamp)?.toDate?.() || new Date(),
+      : (session.createdAt as any)?.toDate?.() || new Date(),
     updatedAt: session.updatedAt instanceof Date
       ? session.updatedAt
-      : (session.updatedAt as firebase.Timestamp)?.toDate?.() || new Date(),
+      : (session.updatedAt as any)?.toDate?.() || new Date(),
   });
 
-  // Fetch sessions and start new chat on mount
+  // Fetch sessions and handle sessionId from URL
   useEffect(() => {
     if (!user) {
       setLoading(false);
       setCurrentSession(null);
+      setSessions([]);
       return;
     }
 
@@ -469,27 +442,31 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
 
     const fetchSessions = async () => {
       try {
+        setLoading(true);
         unsubscribe = subscribeToUserChatSessions(user.uid, (userSessions) => {
           const normalizedSessions = userSessions
             .map(normalizeSession)
-            .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()); // Fixed syntax error
+            .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
           setSessions(normalizedSessions);
-        });
 
-        // Start a new chat session on mount
-        const sessionId = await createChatSession(user.uid, "New Chat");
-        const newSession: ProcessedChatSession = {
-          id: sessionId,
-          userId: user.uid,
-          title: "New Chat",
-          messages: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        setCurrentSession(newSession);
+          const sessionId = searchParams ? searchParams.get('sessionId') : null;
+          if (sessionId) {
+            const selectedSession = normalizedSessions.find((s) => s.id === sessionId);
+            if (selectedSession) {
+              setCurrentSession(selectedSession);
+            } else {
+              console.error("Session not found for ID:", sessionId);
+              toast.error("Chat session not found");
+              startNewChat();
+            }
+          } else if (!currentSession) {
+            startNewChat();
+          }
+        });
       } catch (error) {
         console.error("Error fetching sessions:", error);
         toast.error("Failed to load chat sessions");
+        startNewChat();
       } finally {
         setLoading(false);
       }
@@ -498,7 +475,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
     fetchSessions();
 
     return () => unsubscribe?.();
-  }, [user]);
+  }, [user, searchParams]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -506,6 +483,14 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [currentSession?.messages]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [message]);
 
   const startNewChat = async () => {
     if (!user) {
@@ -525,6 +510,9 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
       };
       setCurrentSession(newSession);
       setMessage("");
+      setSelectedFile(null);
+      setFileName("");
+      setSessions((prev) => [newSession, ...prev]); // Add new session to history
       toast.success("New chat started!");
     } catch (error) {
       console.error("Error starting new chat:", error);
@@ -534,10 +522,8 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
 
   const uploadImageToCloudinary = async (file: File): Promise<string | null> => {
     try {
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME; // Fixed env variable
-      if (!cloudName) {
-        throw new Error("Cloudinary cloud name is not configured.");
-      }
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      if (!cloudName) throw new Error("Cloudinary cloud name is not configured.");
 
       const validTypes = ["image/jpeg", "image/png", "image/heic", "application/pdf"];
       if (!validTypes.includes(file.type)) {
@@ -549,9 +535,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
       formData.append("upload_preset", "medibot_Uploads");
 
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/${
-          file.type === "application/pdf" ? "raw" : "image"
-        }/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/${file.type === "application/pdf" ? "raw" : "image"}/upload`,
         {
           method: "POST",
           body: formData,
@@ -593,6 +577,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
     setLoading(true);
 
     try {
+      // Use existing session or create a new one only if none exists
       let sessionId = currentSession?.id;
       if (!sessionId) {
         const smartTitle = message.trim() ? generateChatTitle(message) : "File Chat";
@@ -606,7 +591,11 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
           updatedAt: new Date(),
         };
         setCurrentSession(newSession);
-      } else if (currentSession?.title === "New Chat" && message.trim()) {
+        setSessions((prev) => [newSession, ...prev]);
+      }
+
+      // Update session title only if it's still "New Chat"
+      if (currentSession?.title === "New Chat" && message.trim()) {
         const smartTitle = generateChatTitle(message);
         setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
       }
@@ -626,6 +615,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
         image: fileUrl ?? null,
       };
 
+      // Update current session with the new message
       setCurrentSession((prev) => {
         if (!prev) return prev;
         return {
@@ -650,7 +640,6 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
         botResponse = botResponse ? `${botResponse}\n\n${analysisText}` : analysisText;
       }
 
-      // Start typing animation
       setIsTyping((prev) => ({ ...prev, [messageId]: true }));
       setDisplayedResponse((prev) => ({ ...prev, [messageId]: "" }));
 
@@ -663,6 +652,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
 
       setIsTyping((prev) => ({ ...prev, [messageId]: false }));
 
+      // Save message to Firestore and update session
       const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
       setCurrentSession((prev) => {
         if (!prev) return prev;
@@ -673,7 +663,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                 id: newMessage.id || uuidv4(),
                 timestamp: newMessage.timestamp instanceof Date
                   ? newMessage.timestamp
-                  : (newMessage.timestamp as firebase.Timestamp).toDate(),
+                  : (newMessage.timestamp as any).toDate(),
                 image: newMessage.image ?? null,
               }
             : msg
@@ -685,23 +675,33 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
         };
       });
 
+      // Update sessions to reflect the updated message count and timestamp
+      setSessions((prev) =>
+        prev.map((session) =>
+          session.id === sessionId
+            ? {
+                ...session,
+                messages: [
+                  ...session.messages,
+                  {
+                    ...newMessage,
+                    timestamp:
+                      newMessage.timestamp instanceof Date
+                        ? newMessage.timestamp
+                        : (newMessage.timestamp as any)?.toDate?.() || new Date(),
+                  },
+                ],
+                updatedAt: new Date(),
+              }
+            : session
+        )
+      );
+
       sendMessageNotification(userMessage, botResponse);
       toast.success("Message sent successfully");
     } catch (error: any) {
       console.error("Error sending message:", error);
-      if (error.message.includes("rate limit")) {
-        toast.error(
-          <>
-            Rate limit reached. Try again later or{" "}
-            <Link href="https://console.groq.com/docs/pricing" className="underline">
-              upgrade your Groq plan
-            </Link>{" "}
-            for higher usage quotas.
-          </>
-        );
-      } else {
-        toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
-      }
+      toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
       setMessage(userMessage);
       if (selectedFile) {
         setSelectedFile(selectedFile);
@@ -828,7 +828,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
       setIsSpeaking(false);
       utteranceRef.current = null;
     };
-    utterance.onerror = (event) => {
+    utterance.onerror = () => {
       toast.error("Speech stopped");
       setIsSpeaking(false);
       utteranceRef.current = null;
@@ -844,7 +844,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
       return;
     }
     if (!recognitionRef.current) {
-      toast.error("Speech recognition not supported in this browser. Please use Chrome or Edge.");
+      toast.error("Speech recognition not supported in this browser.");
       return;
     }
     if (isRecording) {
@@ -915,11 +915,10 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
     }
   };
 
-  const generateAIResponse = async (userMessage: string, selectedModel: string): Promise<string> => { // Fixed constD to const
+  const generateAIResponse = async (userMessage: string, selectedModel: string): Promise<string> => {
     try {
       const modelMap: Record<string, string> = {
         "gemini-2.0-flash": "gemini-2.0-flash",
-        "grok": "x-ai/grok-3-beta",
         "gpt-4o": "gpt-4o",
         "medibot": "llama-3.3-70b-versatile",
       };
@@ -932,57 +931,25 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
         .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
         .join("\n\n") || "";
 
-      const prompt = `You are MediBot, a health-focused AI assistant. Use the following conversation context to provide a concise, informative, and professional response. Ensure the response is educational, not a substitute for medical advice, and includes a reminder to consult a healthcare professional. Context: ${recentMessages}\n\nQuery: ${userMessage}`;
+      const prompt = `You are MediBot, a health-focused AI assistant. Provide a concise, informative, and professional response. Ensure the response is educational, not a substitute for medical advice, and includes a reminder to consult a healthcare professional. Context: ${recentMessages}\n\nQuery: ${userMessage}`;
 
       let response;
-      if (resolvedModel === "llama-3.3-70b-versatile") {
-        const groqApiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY; // Fixed env variable
-        if (!groqApiKey) {
-          throw new Error("Groq API key is not configured.");
-        }
-
-        response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${groqApiKey}`,
-          },
-          body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            messages: [{ role: "user", content: prompt }],
-            max_tokens: 500,
-            temperature: 0.7,
-          }),
+      if (typeof window !== "undefined" && !window.puter) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://js.puter.com/v2/";
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("Failed to load Puter.js"));
+          document.head.appendChild(script);
         });
-
-        if (!response.ok) {
-          throw new Error(`Groq API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (!data.choices?.[0]?.message?.content) {
-          throw new Error("No valid response from Groq API");
-        }
-        return data.choices[0].message.content.trim();
-      } else {
-        // Load Puter.js if not already loaded
-        if (typeof window !== "undefined" && !window.puter) {
-          await new Promise<void>((resolve, reject) => {
-            const script = document.createElement("script");
-            script.src = "https://js.puter.com/v2/";
-            script.async = true;
-            script.onload = () => resolve();
-            script.onerror = () => reject(new Error("Failed to load Puter.js"));
-            document.head.appendChild(script);
-          });
-        }
-
-        response = await window.puter.ai.chat(prompt, { model: resolvedModel });
-        if (!response?.message?.content) {
-          throw new Error("No valid response from AI service");
-        }
-        return response.message.content.trim();
       }
+
+      response = await window.puter.ai.chat(prompt, { model: resolvedModel });
+      if (!response?.message?.content) {
+        throw new Error("No valid response from AI service");
+      }
+      return response.message.content.trim();
     } catch (error: any) {
       console.error("Error generating AI response:", error);
       if (selectedModel !== "medibot") {
@@ -997,92 +964,50 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
     try {
       setAnalyzingPrescription(true);
       const fileBase64 = await fileToBase64(file);
-      const groqApiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY; // Fixed env variable
-      const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY; // Fixed env variable
+      const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
-      if ((selectedModel === "medibot" || selectedModel === "grok") && !groqApiKey) {
-        throw new Error("Groq API key is not configured.");
-      }
-      if (selectedModel !== "medibot" && selectedModel !== "grok" && !geminiApiKey) {
+      if (selectedModel !== "medibot" && !geminiApiKey) {
         throw new Error("Gemini API key is not configured.");
       }
 
-      const endpoint = selectedModel === "medibot"
-        ? "https://api.groq.com/openai/v1/chat/completions"
-        : selectedModel === "grok"
-        ? "https://api.x.ai/v1/models/grok:analyzePrescription"
-        : `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`;
 
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-
-      if (selectedModel === "medibot" || selectedModel === "grok") {
-        headers.Authorization = `Bearer ${groqApiKey}`;
-      }
-
-      const body = selectedModel === "medibot"
-        ? {
-            model: "llama-3.3-70b-versatile",
-            messages: [
-              {
-                role: "user",
-                content:
-                  "Analyze this prescription image or PDF and extract medications, dosages, instructions, and warnings. Return JSON with fields: medications (array), dosages (array), instructions (string), warnings (array).",
-                inlineData: {
-                  mimeType: file.type,
-                  data: fileBase64,
+      const response = await fetch(`${endpoint}?key=${geminiApiKey}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text:
+                    "Analyze this prescription image or PDF and extract medications, dosages, instructions, and warnings. Return JSON with fields: medications (array), dosages (array), instructions (string), warnings (array).",
                 },
-              },
-            ],
-          }
-        : {
-            contents: [
-              {
-                parts: [
-                  {
-                    text:
-                      "Analyze this prescription image or PDF and extract medications, dosages, instructions, and warnings. Return JSON with fields: medications (array), dosages (array), instructions (string), warnings (array).",
+                {
+                  inlineData: {
+                    mimeType: file.type,
+                    data: fileBase64,
                   },
-                  {
-                    inlineData: {
-                      mimeType: file.type,
-                      data: fileBase64,
-                    },
-                  },
-                ],
-              },
-            ],
-            generationConfig: {
-              temperature: 0.5,
-              maxOutputTokens: 500,
+                },
+              ],
             },
-          };
-
-      const response = await fetch(
-        `${endpoint}${selectedModel === "medibot" || selectedModel === "grok" ? "" : `?key=${geminiApiKey}`}`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify(body),
-        }
-      );
+          ],
+          generationConfig: {
+            temperature: 0.5,
+            maxOutputTokens: 500,
+          },
+        }),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
-      const data: GroqResponse | GeminiResponse = await response.json();
-      let responseText: string;
-
-      if (selectedModel === "medibot") {
-        responseText = (data as GroqResponse).choices?.[0]?.message?.content || "{}";
-      } else {
-        responseText = (data as GeminiResponse).candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-      }
-
-      // Clean and parse the response
+      const data: GeminiResponse = await response.json();
+      const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
       const cleanedResponseText = responseText.replace(/```json/g, "").replace(/```/g, "").replace(/`/g, "").trim();
 
       let result: PrescriptionAnalysis;
@@ -1091,11 +1016,6 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
       } catch (parseError) {
         console.error("JSON parse error:", parseError);
         throw new Error("Invalid JSON response from API");
-      }
-
-      // Validate the parsed result
-      if (!result.medications || !result.dosages || !result.instructions) {
-        throw new Error("Incomplete analysis data returned");
       }
 
       return {
@@ -1107,7 +1027,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
     } catch (error: any) {
       console.error("Error analyzing prescription:", error);
       if (selectedModel !== "medibot") {
-        toast.warning("Primary model failed for prescription analysis, falling back to MediBot model...");
+        toast.warning("Primary model failed, falling back to MediBot model...");
         setSelectedModel("medibot");
         return analyzePrescription(file);
       }
@@ -1227,27 +1147,15 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
       return (
         <div key={msg.id}>
           {showDateDivider && (
-            <div className="text-center text-xs text-gray-500 my-4">
+            <div className="text-center text-xs text-gray-500 dark:text-gray-400 my-4">
               {messageDate === new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })
                 ? "Today"
                 : messageDate}
             </div>
           )}
-          <div className="space-y-2 animate-fade-in hover:scale-[1.02] transition-transform duration-200">
-            <style jsx>{`
-              @keyframes fadeIn {
-                from {
-                  opacity: 0;
-                  transform: translateY(10px);
-                }
-                to {
-                  opacity: 1;
-                  transform: translateY(0);
-                }
-              }
-            `}</style>
+          <div className="space-y-2">
             <div className="flex justify-end items-start space-x-2 max-w-[70%] ml-auto">
-              <div className="bg-gray-200 dark:bg-gray-700 rounded-2xl p-4 text-gray-800 dark:text-white text-sm leading-relaxed shadow-md">
+              <div className="bg-blue-600/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
                 {isValidImageUrl(msg.image) ? (
                   <div className="mb-2">
                     <Image
@@ -1260,7 +1168,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                     />
                   </div>
                 ) : msg.image !== null ? (
-                  <p className="text-xs text-red-500 mb-2">Invalid or missing file</p>
+                  <p className="text-xs text-red-400 mb-2">Invalid or missing file</p>
                 ) : null}
                 {editingMessageId === msg.id ? (
                   <div className="flex items-center space-x-2">
@@ -1268,12 +1176,12 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                       value={editedMessage}
                       onChange={(e) => setEditedMessage(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      className="bg-white/10 dark:bg-gray-800 border-none text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-400 rounded-lg"
+                      className="bg-gray-100 dark:bg-gray-700 border-none dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
                       aria-label="Edit message"
                     />
                     <Button
                       onClick={() => handleEditMessage(msg.id, editedMessage)}
-                      className="bg-purple-600 hover:bg-purple-700 text-white rounded-full h-8 w-8"
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 w-8"
                       aria-label="Send edited message"
                     >
                       <Send className="h-4 w-4" />
@@ -1287,9 +1195,8 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                     variant="ghost"
                     size="icon"
                     onClick={() => handleCopyText(msg.message)}
-                    className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white h-6 w-6"
+                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
                     title="Copy Message"
-                    aria-label="Copy Message"
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
@@ -1297,18 +1204,17 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                     variant="ghost"
                     size="icon"
                     onClick={() => handleEditMessage(msg.id, msg.message)}
-                    className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white h-6 w-6"
+                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
                     title="Edit Message"
-                    aria-label="Edit Message"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 opacity-70">{formatISTDateTime(msg.timestamp)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{formatISTDateTime(msg.timestamp)}</p>
               </div>
               <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
                 <AvatarImage src={userProfile?.photoURL || user?.photoURL || ""} />
-                <AvatarFallback className="bg-purple-600 text-white text-sm">
+                <AvatarFallback className="bg-blue-600 text-white text-sm">
                   {userProfile?.displayName?.charAt(0).toUpperCase() ||
                     user?.displayName?.charAt(0).toUpperCase() ||
                     user?.email?.charAt(0).toUpperCase() ||
@@ -1318,23 +1224,22 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
             </div>
             {msg.response || isTyping[msg.id] ? (
               <div className="flex items-start space-x-2 max-w-[80%]">
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 text-gray-800 dark:text-white text-sm leading-relaxed border border-gray-200 dark:border-gray-700 shadow-md whitespace-pre-wrap">
+                <div className="bg-gray-100 dark:bg-gray-700 rounded-xl p-4 dark:text-white text-sm leading-relaxed border dark:border-gray-600">
                   {(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response)?.split("\n").map((line, i) => (
                     <p key={i} className={line.startsWith("**") ? "font-semibold" : ""}>
                       {line}
                     </p>
                   ))}
                   {isTyping[msg.id] && (
-                    <div className="inline-block w-2 h-4 bg-gray-500 animate-pulse"></div>
+                    <div className="inline-block w-2 h-4 bg-blue-500 animate-pulse"></div>
                   )}
                   <div className="flex space-x-2 mt-2">
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => handleCopyText(msg.response)}
-                      className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white h-6 w-6"
+                      className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
                       title="Copy Response"
-                      aria-label="Copy Response"
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -1342,9 +1247,8 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                       variant="ghost"
                       size="icon"
                       onClick={() => handleSpeakResponse(msg.response)}
-                      className={`text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white h-6 w-6 ${isSpeaking ? "animate-pulse bg-blue-500/20" : ""}`}
+                      className={`text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 ${isSpeaking ? "animate-pulse bg-blue-500/20" : ""}`}
                       title={isSpeaking ? "Stop Speaking" : "Speak Response"}
-                      aria-label={isSpeaking ? "Stop Speaking" : "Speak Response"}
                     >
                       <Volume2 className="h-4 w-4" />
                     </Button>
@@ -1352,9 +1256,8 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                       variant="ghost"
                       size="icon"
                       onClick={() => handleFeedback(msg.id, true)}
-                      className="text-gray-500 dark:text-gray-400 hover:text-green-500 h-6 w-6"
+                      className="text-gray-500 dark:text-gray-300 hover:text-green-500 h-6 w-6"
                       title="Thumbs Up"
-                      aria-label="Thumbs Up"
                     >
                       <ThumbsUp className="h-4 w-4" />
                     </Button>
@@ -1362,9 +1265,8 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                       variant="ghost"
                       size="icon"
                       onClick={() => handleFeedback(msg.id, false)}
-                      className="text-gray-500 dark:text-gray-400 hover:text-red-500 h-6 w-6"
+                      className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6"
                       title="Thumbs Down"
-                      aria-label="Thumbs Down"
                     >
                       <ThumbsDown className="h-4 w-4" />
                     </Button>
@@ -1372,9 +1274,8 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                       variant="ghost"
                       size="icon"
                       onClick={() => handleRetryResponse(msg.id, msg.message)}
-                      className="text-gray-500 dark:text-gray-400 hover:text-blue-500 h-6 w-6"
+                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
                       title="Retry Response"
-                      aria-label="Retry Response"
                     >
                       <RefreshCw className="h-4 w-4" />
                     </Button>
@@ -1382,24 +1283,23 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                       variant="ghost"
                       size="icon"
                       onClick={() => window.open(`https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(msg.message)}`, "_blank")}
-                      className="text-gray-500 dark:text-gray-400 hover:text-blue-500 h-6 w-6"
+                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
                       title="Search PubMed"
-                      aria-label="Search PubMed"
                     >
                       <Search className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 opacity-70">{formatISTDateTime(msg.timestamp)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{formatISTDateTime(msg.timestamp)}</p>
                 </div>
               </div>
             ) : (
               loading && (
                 <div className="flex items-start space-x-2 max-w-[80%]">
-                  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-md">
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-xl p-4 border dark:border-gray-600">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                      <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
                     </div>
                   </div>
                 </div>
@@ -1411,33 +1311,20 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
     });
   }, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, displayedResponse, isTyping]);
 
-  const handleMessageChange = debounce((value: string) => {
-    setMessage(value);
-  }, 300);
-
   return (
     <AuthGuard>
-      <div className="min-h-screen flex h-screen overflow-hidden bg-white dark:bg-gray-900">
+      <div className="min-h-screen flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
         <style jsx global>{`
-          .message-bubble:hover {
-            transform: scale(1.02);
-            transition: transform 0.2s ease-in-out;
-          }
-          @media (prefers-contrast: high) {
-            .bg-purple-600 {
-              background-color: #800080;
-              color: #fff;
-            }
-            .text-gray-500 {
-              color: #000;
-            }
+          textarea {
+            max-height: 120px;
+            overflow-y: auto;
           }
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-         <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm">
+                  <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm">
   {/* Left Section */}
   <div className="flex items-center space-x-4">
     {/* Mobile Sidebar Toggle */}
@@ -1600,7 +1487,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                         <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
                       </div>
                       <div>
-                        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Welcome to MediBot</h1>
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
                         <p className="text-gray-500 dark:text-gray-400 text-sm">Please log in or sign up to start chatting.</p>
                       </div>
                     </div>
@@ -1608,7 +1495,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                       <Link href="/auth/signin">
                         <Button
                           variant="outline"
-                          className="w-full h-12 bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-white hover:bg-purple-600 hover:text-white rounded-xl"
+                          className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
                         >
                           Login
                         </Button>
@@ -1616,7 +1503,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                       <Link href="/auth/signup">
                         <Button
                           variant="outline"
-                          className="w-full h-12 bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-white hover:bg-purple-600 hover:text-white rounded-xl"
+                          className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
                         >
                           Signup
                         </Button>
@@ -1632,7 +1519,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                         <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
                       </div>
                       <div>
-                        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Welcome to MediBot</h1>
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
                         <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation below.</p>
                       </div>
                     </div>
@@ -1647,16 +1534,23 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
 
           {/* Input Area */}
           {user && (
-            <div className="sticky bottom-0 z-10 w-full bg-white dark:bg-gray-900 px-4 pb-6 pt-4">
+            <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-6 pt-4">
               <div className="mx-auto max-w-3xl">
-                <div className="flex flex-col gap-2 rounded-xl bg-gray-100 dark:bg-gray-800 px-4 py-3 shadow-lg">
+                <div className="flex flex-col gap-2 rounded-xl bg-white dark:bg-gray-800 p-4 shadow-lg">
                   <textarea
+                    ref={textareaRef}
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e) => {
+                      setMessage(e.target.value);
+                      if (textareaRef.current) {
+                        textareaRef.current.style.height = 'auto';
+                        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+                      }
+                    }}
                     onKeyDown={handleKeyPress}
                     placeholder="Ask a health question or upload a file..."
-                    className="w-full resize-none bg-transparent text-sm placeholder-gray-400 dark:placeholder-gray-500 text-gray-800 dark:text-white outline-none"
-                    rows={2}
+                    className="w-full resize-none bg-transparent text-sm placeholder-gray-500 dark:placeholder-gray-400 dark:text-white outline-none"
+                    rows={1}
                     maxLength={1000}
                     disabled={loading || isRecording}
                     aria-label="Message input"
@@ -1664,12 +1558,11 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                   <div className="flex justify-between items-center pt-2">
                     <div className="flex items-center gap-2">
                       <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger className="h-7 bg-gray-200 dark:bg-gray-700 text-sm text-gray-800 dark:text-gray-300 border-none rounded-md focus:ring-1 focus:ring-purple-500">
+                        <SelectTrigger className="h-8 bg-gray-100 dark:bg-gray-700 dark:text-white text-sm border-none focus:ring-1 focus:ring-blue-500">
                           <SelectValue placeholder="Model" />
                         </SelectTrigger>
-                        <SelectContent className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white text-sm border-none">
+                        <SelectContent className="bg-gray-100 dark:bg-gray-800 dark:text-white text-sm border-gray-200 dark:border-gray-700">
                           <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
-                          <SelectItem value="grok">Grok (Beta)</SelectItem>
                           <SelectItem value="gpt-4o">GPT-4o</SelectItem>
                           <SelectItem value="medibot">MediBot</SelectItem>
                         </SelectContent>
@@ -1678,9 +1571,8 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                         onClick={handleFileUpload}
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
+                        className="h-8 w-8 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
                         title="Upload File"
-                        aria-label="Upload File"
                       >
                         <Upload className="h-4 w-4" />
                       </Button>
@@ -1688,9 +1580,8 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                         onClick={handleToggleRecording}
                         size="icon"
                         variant="ghost"
-                        className={`h-8 w-8 ${isRecording ? "bg-red-600 animate-pulse" : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"}`}
+                        className={`h-8 w-8 ${isRecording ? "bg-red-600 animate-pulse" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`}
                         title={isRecording ? "Stop Recording" : "Record Voice"}
-                        aria-label={isRecording ? "Stop Recording" : "Record Voice"}
                       >
                         <Mic className="h-4 w-4" />
                       </Button>
@@ -1705,7 +1596,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                     <Button
                       onClick={handleSendMessage}
                       disabled={loading || (!message.trim() && !selectedFile)}
-                      className="h-8 w-8 bg-purple-600 hover:bg-purple-700 text-white rounded-full disabled:opacity-40"
+                      className="h-8 w-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full disabled:opacity-40"
                       aria-label="Send Message"
                     >
                       <Send className="h-4 w-4" />
@@ -1713,16 +1604,15 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
                   </div>
                   {fileName && (
                     <div className="flex items-center gap-2 pt-1">
-                      <Badge className="bg-gray-200 dark:bg-gray-700 text-sm text-gray-800 dark:text-gray-300 truncate max-w-[300px]">
+                      <Badge className="bg-gray-100 dark:bg-gray-700 dark:text-white text-sm truncate max-w-[300px]">
                         {fileName}
                       </Badge>
                       <Button
                         onClick={removeFile}
                         size="icon"
                         variant="ghost"
-                        className="h-7 w-7 text-red-400 hover:text-red-600"
+                        className="h-7 w-7 text-red-500 hover:text-red-600"
                         title="Remove File"
-                        aria-label="Remove File"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -1732,241 +1622,235 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
               </div>
             </div>
           )}
-        </div>
 
-        {/* Prescription Analysis Dialog */}
-        {user && (
-          <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
-            <DialogContent
-              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white max-w-2xl mx-auto max-h-[80vh] overflow-y-auto rounded-2xl p-6 shadow-lg"
-              aria-describedby="prescription-dialog-description"
-            >
-              <DialogHeader>
-                <DialogTitle className="flex items-center space-x-2 text-lg">
-                  <Camera className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span>Prescription Analysis</span>
-                </DialogTitle>
-                <DialogDescription id="prescription-dialog-description">
-                  Upload a photo or PDF of your prescription to analyze its contents.
-                </DialogDescription>
-              </DialogHeader>
-              {!analysisResult ? (
-                <div className="space-y-4">
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">
-                    Upload a file for AI-powered analysis and information.
-                  </p>
-                  <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-8 text-center">
-                    {analyzingPrescription ? (
-                      <div className="space-y-4">
-                        <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Analyzing file...</p>
-                      </div>
-                    ) : (
-                      <>
-                        <Camera className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Upload prescription file</p>
-                        <Button
-                          onClick={handleFileUpload}
-                          className="bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg"
-                        >
-                          <Upload className="mr-2 h-4 w-4" />
-                          Choose File
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setAnalyzingPrescription(true);
-                        analyzePrescription(file)
-                          .then((analysis) => {
-                            setAnalysisResult({
-                              ...analysis,
-                              userId: user.uid,
-                              fileName: file.name,
-                              createdAt: new Date(),
-                            });
-                            toast.success("Prescription analyzed successfully!");
-                          })
-                          .catch((error) => {
-                            console.error("Error analyzing prescription:", error);
-                            toast.error("Failed to analyze prescription");
-                          })
-                          .finally(() => {
-                            setAnalyzingPrescription(false);
-                            if (fileInputRef.current) fileInputRef.current.value = "";
-                          });
-                      }
-                    }}
-                    className="hidden"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Supported formats: JPG, PNG, HEIC, PDF. For informational purposes only.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg">
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2 text-lg">
-                        <FileText className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                        <span>Analysis Results</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 gap-4">
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2 text-gray-800 dark:text-white">Detected Medications</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {analysisResult.medications.map((med, index) => (
-                              <Badge key={index} className="bg-purple-600 text-white text-sm rounded-lg">
-                                <Pill className="mr-2 h-3 w-3" />
-                                {med}
-                              </Badge>
-                            ))}
-                          </div>
+          {/* Prescription Analysis Dialog */}
+          {user && (
+            <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
+              <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-2 text-lg">
+                    <Camera className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    <span>Prescription Analysis</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    Upload a photo or PDF of your prescription to analyze its contents.
+                  </DialogDescription>
+                </DialogHeader>
+                {!analysisResult ? (
+                  <div className="space-y-4">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                      Upload a file for AI-powered analysis and information.
+                    </p>
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center">
+                      {analyzingPrescription ? (
+                        <div className="space-y-4">
+                          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">Analyzing file...</p>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2 text-gray-800 dark:text-white">Dosage Information</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {analysisResult.dosages.map((dosage, index) => (
-                              <Badge key={index} variant="secondary" className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 text-sm rounded-lg">
-                                {dosage}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-sm mb-2 text-gray-800 dark:text-white">Instructions</h4>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
-                          {analysisResult.instructions}
-                        </p>
-                      </div>
-                      {analysisResult.warnings?.length > 0 && (
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2 text-gray-800 dark:text-white flex items-center">
-                            <AlertCircle className="mr-2 h-5 w-5 text-yellow-500" />
-                            <span>Warnings & Precautions</span>
-                          </h4>
-                          <div className="space-y-2">
-                            {analysisResult.warnings.map((warning, index) => (
-                              <div key={index} className="bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-3 rounded-lg">
-                                <p className="text-yellow-700 dark:text-yellow-300 text-sm">{warning}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                      ) : (
+                        <>
+                          <Camera className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Upload prescription file</p>
+                          <Button
+                            onClick={handleFileUpload}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            Choose File
+                          </Button>
+                        </>
                       )}
-                      <div className="bg-blue-100 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-3 rounded-lg">
-                        <p className="text-blue-700 dark:text-blue-300 text-sm">
-                          <strong>Important:</strong> This analysis is for informational purposes only. Always follow your doctor's instructions and consult your pharmacist.
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                    <Button
-                      onClick={() => {
-                        setAnalysisResult(null);
-                        setPrescriptionDialogOpen(false);
-                      }}
-                      variant="outline"
-                      className="flex-1 bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-white hover:bg-purple-600 hover:text-white text-sm rounded-lg"
-                    >
-                      Close
-                    </Button>
-                    <Button
-                      onClick={() => setAnalysisResult(null)}
-                      className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg"
-                    >
-                      Analyze Another
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-        )}
-
-        {/* History Dialog */}
-        {user && (
-          <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
-            <DialogContent
-              className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white max-w-md mx-auto p-6 rounded-2xl shadow-lg"
-              aria-describedby="history-dialog-description"
-            >
-              <DialogHeader>
-                <DialogTitle className="flex items-center space-x-2 text-lg">
-                  <RotateCcw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                  <span>Recent Chats</span>
-                </DialogTitle>
-                <DialogDescription id="history-dialog-description">
-                  View your recent chat sessions.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 overflow-y-auto max-h-96">
-                {sessions.length > 0 ? (
-                  sessions.slice(0, 10).map((session) => (
-                    <div
-                      key={session.id}
-                      className={`p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
-                        currentSession?.id === session.id
-                          ? "bg-purple-600/20 border-purple-600"
-                          : "bg-gray-100 dark:bg-gray-700 hover:bg-purple-600/10"
-                      }`}
-                      onClick={() => {
-                        setCurrentSession(normalizeSession(session));
-                        setHistoryDialogOpen(false);
-                        setTimeout(() => {
-                          if (scrollAreaRef.current) {
-                            scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-                          }
-                        }, 0);
-                      }}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
-                          <p className="text-gray-500 dark:text-gray-400 text-sm">
-                            {session.messages.length} messages • {formatISTDateTime(session.updatedAt)}
-                          </p>
-                          {session.messages.length > 0 && (
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 truncate">
-                              {session.messages[session.messages.length - 1]?.message || "No messages"}
-                            </p>
-                          )}
-                        </div>
-                      </div>
                     </div>
-                  ))
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setAnalyzingPrescription(true);
+                          analyzePrescription(file)
+                            .then((analysis) => {
+                              setAnalysisResult({
+                                ...analysis,
+                                userId: user.uid,
+                                fileName: file.name,
+                                createdAt: new Date(),
+                              });
+                              toast.success("Prescription analyzed successfully!");
+                            })
+                            .catch((error) => {
+                              console.error("Error analyzing prescription:", error);
+                              toast.error("Failed to analyze prescription");
+                            })
+                            .finally(() => {
+                              setAnalyzingPrescription(false);
+                              if (fileInputRef.current) fileInputRef.current.value = "";
+                            });
+                        }
+                      }}
+                      className="hidden"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Supported formats: JPG, PNG, HEIC, PDF. For informational purposes only.
+                    </p>
+                  </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <RotateCcw className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">No chat history yet</p>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation to see your history here</p>
+                  <div className="space-y-6">
+                    <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
+                      <CardHeader>
+                        <CardTitle className="flex items-center space-x-2 text-lg">
+                          <FileText className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                          <span>Analysis Results</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4">
+                          <div>
+                            <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Detected Medications</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {analysisResult.medications.map((med, index) => (
+                                <Badge key={index} className="bg-blue-600 text-white text-sm">
+                                  <Pill className="mr-2 h-3 w-3" />
+                                  {med}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Dosage Information</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {analysisResult.dosages.map((dosage, index) => (
+                                <Badge key={index} variant="secondary" className="text-sm">
+                                  {dosage}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Instructions</h4>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                            {analysisResult.instructions}
+                          </p>
+                        </div>
+                        {analysisResult.warnings?.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white flex items-center">
+                              <AlertCircle className="mr-2 h-5 w-5 text-yellow-500" />
+                              <span>Warnings & Precautions</span>
+                            </h4>
+                            <div className="space-y-2">
+                              {analysisResult.warnings.map((warning, index) => (
+                                <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-3 rounded-lg">
+                                  <p className="text-yellow-700 dark:text-yellow-300 text-sm">{warning}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-3 rounded-lg">
+                          <p className="text-blue-700 dark:text-blue-300 text-sm">
+                            <strong>Important:</strong> This analysis is for informational purposes only. Always follow your doctor's instructions and consult your pharmacist.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                      <Button
+                        onClick={() => {
+                          setAnalysisResult(null);
+                          setPrescriptionDialogOpen(false);
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Close
+                      </Button>
+                      <Button
+                        onClick={() => setAnalysisResult(null)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Analyze Another
+                      </Button>
+                    </div>
                   </div>
                 )}
-              </div>
-              <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-                <Link href="/history">
-                  <Button
-                    variant="outline"
-                    className="bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-800 dark:text-white hover:bg-purple-600 hover:text-white text-sm rounded-lg"
-                    onClick={() => setHistoryDialogOpen(false)}
-                  >
-                    View Full History
-                  </Button>
-                </Link>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {/* History Dialog */}
+          {user && (
+            <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+              <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-md mx-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-2 text-lg">
+                    <RotateCcw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    <span>Recent Chats</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    View your recent chat sessions.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 overflow-y-auto max-h-96">
+                  {sessions.length > 0 ? (
+                    sessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className={`p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
+                          currentSession?.id === session.id
+                            ? "bg-blue-600/20 border-blue-600"
+                            : "bg-gray-100 dark:bg-gray-700 hover:bg-blue-600/10"
+                        }`}
+                        onClick={() => {
+                          setCurrentSession(normalizeSession(session));
+                          setHistoryDialogOpen(false);
+                          setTimeout(() => {
+                            if (scrollAreaRef.current) {
+                              scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+                            }
+                          }, 0);
+                        }}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm">
+                              {session.messages.length} messages • {formatISTDateTime(session.updatedAt)}
+                            </p>
+                            {session.messages.length > 0 && (
+                              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 truncate">
+                                {session.messages[session.messages.length - 1]?.message || "No messages"}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <RotateCcw className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">No chat history yet</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation to see your history here</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <Link href="/history">
+                    <Button
+                      variant="outline"
+                      className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                      onClick={() => setHistoryDialogOpen(false)}
+                    >
+                      View Full History
+                    </Button>
+                  </Link>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
     </AuthGuard>
   );
@@ -1974,7 +1858,7 @@ const [selectedPlanForPayment, setSelectedPlanForPayment] = useState('base');
 
 export default function ChatPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">Loading...</div>}>
       <ChatContent />
     </Suspense>
   );
