@@ -19,7 +19,6 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "./firebase";
 import { v4 as uuidv4 } from "uuid";
-
 export interface UserProfile {
   uid: string;
   email: string;
@@ -299,13 +298,9 @@ export const addMessageToSession = async (
 export const updateChatSessionTitle = async (sessionId: string, title: string) => {
   try {
     const sessionRef = doc(db, "chatSessions", sessionId);
-    await updateDoc(sessionRef, {
-      title: title.slice(0, 100),
-      updatedAt: serverTimestamp(),
-    });
-    console.log("Updated session title:", sessionId, title);
+    await updateDoc(sessionRef, { title });
   } catch (error) {
-    console.error("Error updating chat session title:", error);
+    console.error("Error updating session title:", error);
     throw new Error("Failed to update chat session title");
   }
 };
@@ -347,16 +342,7 @@ export const getChatSessionById = async (sessionId: string) => {
   }
 };
 
-export const deleteChatSession = async (sessionId: string) => {
-  try {
-    const sessionRef = doc(db, "chatSessions", sessionId);
-    await deleteDoc(sessionRef);
-    console.log("Deleted session:", sessionId);
-  } catch (error) {
-    console.error("Error deleting chat session:", error);
-    throw new Error("Failed to delete chat session");
-  }
-};
+// Removed duplicate declaration of deleteChatSession
 
 export const subscribeToUserChatSessions = (
   userId: string,
@@ -906,5 +892,15 @@ export const uploadHealthRecordAttachment = async (userId: string, recordId: str
   } catch (error) {
     console.error("Error uploading health record attachment:", error);
     throw new Error("Failed to upload health record attachment");
+  }
+  
+};
+export const deleteChatSession = async (sessionId: string) => {
+  try {
+    const sessionRef = doc(db, "chatSessions", sessionId);
+    await deleteDoc(sessionRef);
+  } catch (error) {
+    console.error("Error deleting session:", error);
+    throw new Error("Failed to delete chat session");
   }
 };

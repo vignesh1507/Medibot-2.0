@@ -56,6 +56,8 @@ import {
   createChatSession,
   addMessageToSession,
   subscribeToUserChatSessions,
+  updateChatSessionTitle,
+  deleteChatSession,
   type ChatSession,
 } from "@/lib/firestore";
 import { toast } from "sonner";
@@ -444,62 +446,61 @@ function ChatContent() {
   };
 
   // Fetch sessions and handle sessionId from URL or localStorage
-  useEffect(() => {
-    if (!user) {
-      setLoading(false);
+useEffect(() => {
+  if (!user) {
+    setLoading(false);
+    setCurrentSession(null);
+    setSessions([]);
+    return;
+  }
+
+  let unsubscribe: () => void;
+
+  const fetchSessions = async () => {
+    try {
+      setLoading(true);
+      unsubscribe = subscribeToUserChatSessions(user.uid, (userSessions) => {
+        const normalizedSessions = userSessions
+          .map(normalizeSession)
+          .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+        setSessions(normalizedSessions);
+
+        const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
+        const lastSessionId = getLastSessionId();
+
+        // Prioritize sessionId from URL, then last session from localStorage, then most recent session
+        let selectedSession: ProcessedChatSession | undefined;
+        if (sessionIdFromUrl) {
+          selectedSession = normalizedSessions.find((s) => s.id === sessionIdFromUrl);
+        } else if (lastSessionId) {
+          selectedSession = normalizedSessions.find((s) => s.id === lastSessionId);
+        } else if (normalizedSessions.length > 0) {
+          selectedSession = normalizedSessions[0]; // Default to most recent session
+        }
+
+        if (selectedSession) {
+          setCurrentSession(selectedSession);
+          if (selectedSession.id) {
+            setLastSessionId(selectedSession.id);
+          }
+        } else {
+          // No valid session found; initialize an empty session without saving to Firestore
+          setCurrentSession(null);
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching sessions:", error);
+      toast.error("Failed to load chat sessions");
       setCurrentSession(null);
-      setSessions([]);
-      return;
+    } finally {
+      setLoading(false);
     }
+  };
 
-    let unsubscribe: () => void;
+  fetchSessions();
 
-    const fetchSessions = async () => {
-      try {
-        setLoading(true);
-        unsubscribe = subscribeToUserChatSessions(user.uid, (userSessions) => {
-          const normalizedSessions = userSessions
-            .map(normalizeSession)
-            .filter((session) => session.messages.length > 0) // Only include sessions with messages
-            .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-          setSessions(normalizedSessions);
-
-          const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
-          const lastSessionId = getLastSessionId();
-
-          // Prioritize sessionId from URL, then last session from localStorage, then most recent session
-          let selectedSession: ProcessedChatSession | undefined;
-          if (sessionIdFromUrl) {
-            selectedSession = normalizedSessions.find((s) => s.id === sessionIdFromUrl);
-          } else if (lastSessionId) {
-            selectedSession = normalizedSessions.find((s) => s.id === lastSessionId);
-          } else if (normalizedSessions.length > 0) {
-            selectedSession = normalizedSessions[0]; // Default to most recent session
-          }
-
-          if (selectedSession) {
-            setCurrentSession(selectedSession);
-            if (selectedSession.id) {
-              setLastSessionId(selectedSession.id);
-            }
-          } else {
-            // No valid session found; initialize an empty session without saving to Firestore
-            setCurrentSession(null);
-          }
-        });
-      } catch (error) {
-        console.error("Error fetching sessions:", error);
-        toast.error("Failed to load chat sessions");
-        setCurrentSession(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSessions();
-
-    return () => unsubscribe?.();
-  }, [user, searchParams]);
+  return () => unsubscribe?.();
+}, [user, searchParams]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -516,15 +517,16 @@ function ChatContent() {
     }
   }, [message]);
 
-  const startNewChat = async () => {
-    if (!user) {
-      toast.error("Please log in to start a new chat");
-      return;
-    }
+ const startNewChat = async () => {
+  if (!user) {
+    toast.error("Please log in to start a new chat");
+    return;
+  }
 
-    // Create an empty session without saving to Firestore
+  try {
+    const sessionId = await createChatSession(user.uid, "New Chat");
     const newSession: ProcessedChatSession = {
-      id: uuidv4(),
+      id: sessionId,
       userId: user.uid,
       title: "New Chat",
       messages: [],
@@ -532,14 +534,17 @@ function ChatContent() {
       updatedAt: new Date(),
     };
     setCurrentSession(newSession);
-    if (newSession.id) {
-      setLastSessionId(newSession.id);
-    }
+    setLastSessionId(sessionId);
+    setSessions((prev) => [newSession, ...prev]);
     setMessage("");
     setSelectedFile(null);
     setFileName("");
     toast.success("New chat started!");
-  };
+  } catch (error) {
+    console.error("Error starting new chat:", error);
+    toast.error("Failed to start new chat");
+  }
+};
 
   const uploadImageToCloudinary = async (file: File): Promise<string | null> => {
     try {
@@ -583,26 +588,29 @@ function ChatContent() {
   };
 
   const handleSendMessage = async () => {
-    if (!user) {
-      toast.error("Please log in to send messages");
-      return;
-    }
+  if (!user) {
+    toast.error("Please log in to send messages");
+    return;
+  }
 
-    if (!message.trim() && !selectedFile) {
-      toast.error("Please enter a message or upload a file");
-      return;
-    }
+  if (!message.trim() && !selectedFile) {
+    toast.error("Please enter a message or upload a file");
+    return;
+  }
 
-    const userMessage = message.trim() || "File uploaded";
-    const messageId = uuidv4();
-    setLoading(true);
+  const userMessage = message.trim() || "File uploaded";
+  const messageId = uuidv4();
+  setLoading(true);
 
-    try {
-      // Create a new session in Firestore only when sending the first message
-      let sessionId = currentSession?.id;
-      let isNewSession = !currentSession || currentSession.messages.length === 0;
-      if (isNewSession) {
-        const smartTitle = message.trim() ? generateChatTitle(message) : "File Chat";
+  try {
+    // Create or use existing session
+    let sessionId = currentSession?.id;
+    let isNewSession = !currentSession || currentSession.messages.length === 0;
+    let smartTitle = currentSession?.title || "New Chat";
+
+    if (isNewSession) {
+      smartTitle = message.trim() ? generateChatTitle(message) : "File Chat";
+      if (!currentSession) {
         sessionId = await createChatSession(user.uid, smartTitle);
         const newSession: ProcessedChatSession = {
           id: sessionId,
@@ -615,132 +623,135 @@ function ChatContent() {
         setCurrentSession(newSession);
         setLastSessionId(sessionId);
         setSessions((prev) => [newSession, ...prev]);
-      } else {
-        // Update session title only if it's still "New Chat"
-        if (currentSession?.title === "New Chat" && message.trim()) {
-          const smartTitle = generateChatTitle(message);
-          setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
-        }
       }
-
-      let fileUrl: string | null = null;
-      if (selectedFile) {
-        fileUrl = await uploadImageToCloudinary(selectedFile);
-      }
-
-      const tempMessage: ProcessedChatSession["messages"][0] = {
-        id: messageId,
-        userId: user.uid,
-        message: userMessage,
-        response: "",
-        timestamp: new Date(),
-        type: "chat",
-        image: fileUrl ?? null,
-      };
-
-      // Update current session with the new message
-      setCurrentSession((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          messages: [...prev.messages, tempMessage],
-          updatedAt: new Date(),
-        };
-      });
-
-      setMessage("");
-      setSelectedFile(null);
-      setFileName("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
-
-      let botResponse = "";
-      if (message.trim()) {
-        botResponse = await generateAIResponse(userMessage, selectedModel);
-      }
-      if (fileUrl) {
-        const analysis = await analyzePrescription(selectedFile!);
-        const analysisText = `**Prescription Analysis**:\n- **Medications**: ${analysis.medications.join(", ")}\n- **Dosages**: ${analysis.dosages.join(", ")}\n- **Instructions**: ${analysis.instructions}${analysis.warnings.length ? "\n- **Warnings**: " + analysis.warnings.join(", ") : ""}`;
-        botResponse = botResponse ? `${botResponse}\n\n${analysisText}` : analysisText;
-      }
-
-      setIsTyping((prev) => ({ ...prev, [messageId]: true }));
-      setDisplayedResponse((prev) => ({ ...prev, [messageId]: "" }));
-
-      let currentText = "";
-      for (let i = 0; i < botResponse.length; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 20));
-        currentText += botResponse[i];
-        setDisplayedResponse((prev) => ({ ...prev, [messageId]: currentText }));
-      }
-
-      setIsTyping((prev) => ({ ...prev, [messageId]: false }));
-
-      // Save message to Firestore and update session
-      const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
-      setCurrentSession((prev) => {
-        if (!prev) return prev;
-        const updatedMessages = prev.messages.map((msg) =>
-          msg.id === messageId
-            ? {
-                ...newMessage,
-                id: newMessage.id || uuidv4(),
-                timestamp: newMessage.timestamp instanceof Date
-                  ? newMessage.timestamp
-                  : (newMessage.timestamp as any).toDate(),
-                image: newMessage.image ?? null,
-              }
-            : msg
-        );
-        return {
-          ...prev,
-          messages: updatedMessages,
-          updatedAt: new Date(),
-        };
-      });
-
-      // Update sessions to reflect the updated message count and timestamp
-      setSessions((prev) =>
-        prev.map((session) =>
-          session.id === sessionId
-            ? {
-                ...session,
-                messages: [
-                  ...session.messages,
-                  {
-                    ...newMessage,
-                    timestamp:
-                      newMessage.timestamp instanceof Date
-                        ? newMessage.timestamp
-                        : (newMessage.timestamp as any)?.toDate?.() || new Date(),
-                  },
-                ],
-                updatedAt: new Date(),
-              }
-            : session
-        )
-      );
-
-      sendMessageNotification(userMessage, botResponse);
-      toast.success("Message sent successfully");
-    } catch (error: any) {
-      console.error("Error sending message:", error);
-      toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
-      setMessage(userMessage);
-      if (selectedFile) {
-        setSelectedFile(selectedFile);
-        setFileName(selectedFile.name);
-      }
-      setCurrentSession((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          messages: prev.messages.filter((msg) => msg.id !== messageId),
-        };
-      });
-    } finally {
-      setLoading(false);
+    } else if (currentSession?.title === "New Chat" && message.trim()) {
+      smartTitle = generateChatTitle(message);
+      // Update title in Firestore (implement updateChatSessionTitle in firestore.ts)
+      await updateChatSessionTitle(sessionId!, smartTitle);
+      setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
     }
-  };
+
+    let fileUrl: string | null = null;
+    if (selectedFile) {
+      fileUrl = await uploadImageToCloudinary(selectedFile);
+    }
+
+    const tempMessage: ProcessedChatSession["messages"][0] = {
+      id: messageId,
+      userId: user.uid,
+      message: userMessage,
+      response: "",
+      timestamp: new Date(),
+      type: "chat",
+      image: fileUrl ?? null,
+    };
+
+    // Update current session with the new message
+    setCurrentSession((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        messages: [...prev.messages, tempMessage],
+        updatedAt: new Date(),
+        title: smartTitle,
+      };
+    });
+
+    setMessage("");
+    setSelectedFile(null);
+    setFileName("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    let botResponse = "";
+    if (message.trim()) {
+      botResponse = await generateAIResponse(userMessage, selectedModel);
+    }
+    if (fileUrl) {
+      const analysis = await analyzePrescription(selectedFile!);
+      const analysisText = `**Prescription Analysis**:\n- **Medications**: ${analysis.medications.join(", ")}\n- **Dosages**: ${analysis.dosages.join(", ")}\n- **Instructions**: ${analysis.instructions}${analysis.warnings.length ? "\n- **Warnings**: " + analysis.warnings.join(", ") : ""}`;
+      botResponse = botResponse ? `${botResponse}\n\n${analysisText}` : analysisText;
+    }
+
+    setIsTyping((prev) => ({ ...prev, [messageId]: true }));
+    setDisplayedResponse((prev) => ({ ...prev, [messageId]: "" }));
+
+    let currentText = "";
+    for (let i = 0; i < botResponse.length; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      currentText += botResponse[i];
+      setDisplayedResponse((prev) => ({ ...prev, [messageId]: currentText }));
+    }
+
+    setIsTyping((prev) => ({ ...prev, [messageId]: false }));
+
+    // Save message to Firestore and update session
+    const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
+    setCurrentSession((prev) => {
+      if (!prev) return prev;
+      const updatedMessages = prev.messages.map((msg) =>
+        msg.id === messageId
+          ? {
+              ...newMessage,
+              id: newMessage.id || uuidv4(),
+              timestamp: newMessage.timestamp instanceof Date
+                ? newMessage.timestamp
+                : (newMessage.timestamp as any).toDate(),
+              image: newMessage.image ?? null,
+            }
+          : msg
+      );
+      return {
+        ...prev,
+        messages: updatedMessages,
+        updatedAt: new Date(),
+        title: smartTitle,
+      };
+    });
+
+    // Update sessions to reflect the updated message count and timestamp
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === sessionId
+          ? {
+              ...session,
+              messages: [
+                ...session.messages,
+                {
+                  ...newMessage,
+                  timestamp:
+                    newMessage.timestamp instanceof Date
+                      ? newMessage.timestamp
+                      : (newMessage.timestamp as any)?.toDate?.() || new Date(),
+                },
+              ],
+              updatedAt: new Date(),
+              title: smartTitle,
+            }
+          : session
+      )
+    );
+
+    sendMessageNotification(userMessage, botResponse);
+    toast.success("Message sent successfully");
+  } catch (error: any) {
+    console.error("Error sending message:", error);
+    toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
+    setMessage(userMessage);
+    if (selectedFile) {
+      setSelectedFile(selectedFile);
+      setFileName(selectedFile.name);
+    }
+    setCurrentSession((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        messages: prev.messages.filter((msg) => msg.id !== messageId),
+      };
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleRetryResponse = async (messageId: string, userMessage: string) => {
     if (!user) {
@@ -1785,78 +1796,107 @@ function ChatContent() {
           )}
 
           {/* History Dialog */}
-          {user && (
-            <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
-              <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-md mx-auto">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center space-x-2 text-lg">
-                    <RotateCcw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                    <span>Recent Chats</span>
-                  </DialogTitle>
-                  <DialogDescription>
-                    View your recent chat sessions.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 overflow-y-auto max-h-96">
-                  {sessions.length > 0 ? (
-                    sessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className={`p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
-                          currentSession?.id === session.id
-                            ? "bg-blue-600/20 border-blue-600"
-                            : "bg-gray-100 dark:bg-gray-700 hover:bg-blue-600/10"
-                        }`}
-                        onClick={() => {
-                          setCurrentSession(normalizeSession(session));
-                          if (session.id) {
-                            setLastSessionId(session.id);
-                          }
-                          setHistoryDialogOpen(false);
-                          setTimeout(() => {
-                            if (scrollAreaRef.current) {
-                              scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-                            }
-                          }, 0);
-                        }}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">
-                              {session.messages.length} messages • {formatISTDateTime(session.updatedAt)}
-                            </p>
-                            {session.messages.length > 0 && (
-                              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 truncate">
-                                {session.messages[session.messages.length - 1]?.message || "No messages"}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <RotateCcw className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">No chat history yet</p>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation to see your history here</p>
-                    </div>
+         {user && (
+  <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+    <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-md mx-auto">
+      <DialogHeader>
+        <DialogTitle className="flex items-center space-x-2 text-lg">
+          <RotateCcw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          <span>Recent Chats</span>
+        </DialogTitle>
+        <DialogDescription>
+          View your recent chat sessions.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="space-y-4 overflow-y-auto max-h-96">
+        {sessions.length > 0 ? (
+          sessions.map((session) => (
+            <div
+              key={session.id}
+              className={`p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
+                currentSession?.id === session.id
+                  ? "bg-blue-600/20 border-blue-600"
+                  : "bg-gray-100 dark:bg-gray-700 hover:bg-blue-600/10"
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <div
+                  className="flex-1"
+                  onClick={() => {
+                    setCurrentSession(normalizeSession(session));
+                    if (session.id) {
+                      setLastSessionId(session.id);
+                    }
+                    setHistoryDialogOpen(false);
+                    setTimeout(() => {
+                      if (scrollAreaRef.current) {
+                        scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+                      }
+                    }, 0);
+                  }}
+                >
+                  <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    {session.messages.length} messages • {formatISTDateTime(session.updatedAt)}
+                  </p>
+                  {session.messages.length > 0 && (
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 truncate">
+                      {session.messages[session.messages.length - 1]?.message || "No messages"}
+                    </p>
                   )}
                 </div>
-                <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <Link href="/history">
-                    <Button
-                      variant="outline"
-                      className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
-                      onClick={() => setHistoryDialogOpen(false)}
-                    >
-                      View Full History
-                    </Button>
-                  </Link>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={async () => {
+                    try {
+                      if (session.id) {
+                        await deleteChatSession(session.id);
+                      } else {
+                        console.error("Session ID is undefined or null.");
+                      }
+                      setSessions((prev) => prev.filter((s) => s.id !== session.id));
+                      if (currentSession?.id === session.id) {
+                        setCurrentSession(null);
+                        localStorage.removeItem(`lastSessionId_${user.uid}`);
+                      }
+                      toast.success("Chat session deleted successfully!");
+                    } catch (error) {
+                      console.error("Error deleting session:", error);
+                      toast.error("Failed to delete chat session");
+                    }
+                  }}
+                  className="text-red-500 hover:text-red-600 h-6 w-6"
+                  title="Delete Session"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <RotateCcw className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400 text-sm">No chat history yet</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation to see your history here</p>
+          </div>
+        )}
+      </div>
+      <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+        <Link href="/history">
+          <Button
+            variant="outline"
+            className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+            onClick={() => setHistoryDialogOpen(false)}
+          >
+            View Full History
+          </Button>
+        </Link>
+      </div>
+    </DialogContent>
+  </Dialog>
+)}
+          
         </div>
       </div>
     </AuthGuard>
