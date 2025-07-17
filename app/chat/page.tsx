@@ -429,7 +429,21 @@ function ChatContent() {
       : (session.updatedAt as any)?.toDate?.() || new Date(),
   });
 
-  // Fetch sessions and handle sessionId from URL
+  // Persist and retrieve last session ID
+  const getLastSessionId = () => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(`lastSessionId_${user?.uid}`);
+    }
+    return null;
+  };
+
+  const setLastSessionId = (sessionId: string) => {
+    if (typeof window !== "undefined" && user) {
+      localStorage.setItem(`lastSessionId_${user.uid}`, sessionId);
+    }
+  };
+
+  // Fetch sessions and handle sessionId from URL or localStorage
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -446,27 +460,37 @@ function ChatContent() {
         unsubscribe = subscribeToUserChatSessions(user.uid, (userSessions) => {
           const normalizedSessions = userSessions
             .map(normalizeSession)
+            .filter((session) => session.messages.length > 0) // Only include sessions with messages
             .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
           setSessions(normalizedSessions);
 
-          const sessionId = searchParams ? searchParams.get('sessionId') : null;
-          if (sessionId) {
-            const selectedSession = normalizedSessions.find((s) => s.id === sessionId);
-            if (selectedSession) {
-              setCurrentSession(selectedSession);
-            } else {
-              console.error("Session not found for ID:", sessionId);
-              toast.error("Chat session not found");
-              startNewChat();
+          const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
+          const lastSessionId = getLastSessionId();
+
+          // Prioritize sessionId from URL, then last session from localStorage, then most recent session
+          let selectedSession: ProcessedChatSession | undefined;
+          if (sessionIdFromUrl) {
+            selectedSession = normalizedSessions.find((s) => s.id === sessionIdFromUrl);
+          } else if (lastSessionId) {
+            selectedSession = normalizedSessions.find((s) => s.id === lastSessionId);
+          } else if (normalizedSessions.length > 0) {
+            selectedSession = normalizedSessions[0]; // Default to most recent session
+          }
+
+          if (selectedSession) {
+            setCurrentSession(selectedSession);
+            if (selectedSession.id) {
+              setLastSessionId(selectedSession.id);
             }
-          } else if (!currentSession) {
-            startNewChat();
+          } else {
+            // No valid session found; initialize an empty session without saving to Firestore
+            setCurrentSession(null);
           }
         });
       } catch (error) {
         console.error("Error fetching sessions:", error);
         toast.error("Failed to load chat sessions");
-        startNewChat();
+        setCurrentSession(null);
       } finally {
         setLoading(false);
       }
@@ -498,26 +522,23 @@ function ChatContent() {
       return;
     }
 
-    try {
-      const sessionId = await createChatSession(user.uid, "New Chat");
-      const newSession: ProcessedChatSession = {
-        id: sessionId,
-        userId: user.uid,
-        title: "New Chat",
-        messages: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setCurrentSession(newSession);
-      setMessage("");
-      setSelectedFile(null);
-      setFileName("");
-      setSessions((prev) => [newSession, ...prev]); // Add new session to history
-      toast.success("New chat started!");
-    } catch (error) {
-      console.error("Error starting new chat:", error);
-      toast.error("Failed to start new chat");
+    // Create an empty session without saving to Firestore
+    const newSession: ProcessedChatSession = {
+      id: uuidv4(),
+      userId: user.uid,
+      title: "New Chat",
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    setCurrentSession(newSession);
+    if (newSession.id) {
+      setLastSessionId(newSession.id);
     }
+    setMessage("");
+    setSelectedFile(null);
+    setFileName("");
+    toast.success("New chat started!");
   };
 
   const uploadImageToCloudinary = async (file: File): Promise<string | null> => {
@@ -577,9 +598,10 @@ function ChatContent() {
     setLoading(true);
 
     try {
-      // Use existing session or create a new one only if none exists
+      // Create a new session in Firestore only when sending the first message
       let sessionId = currentSession?.id;
-      if (!sessionId) {
+      let isNewSession = !currentSession || currentSession.messages.length === 0;
+      if (isNewSession) {
         const smartTitle = message.trim() ? generateChatTitle(message) : "File Chat";
         sessionId = await createChatSession(user.uid, smartTitle);
         const newSession: ProcessedChatSession = {
@@ -591,13 +613,14 @@ function ChatContent() {
           updatedAt: new Date(),
         };
         setCurrentSession(newSession);
+        setLastSessionId(sessionId);
         setSessions((prev) => [newSession, ...prev]);
-      }
-
-      // Update session title only if it's still "New Chat"
-      if (currentSession?.title === "New Chat" && message.trim()) {
-        const smartTitle = generateChatTitle(message);
-        setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
+      } else {
+        // Update session title only if it's still "New Chat"
+        if (currentSession?.title === "New Chat" && message.trim()) {
+          const smartTitle = generateChatTitle(message);
+          setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
+        }
       }
 
       let fileUrl: string | null = null;
@@ -1217,8 +1240,7 @@ function ChatContent() {
                 <AvatarFallback className="bg-blue-600 text-white text-sm">
                   {userProfile?.displayName?.charAt(0).toUpperCase() ||
                     user?.displayName?.charAt(0).toUpperCase() ||
-                    user?.email?.charAt(0).toUpperCase() ||
-                    "U"}
+                    user?.email?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
             </div>
@@ -1324,157 +1346,139 @@ function ChatContent() {
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-                  <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm">
-  {/* Left Section */}
-  <div className="flex items-center space-x-4">
-    {/* Mobile Sidebar Toggle */}
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setSidebarOpen(true)}
-      className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden rounded-full h-9 w-9"
-      aria-label="Open sidebar"
-    >
-      <Menu className="h-5 w-5" />
-    </Button>
-
-    {/* Plan Selector */}
-<Select
-  value={selectedPlan}
-  onValueChange={(value) => {
-    setSelectedPlan(value);
-    setSelectedPlanForPayment(value);
-    setPaymentDialogOpen(true);
-  }}
->
-  {/* Trigger Button */}
-  <SelectTrigger className="h-10 bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-full px-4 hover:bg-gray-200/70 dark:hover:bg-gray-600/60 transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:outline-none w-[240px]">
-    <div className="flex items-center space-x-2">
-      {selectedPlan === "premium" ? (
-        <Crown className="h-4 w-4 text-yellow-500" />
-      ) : (
-        <Sparkles className="h-4 w-4 text-blue-500" />
-      )}
-      <span>Medibot</span>
-    </div>
-  </SelectTrigger>
-
-  {/* Dropdown Content */}
-  <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 border-[0.5px] w-[280px] p-1 space-y-1">
-    
-    {/* Premium Plan */}
-    <SelectItem
-      value="premium"
-      className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
-    >
-      <div className="flex items-center gap-3">
-        <Crown className="h-4 w-4 text-yellow-500" />
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold">Premium Plan</span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">₹100 / $2 per month</span>
-        </div>
-      </div>
-      {selectedPlan === "premium" && (
-        <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
-      )}
-    </SelectItem>
-
-    {/* Base Plan */}
-    <SelectItem
-      value="base"
-      className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
-    >
-      <div className="flex items-center gap-3">
-        <Sparkles className="h-4 w-4 text-blue-500" />
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold">Base Plan</span>
-          <span className="text-xs text-gray-500 dark:text-gray-400">Free access</span>
-        </div>
-      </div>
-      {selectedPlan === "base" && (
-        <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
-      )}
-    </SelectItem>
-  </SelectContent>
-</Select>
-
-
-
-
-    {/* Title */}
-    <h1 className="text-xl font-bold text-gray-800 dark:text-white">
-      <span className="bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">MediBot</span>
-      <span className="text-gray-600 dark:text-gray-300"> - Your Health Assistant</span>
-    </h1>
-  </div>
-
-  {/* Right Section */}
-  <div className="flex items-center space-x-2">
-    {user ? (
-      <>
-      <PaymentDialog 
-  open={paymentDialogOpen} 
-  onOpenChange={setPaymentDialogOpen} 
-  plan={selectedPlanForPayment} 
-/>
-        <Button
-          onClick={startNewChat}
-          variant="ghost"
-          size="icon"
-          className="bg-purple-600/10 hover:bg-purple-600/20 dark:bg-purple-400/10 dark:hover:bg-purple-400/20 text-purple-600 dark:text-purple-400 rounded-full h-9 w-9"
-          aria-label="Start new chat"
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={handlePrescriptionAnalysis}
-          variant="ghost"
-          size="icon"
-          className="bg-blue-600/10 hover:bg-blue-600/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 text-blue-600 dark:text-blue-400 rounded-full h-9 w-9"
-          aria-label="Analyze Prescription"
-        >
-          <Camera className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={handleHistoryDialog}
-          variant="ghost"
-          size="icon"
-          className="bg-green-600/10 hover:bg-green-600/20 dark:bg-green-400/10 dark:hover:bg-green-400/20 text-green-600 dark:text-green-400 rounded-full h-9 w-9"
-          aria-label="View chat history"
-        >
-          <RotateCcw className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={exportChat}
-          variant="ghost"
-          size="icon"
-          className="bg-orange-600/10 hover:bg-orange-600/20 dark:bg-orange-400/10 dark:hover:bg-orange-400/20 text-orange-600 dark:text-orange-400 rounded-full h-9 w-9"
-          aria-label="Export Chat"
-        >
-          <Download className="h-5 w-5" />
-        </Button>
-      </>
-    ) : (
-      <>
-        <Link href="/auth/signin">
-          <Button
-            variant="outline"
-            className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-9 px-4 rounded-full"
-          >
-            Login
-          </Button>
-        </Link>
-        <Link href="/auth/signup">
-          <Button
-            className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-9 px-4 rounded-full shadow-sm"
-          >
-            Get Started
-          </Button>
-        </Link>
-      </>
-    )}
-  </div>
-</div>
+          <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(true)}
+                className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden rounded-full h-9 w-9"
+                aria-label="Open sidebar"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <Select
+                value={selectedPlan}
+                onValueChange={(value) => {
+                  setSelectedPlan(value);
+                  setSelectedPlanForPayment(value);
+                  setPaymentDialogOpen(true);
+                }}
+              >
+                <SelectTrigger className="h-10 bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-full px-4 hover:bg-gray-200/70 dark:hover:bg-gray-600/60 transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:outline-none w-[240px]">
+                  <div className="flex items-center space-x-2">
+                    {selectedPlan === "premium" ? (
+                      <Crown className="h-4 w-4 text-yellow-500" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 text-blue-500" />
+                    )}
+                    <span>Medibot</span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 border-[0.5px] w-[280px] p-1 space-y-1">
+                  <SelectItem
+                    value="premium"
+                    className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Crown className="h-4 w-4 text-yellow-500" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold">Premium Plan</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">₹100 / $2 per month</span>
+                      </div>
+                    </div>
+                    {selectedPlan === "premium" && (
+                      <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
+                    )}
+                  </SelectItem>
+                  <SelectItem
+                    value="base"
+                    className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-4 w-4 text-blue-500" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold">Base Plan</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Free access(Current plan)</span>
+                      </div>
+                    </div>
+                    {selectedPlan === "base" && (
+                      <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
+                    )}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <h1 className="text-xl font-bold text-gray-800 dark:text-white">
+                <span className="bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">MediBot</span>
+                <span className="text-gray-600 dark:text-gray-300"> - Your Health Assistant</span>
+              </h1>
+            </div>
+            <div className="flex items-center space-x-2">
+              {user ? (
+                <>
+                  <PaymentDialog 
+                    open={paymentDialogOpen} 
+                    onOpenChange={setPaymentDialogOpen} 
+                    plan={selectedPlanForPayment} 
+                  />
+                  <Button
+                    onClick={startNewChat}
+                    variant="ghost"
+                    size="icon"
+                    className="bg-purple-600/10 hover:bg-purple-600/20 dark:bg-purple-400/10 dark:hover:bg-purple-400/20 text-purple-600 dark:text-purple-400 rounded-full h-9 w-9"
+                    aria-label="Start new chat"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    onClick={handlePrescriptionAnalysis}
+                    variant="ghost"
+                    size="icon"
+                    className="bg-blue-600/10 hover:bg-blue-600/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 text-blue-600 dark:text-blue-400 rounded-full h-9 w-9"
+                    aria-label="Analyze Prescription"
+                  >
+                    <Camera className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    onClick={handleHistoryDialog}
+                    variant="ghost"
+                    size="icon"
+                    className="bg-green-600/10 hover:bg-green-600/20 dark:bg-green-400/10 dark:hover:bg-green-400/20 text-green-600 dark:text-green-400 rounded-full h-9 w-9"
+                    aria-label="View chat history"
+                  >
+                    <RotateCcw className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    onClick={exportChat}
+                    variant="ghost"
+                    size="icon"
+                    className="bg-orange-600/10 hover:bg-orange-600/20 dark:bg-orange-400/10 dark:hover:bg-orange-400/20 text-orange-600 dark:text-orange-400 rounded-full h-9 w-9"
+                    aria-label="Export Chat"
+                  >
+                    <Download className="h-5 w-5" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/signin">
+                    <Button
+                      variant="outline"
+                      className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-9 px-4 rounded-full"
+                    >
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/auth/signup">
+                    <Button
+                      className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-9 px-4 rounded-full shadow-sm"
+                    >
+                      Get Started
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
 
           {/* Chat Area */}
           <ScrollArea className="flex-1 p-6" ref={scrollAreaRef}>
@@ -1520,7 +1524,7 @@ function ChatContent() {
                       </div>
                       <div>
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation below.</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation below or select a previous chat from history.</p>
                       </div>
                     </div>
                   </div>
@@ -1805,6 +1809,9 @@ function ChatContent() {
                         }`}
                         onClick={() => {
                           setCurrentSession(normalizeSession(session));
+                          if (session.id) {
+                            setLastSessionId(session.id);
+                          }
                           setHistoryDialogOpen(false);
                           setTimeout(() => {
                             if (scrollAreaRef.current) {
