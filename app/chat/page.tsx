@@ -129,14 +129,14 @@ interface OpenAIResponse {
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
-const PaymentForm = ({ 
-  plan, 
-  onSuccess, 
-  onCancel 
-}: { 
-  plan: string, 
-  onSuccess: () => void, 
-  onCancel: () => void 
+const PaymentForm = ({
+  plan,
+  onSuccess,
+  onCancel
+}: {
+  plan: string,
+  onSuccess: () => void,
+  onCancel: () => void
 }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -146,7 +146,6 @@ const PaymentForm = ({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!stripe || !elements) return;
-
     setLoading(true);
     setError(null);
 
@@ -164,9 +163,7 @@ const PaymentForm = ({
       });
 
       if (!response.ok) throw new Error('Failed to create payment intent');
-
       const { clientSecret } = await response.json();
-
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
         clientSecret,
         {
@@ -191,7 +188,7 @@ const PaymentForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <CardElement 
+      <CardElement
         options={{
           style: {
             base: {
@@ -229,14 +226,14 @@ const PaymentForm = ({
   );
 };
 
-const PaymentDialog = ({ 
-  open, 
-  onOpenChange, 
-  plan 
-}: { 
-  open: boolean, 
-  onOpenChange: (open: boolean) => void, 
-  plan: string 
+const PaymentDialog = ({
+  open,
+  onOpenChange,
+  plan
+}: {
+  open: boolean,
+  onOpenChange: (open: boolean) => void,
+  plan: string
 }) => {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
@@ -353,8 +350,25 @@ function ChatContent() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const searchParams = useSearchParams();
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
-  // Normalize Firestore Timestamp
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    const scrollEl = scrollAreaRef.current;
+    const handleScroll = () => {
+      if (!scrollEl) return;
+      const { scrollTop, scrollHeight, clientHeight } = scrollEl;
+      const isAtBottom = scrollHeight - scrollTop <= clientHeight + 100;
+      setShowScrollButton(!isAtBottom);
+    };
+
+    scrollEl?.addEventListener("scroll", handleScroll);
+    return () => scrollEl?.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const normalizeSession = (session: ChatSession): ProcessedChatSession => ({
     ...session,
     messages: (session.messages || []).map((msg) => ({
@@ -373,7 +387,6 @@ function ChatContent() {
       : (session.updatedAt as any)?.toDate?.() || new Date(),
   });
 
-  // Persist and retrieve last session ID
   const getLastSessionId = () => {
     if (typeof window !== "undefined") {
       return localStorage.getItem(`lastSessionId_${user?.uid}`);
@@ -387,7 +400,6 @@ function ChatContent() {
     }
   };
 
-  // Fetch sessions and handle sessionId from URL or localStorage
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -395,9 +407,7 @@ function ChatContent() {
       setSessions([]);
       return;
     }
-
     let unsubscribe: () => void;
-
     const fetchSessions = async () => {
       try {
         setLoading(true);
@@ -406,10 +416,8 @@ function ChatContent() {
             .map(normalizeSession)
             .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
           setSessions(normalizedSessions);
-
           const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
           const lastSessionId = getLastSessionId();
-
           let selectedSession: ProcessedChatSession | undefined;
           if (sessionIdFromUrl) {
             selectedSession = normalizedSessions.find((s) => s.id === sessionIdFromUrl);
@@ -418,7 +426,6 @@ function ChatContent() {
           } else if (normalizedSessions.length > 0) {
             selectedSession = normalizedSessions[0];
           }
-
           if (selectedSession) {
             setCurrentSession(selectedSession);
             if (selectedSession.id) {
@@ -436,20 +443,16 @@ function ChatContent() {
         setLoading(false);
       }
     };
-
     fetchSessions();
-
     return () => unsubscribe?.();
   }, [user, searchParams]);
 
-  // Auto-scroll to latest message
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [currentSession?.messages]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -462,7 +465,6 @@ function ChatContent() {
       toast.error("Please log in to start a new chat");
       return;
     }
-
     try {
       const sessionId = await createChatSession(user.uid, "New Chat");
       const newSession: ProcessedChatSession = {
@@ -490,16 +492,13 @@ function ChatContent() {
     try {
       const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
       if (!cloudName) throw new Error("Cloudinary cloud name is not configured.");
-
       const validTypes = ["image/jpeg", "image/png", "image/heic", "application/pdf"];
       if (!validTypes.includes(file.type)) {
         throw new Error(`Unsupported file type: ${file.type}. Please upload a JPG, PNG, HEIC, or PDF.`);
       }
-
       const formData = new FormData();
       formData.append("file", file);
       formData.append("upload_preset", "medibot_Uploads");
-
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/${file.type === "application/pdf" ? "raw" : "image"}/upload`,
         {
@@ -507,12 +506,10 @@ function ChatContent() {
           body: formData,
         }
       );
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Cloudinary upload failed: ${response.status} - ${errorText}`);
       }
-
       const data = await response.json();
       const url = data.secure_url;
       if (!url || typeof url !== "string" || !url.startsWith("https://")) {
@@ -532,21 +529,17 @@ function ChatContent() {
       toast.error("Please log in to send messages");
       return;
     }
-
     if (!message.trim() && !selectedFile) {
       toast.error("Please enter a message or upload a file");
       return;
     }
-
     const userMessage = message.trim() || "File uploaded";
     const messageId = uuidv4();
     setLoading(true);
-
     try {
       let sessionId = currentSession?.id;
       let isNewSession = !currentSession || currentSession.messages.length === 0;
       let smartTitle = currentSession?.title || "New Chat";
-
       if (isNewSession) {
         smartTitle = message.trim() ? generateChatTitle(message) : "File Chat";
         if (!currentSession) {
@@ -568,12 +561,10 @@ function ChatContent() {
         await updateChatSessionTitle(sessionId!, smartTitle);
         setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
       }
-
       let fileUrl: string | null = null;
       if (selectedFile) {
         fileUrl = await uploadImageToCloudinary(selectedFile);
       }
-
       const tempMessage: ProcessedChatSession["messages"][0] = {
         id: messageId,
         userId: user.uid,
@@ -583,7 +574,6 @@ function ChatContent() {
         type: "chat",
         image: fileUrl ?? null,
       };
-
       setCurrentSession((prev) => {
         if (!prev) return prev;
         return {
@@ -593,12 +583,10 @@ function ChatContent() {
           title: smartTitle,
         };
       });
-
       setMessage("");
       setSelectedFile(null);
       setFileName("");
       if (fileInputRef.current) fileInputRef.current.value = "";
-
       let botResponse = "";
       if (message.trim()) {
         botResponse = await generateAIResponse(userMessage, selectedModel, messageId);
@@ -608,20 +596,16 @@ function ChatContent() {
         const analysisText = `**Prescription Analysis**:\n- **Medications**: ${analysis.medications.join(", ")}\n- **Dosages**: ${analysis.dosages.join(", ")}\n- **Instructions**: ${analysis.instructions}${analysis.warnings.length ? "\n- **Warnings**: " + analysis.warnings.join(", ") : ""}`;
         botResponse = botResponse ? `${botResponse}\n\n${analysisText}` : analysisText;
       }
-
       setIsTyping((prev) => ({ ...prev, [messageId]: true }));
       setDisplayedResponse((prev) => ({ ...prev, [messageId]: "" }));
-
       let currentText = "";
       for (let i = 0; i < botResponse.length; i++) {
-        if (!isTyping[messageId]) break; // Stop if user aborts
+        if (!isTyping[messageId]) break;
         await new Promise((resolve) => setTimeout(resolve, 20));
         currentText += botResponse[i];
         setDisplayedResponse((prev) => ({ ...prev, [messageId]: currentText }));
       }
-
       setIsTyping((prev) => ({ ...prev, [messageId]: false }));
-
       const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
       setCurrentSession((prev) => {
         if (!prev) return prev;
@@ -644,7 +628,6 @@ function ChatContent() {
           title: smartTitle,
         };
       });
-
       setSessions((prev) =>
         prev.map((session) =>
           session.id === sessionId
@@ -666,7 +649,6 @@ function ChatContent() {
             : session
         )
       );
-
       sendMessageNotification(userMessage, botResponse);
       toast.success("Message sent successfully");
     } catch (error: any) {
@@ -704,7 +686,6 @@ function ChatContent() {
       toast.error("Please log in to retry responses");
       return;
     }
-
     setLoading(true);
     try {
       const botResponse = await generateAIResponse(userMessage, selectedModel, messageId);
@@ -714,7 +695,6 @@ function ChatContent() {
         const updatedMessages = currentSession!.messages.map((msg) =>
           msg.id === messageId ? { ...msg, response: botResponse } : msg
         );
-
         await addMessageToSession(sessionId, user.uid, userMessage, botResponse, "chat", existingMessage?.image ?? null);
         setCurrentSession((prev) => (prev ? { ...prev, messages: updatedMessages } : prev));
         toast.success("Response regenerated!");
@@ -733,13 +713,11 @@ function ChatContent() {
       toast.error("Please log in to edit messages");
       return;
     }
-
     if (editingMessageId === messageId) {
       if (!editedMessage.trim()) {
         toast.error("Message cannot be empty");
         return;
       }
-
       try {
         setLoading(true);
         const botResponse = await generateAIResponse(editedMessage, selectedModel, messageId);
@@ -749,7 +727,6 @@ function ChatContent() {
           const updatedMessages = currentSession!.messages.map((msg) =>
             msg.id === messageId ? { ...msg, message: editedMessage, response: botResponse } : msg
           );
-
           await addMessageToSession(sessionId, user.uid, editedMessage, botResponse, "chat", existingMessage?.image ?? null);
           setCurrentSession((prev) => (prev ? { ...prev, messages: updatedMessages } : prev));
           toast.success("Message updated!");
@@ -774,7 +751,6 @@ function ChatContent() {
       toast.error("Please log in to provide feedback");
       return;
     }
-
     try {
       toast.success(`Thank you for your ${isPositive ? "positive" : "negative"} feedback!`);
     } catch (error: any) {
@@ -793,14 +769,12 @@ function ChatContent() {
       toast.error("Text-to-speech not supported in this browser");
       return;
     }
-
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
       utteranceRef.current = null;
       return;
     }
-
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
@@ -838,7 +812,6 @@ function ChatContent() {
   const generateChatTitle = (firstMessage: string): string => {
     const lowerMessage = firstMessage.toLowerCase().trim();
     if (lowerMessage.length === 0) return "General Discussion";
-
     const healthKeywords = [
       { keywords: ["headache", "migraine"], title: "Headache Inquiry" },
       { keywords: ["fever", "temperature"], title: "Fever Inquiry" },
@@ -849,16 +822,13 @@ function ChatContent() {
       { keywords: ["stress", "anxiety", "mental"], title: "Mental Health Inquiry" },
       { keywords: ["pain"], title: "Pain Inquiry" },
     ];
-
     for (const { keywords, title } of healthKeywords) {
       if (keywords.some((keyword) => lowerMessage.includes(keyword))) {
         return title;
       }
     }
-
     const words = lowerMessage.split(/\s+/).filter((word) => word.length > 3);
     if (words.length === 0) return "General Discussion";
-
     const keyPhrase = words.slice(0, 2).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
     return `${keyPhrase} Discussion`;
   };
@@ -877,7 +847,6 @@ function ChatContent() {
     try {
       const controller = new AbortController();
       setAbortController(controller);
-
       const modelMap: Record<string, { api: string; model: string; key: string }> = {
         "gemini-2.0-flash": {
           api: "gemini",
@@ -895,21 +864,16 @@ function ChatContent() {
           key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
         },
       };
-
       const config = modelMap[selectedModel];
       if (!config) throw new Error(`Invalid model: ${selectedModel}`);
       if (!config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
-
       const recentMessages = currentSession?.messages
         .slice(-5)
         .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
         .join("\n\n") || "";
-
       const prompt = `You are MediBot, a health-focused AI assistant. Provide a concise, informative, and professional response. Ensure the response is educational, not a substitute for medical advice, and includes a reminder to consult a healthcare professional. Context: ${recentMessages}\n\nQuery: ${userMessage}`;
-
       let response;
       let content;
-
       if (config.api === "gemini") {
         response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.key}`,
@@ -934,12 +898,10 @@ function ChatContent() {
             signal: controller.signal,
           }
         );
-
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
         }
-
         const data: GeminiResponse = await response.json();
         content = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!content) throw new Error("No valid response from Gemini API");
@@ -963,12 +925,10 @@ function ChatContent() {
           }),
           signal: controller.signal,
         });
-
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
         }
-
         const data: OpenAIResponse = await response.json();
         content = data.choices?.[0]?.message?.content;
         if (!content) throw new Error("No valid response from OpenAI API");
@@ -992,17 +952,14 @@ function ChatContent() {
           }),
           signal: controller.signal,
         });
-
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`Groq API error: ${response.status} - ${errorText}`);
         }
-
         const data: GroqResponse = await response.json();
         content = data.choices?.[0]?.message?.content;
         if (!content) throw new Error("No valid response from Groq API");
       }
-
       return (content ?? "").trim();
     } catch (error: any) {
       if (error.name === "AbortError") {
@@ -1023,7 +980,6 @@ function ChatContent() {
       const fileBase64 = await fileToBase64(file);
       const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!geminiApiKey) throw new Error("Gemini API key is not configured.");
-
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
         {
@@ -1055,16 +1011,13 @@ function ChatContent() {
           }),
         }
       );
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
-
       const data: GeminiResponse = await response.json();
       const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
       const cleanedResponseText = responseText.replace(/```json/g, "").replace(/```/g, "").replace(/`/g, "").trim();
-
       let result: PrescriptionAnalysis;
       try {
         result = JSON.parse(cleanedResponseText) as PrescriptionAnalysis;
@@ -1072,7 +1025,6 @@ function ChatContent() {
         console.error("JSON parse error:", parseError);
         throw new Error("Invalid JSON response from API");
       }
-
       return {
         medications: Array.isArray(result.medications) ? result.medications : ["Unknown"],
         dosages: Array.isArray(result.dosages) ? result.dosages : ["Unknown"],
@@ -1183,195 +1135,194 @@ function ChatContent() {
     return !!url && typeof url === "string" && url.startsWith("https://");
   };
 
- const renderMessages = useMemo(() => {
-  if (!user || !currentSession?.messages || currentSession.messages.length === 0) {
-    return null;
-  }
-
-  let lastDate: string | null = null;
-  return currentSession.messages.map((msg) => {
-    const messageDate = msg.timestamp.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
-    const showDateDivider = messageDate !== lastDate;
-    lastDate = messageDate;
-
-    return (
-      <div key={msg.id}>
-        {showDateDivider && (
-          <div className="text-center my-4">
-            
-          </div>
-        )}
-        <div className="space-y-4">
-          {/* User Message */}
-          <div className="flex justify-end items-start space-x-2 max-w-[70%] ml-auto">
-            <div className="relative group">
-              <div className="bg-blue-600/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
-                {isValidImageUrl(msg.image) ? (
-                  <div className="mb-2">
-                    <Image
-                      src={msg.image || ""}
-                      alt="Uploaded file"
-                      width={200}
-                      height={200}
-                      className="rounded-lg object-contain"
-                      onError={(e) => console.error(`File failed to load: ${msg.image}`)}
-                    />
-                  </div>
-                ) : msg.image !== null ? (
-                  <p className="text-xs text-red-400 mb-2">Invalid or missing file</p>
-                ) : null}
-                {editingMessageId === msg.id ? (
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      value={editedMessage}
-                      onChange={(e) => setEditedMessage(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      className="bg-gray-100 dark:bg-gray-700 border-none dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
-                      aria-label="Edit message"
-                    />
-                    <Button
-                      onClick={() => handleEditMessage(msg.id, editedMessage)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 w-8"
-                      aria-label="Send edited message"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <p>{msg.message}</p>
-                )}
-              </div>
-              <div className="absolute -bottom-6 right-4 flex space-x-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleCopyText(msg.message)}
-                  className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
-                  title="Copy Message"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleEditMessage(msg.id, msg.message)}
-                  className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
-                  title="Edit Message"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </div>
+  const renderMessages = useMemo(() => {
+    if (!user || !currentSession?.messages || currentSession.messages.length === 0) {
+      return null;
+    }
+    let lastDate: string | null = null;
+    return currentSession.messages.map((msg) => {
+      const messageDate = msg.timestamp.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
+      const showDateDivider = messageDate !== lastDate;
+      lastDate = messageDate;
+      return (
+        <div key={msg.id}>
+          {showDateDivider && (
+            <div className="text-center my-4">
+              <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">
+                {messageDate}
+              </span>
             </div>
-            <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
-              <AvatarImage src={userProfile?.photoURL || user?.photoURL || ""} />
-              <AvatarFallback className="bg-blue-600 text-white text-sm">
-                {userProfile?.displayName?.charAt(0).toUpperCase() ||
-                  user?.displayName?.charAt(0).toUpperCase() ||
-                  user?.email?.charAt(0).toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-          {/* Assistant Response */}
-          {msg.response || isTyping[msg.id] ? (
-            <div className="flex items-start space-x-2 max-w-[70%]">
+          )}
+          <div className="space-y-4">
+            <div className="flex justify-end items-start space-x-2 max-w-[70%] ml-auto">
               <div className="relative group">
-                <div className="bg-gray-300/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
-                  {(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response)?.split("\n").map((line, i) => (
-                    <p key={i} className={line.startsWith("**") ? "font-semibold" : ""}>
-                      {line}
-                    </p>
-                  ))}
-                  {isTyping[msg.id] && (
-                    <div className="inline-block w-2 h-4 bg-gray-500 animate-pulse"></div>
+                <div className="bg-blue-600/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
+                  {isValidImageUrl(msg.image) ? (
+                    <div className="mb-2">
+                      <Image
+                        src={msg.image || ""}
+                        alt="Uploaded file"
+                        width={200}
+                        height={200}
+                        className="rounded-lg object-contain"
+                        onError={(e) => console.error(`File failed to load: ${msg.image}`)}
+                      />
+                    </div>
+                  ) : msg.image !== null ? (
+                    <p className="text-xs text-red-400 mb-2">Invalid or missing file</p>
+                  ) : null}
+                  {editingMessageId === msg.id ? (
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        value={editedMessage}
+                        onChange={(e) => setEditedMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        className="bg-gray-100 dark:bg-gray-700 border-none dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+                        aria-label="Edit message"
+                      />
+                      <Button
+                        onClick={() => handleEditMessage(msg.id, editedMessage)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 w-8"
+                        aria-label="Send edited message"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <p>{msg.message}</p>
                   )}
                 </div>
-                <div className="absolute -bottom-6 left-4 flex space-x-2 justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                <div className="absolute -bottom-6 right-4 flex space-x-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleCopyText(msg.response)}
+                    onClick={() => handleCopyText(msg.message)}
                     className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
-                    title="Copy Response"
+                    title="Copy Message"
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleSpeakResponse(msg.response)}
-                    className={`text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 ${isSpeaking ? "animate-pulse bg-gray-500/20" : ""}`}
-                    title={isSpeaking ? "Stop Speaking" : "Speak Response"}
+                    onClick={() => handleEditMessage(msg.id, msg.message)}
+                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+                    title="Edit Message"
                   >
-                    <Volume2 className="h-4 w-4" />
+                    <Edit className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleFeedback(msg.id, true)}
-                    className="text-gray-500 dark:text-gray-300 hover:text-green-500 h-6 w-6"
-                    title="Thumbs Up"
-                  >
-                    <ThumbsUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleFeedback(msg.id, false)}
-                    className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6"
-                    title="Thumbs Down"
-                  >
-                    <ThumbsDown className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRetryResponse(msg.id, msg.message)}
-                    className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
-                    title="Retry Response"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                  {isTyping[msg.id] && (
+                </div>
+              </div>
+              <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
+                <AvatarImage src={userProfile?.photoURL || user?.photoURL || ""} />
+                <AvatarFallback className="bg-blue-600 text-white text-sm">
+                  {userProfile?.displayName?.charAt(0).toUpperCase() ||
+                    user?.displayName?.charAt(0).toUpperCase() ||
+                    user?.email?.charAt(0).toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            {msg.response || isTyping[msg.id] ? (
+              <div className="flex items-start space-x-2 max-w-[70%]">
+                <div className="relative group">
+                  <div className="bg-gray-300/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
+                    {(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response)?.split("\n").map((line, i) => (
+                      <p key={i} className={line.startsWith("**") ? "font-semibold" : ""}>
+                        {line}
+                      </p>
+                    ))}
+                    {isTyping[msg.id] && (
+                      <div className="inline-block w-2 h-4 bg-gray-500 animate-pulse"></div>
+                    )}
+                  </div>
+                  <div className="absolute -bottom-6 left-4 flex space-x-2 justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleStopResponse(msg.id)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6"
-                      title="Stop Response"
+                      onClick={() => handleCopyText(msg.response)}
+                      className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+                      title="Copy Response"
                     >
-                      <StopCircle className="h-4 w-4" />
+                      <Copy className="h-4 w-4" />
                     </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => window.open(`https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(msg.message)}`, "_blank")}
-                    className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
-                    title="Search PubMed"
-                  >
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            loading && (
-              <div className="flex items-start space-x-2 max-w-[70%]">
-                <div className="p-4">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleSpeakResponse(msg.response)}
+                      className={`text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 ${isSpeaking ? "animate-pulse bg-gray-500/20" : ""}`}
+                      title={isSpeaking ? "Stop Speaking" : "Speak Response"}
+                    >
+                      <Volume2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleFeedback(msg.id, true)}
+                      className="text-gray-500 dark:text-gray-300 hover:text-green-500 h-6 w-6"
+                      title="Thumbs Up"
+                    >
+                      <ThumbsUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleFeedback(msg.id, false)}
+                      className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6"
+                      title="Thumbs Down"
+                    >
+                      <ThumbsDown className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRetryResponse(msg.id, msg.message)}
+                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
+                      title="Retry Response"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                    {isTyping[msg.id] && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleStopResponse(msg.id)}
+                        className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6"
+                        title="Stop Response"
+                      >
+                        <StopCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => window.open(`https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(msg.message)}`, "_blank")}
+                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
+                      title="Search PubMed"
+                    >
+                      <Search className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
-            )
-          )}
+            ) : (
+              loading && (
+                <div className="flex items-start space-x-2 max-w-[70%]">
+                  <div className="p-4">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
         </div>
-      </div>
-    );
-  });
-}, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, displayedResponse, isTyping]);
+      );
+    });
+  }, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, displayedResponse, isTyping]);
+
   return (
     <AuthGuard>
       <div className="min-h-screen flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
@@ -1382,9 +1333,7 @@ function ChatContent() {
           }
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
           <div className="sticky top-0 z-20 flex flex-wrap md:flex-nowrap items-center justify-between p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm">
             <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
               <Button
@@ -1516,8 +1465,6 @@ function ChatContent() {
               )}
             </div>
           </div>
-
-          {/* Chat Area */}
           <ScrollArea className="flex-1 p-6" ref={scrollAreaRef}>
             <div className="max-w-3xl mx-auto space-y-4">
               {!user ? (
@@ -1572,8 +1519,15 @@ function ChatContent() {
             </div>
             <div ref={messagesEndRef} />
           </ScrollArea>
-
-          {/* Input Area */}
+          {showScrollButton && (
+            <button
+              onClick={scrollToBottom}
+              className="fixed bottom-20 right-6 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-all z-50"
+              aria-label="Scroll to bottom"
+            >
+              ↓
+            </button>
+          )}
           {user && (
             <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-6 pt-4">
               <div className="mx-auto max-w-3xl">
@@ -1654,8 +1608,6 @@ function ChatContent() {
               </div>
             </div>
           )}
-
-          {/* Prescription Analysis Dialog */}
           {user && (
             <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
               <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
@@ -1811,8 +1763,6 @@ function ChatContent() {
               </DialogContent>
             </Dialog>
           )}
-
-          {/* History Dialog */}
           {user && (
             <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
               <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-md mx-auto">
