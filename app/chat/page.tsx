@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef, Suspense, useMemo } from "react";
@@ -48,9 +47,9 @@ import {
   FileText,
   Pill,
   AlertCircle,
-  Mic,
   Volume2,
   RefreshCw,
+  StopCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -74,9 +73,7 @@ import { useSearchParams } from 'next/navigation';
 
 declare global {
   interface Window {
-    puter: any;
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
+    SpeechSynthesisUtterance: any;
   }
 }
 
@@ -118,6 +115,14 @@ interface GeminiResponse {
       parts: Array<{
         text: string;
       }>;
+    };
+  }>;
+}
+
+interface OpenAIResponse {
+  choices: Array<{
+    message: {
+      content: string;
     };
   }>;
 }
@@ -176,7 +181,7 @@ const PaymentForm = ({
       } else if (paymentIntent.status === 'succeeded') {
         onSuccess();
       }
-    } catch (err) {
+    } catch (err: any) {
       setError('Payment processing failed. Please try again.');
       console.error('Payment error:', err);
     } finally {
@@ -334,84 +339,20 @@ function ChatContent() {
   const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [displayedResponse, setDisplayedResponse] = useState<{ [messageId: string]: string }>({});
   const [isTyping, setIsTyping] = useState<{ [messageId: string]: boolean }>({});
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>("base");
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<string>("base");
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
   const { user, userProfile } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const searchParams = useSearchParams();
-
-  // Initialize Speech Recognition
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = false;
-        recognitionRef.current.interimResults = false;
-        recognitionRef.current.lang = "en-US";
-        recognitionRef.current.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setMessage((prev) => (prev ? `${prev} ${transcript}` : transcript));
-          setIsRecording(false);
-        };
-        recognitionRef.current.onerror = (event: any) => {
-          console.error("Speech recognition error:", event.error);
-          toast.error(
-            event.error === "no-speech"
-              ? "No speech detected. Please try again."
-              : event.error === "not-allowed"
-              ? "Microphone access denied. Please allow microphone permissions."
-              : "Speech recognition failed. Try again."
-          );
-          setIsRecording(false);
-        };
-        recognitionRef.current.onend = () => setIsRecording(false);
-      } else {
-        toast.error("Speech recognition not supported in this browser.");
-      }
-    }
-  }, []);
-
-  // Request microphone permissions
-  useEffect(() => {
-    if (typeof window !== "undefined" && navigator.permissions) {
-      navigator.permissions.query({ name: "microphone" as PermissionName }).then((permissionStatus) => {
-        if (permissionStatus.state === "denied") {
-          toast.error("Microphone access denied. Please enable it in settings.");
-        }
-        permissionStatus.onchange = () => {
-          if (permissionStatus.state === "denied") {
-            toast.error("Microphone access revoked. Please enable it in settings.");
-          }
-        };
-      });
-    }
-  }, []);
-
-  // Load Puter.js
-  useEffect(() => {
-    if (typeof window !== "undefined" && !window.puter) {
-      const script = document.createElement("script");
-      script.src = "https://js.puter.com/v2/";
-      script.async = true;
-      script.onload = () => console.log("Puter.js loaded");
-      script.onerror = () => {
-        console.error("Failed to load Puter.js");
-        toast.error("Failed to load AI service. Falling back to MediBot model.");
-      };
-      document.head.appendChild(script);
-    }
-  }, []);
 
   // Normalize Firestore Timestamp
   const normalizeSession = (session: ChatSession): ProcessedChatSession => ({
@@ -487,7 +428,7 @@ function ChatContent() {
             setCurrentSession(null);
           }
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching sessions:", error);
         toast.error("Failed to load chat sessions");
         setCurrentSession(null);
@@ -539,7 +480,7 @@ function ChatContent() {
       setSelectedFile(null);
       setFileName("");
       toast.success("New chat started!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error starting new chat:", error);
       toast.error("Failed to start new chat");
     }
@@ -660,7 +601,7 @@ function ChatContent() {
 
       let botResponse = "";
       if (message.trim()) {
-        botResponse = await generateAIResponse(userMessage, selectedModel);
+        botResponse = await generateAIResponse(userMessage, selectedModel, messageId);
       }
       if (fileUrl) {
         const analysis = await analyzePrescription(selectedFile!);
@@ -673,6 +614,7 @@ function ChatContent() {
 
       let currentText = "";
       for (let i = 0; i < botResponse.length; i++) {
+        if (!isTyping[messageId]) break; // Stop if user aborts
         await new Promise((resolve) => setTimeout(resolve, 20));
         currentText += botResponse[i];
         setDisplayedResponse((prev) => ({ ...prev, [messageId]: currentText }));
@@ -744,6 +686,16 @@ function ChatContent() {
       });
     } finally {
       setLoading(false);
+      setAbortController(null);
+    }
+  };
+
+  const handleStopResponse = (messageId: string) => {
+    if (abortController) {
+      abortController.abort();
+      setIsTyping((prev) => ({ ...prev, [messageId]: false }));
+      setAbortController(null);
+      toast.info("Response generation stopped");
     }
   };
 
@@ -755,7 +707,7 @@ function ChatContent() {
 
     setLoading(true);
     try {
-      const botResponse = await generateAIResponse(userMessage, selectedModel);
+      const botResponse = await generateAIResponse(userMessage, selectedModel, messageId);
       const sessionId = currentSession?.id;
       if (sessionId) {
         const existingMessage = currentSession!.messages.find((msg) => msg.id === messageId);
@@ -767,11 +719,12 @@ function ChatContent() {
         setCurrentSession((prev) => (prev ? { ...prev, messages: updatedMessages } : prev));
         toast.success("Response regenerated!");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error retrying response:", error);
       toast.error("Failed to regenerate response");
     } finally {
       setLoading(false);
+      setAbortController(null);
     }
   };
 
@@ -789,7 +742,7 @@ function ChatContent() {
 
       try {
         setLoading(true);
-        const botResponse = await generateAIResponse(editedMessage, selectedModel);
+        const botResponse = await generateAIResponse(editedMessage, selectedModel, messageId);
         const sessionId = currentSession?.id;
         if (sessionId) {
           const existingMessage = currentSession!.messages.find((msg) => msg.id === messageId);
@@ -801,13 +754,14 @@ function ChatContent() {
           setCurrentSession((prev) => (prev ? { ...prev, messages: updatedMessages } : prev));
           toast.success("Message updated!");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error editing message:", error);
         toast.error("Failed to edit message");
       } finally {
         setEditingMessageId(null);
         setEditedMessage("");
         setLoading(false);
+        setAbortController(null);
       }
     } else {
       setEditingMessageId(messageId);
@@ -823,7 +777,7 @@ function ChatContent() {
 
     try {
       toast.success(`Thank you for your ${isPositive ? "positive" : "negative"} feedback!`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error handling feedback:", error);
       toast.error("Failed to submit feedback");
     }
@@ -864,30 +818,6 @@ function ChatContent() {
     utteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
     setIsSpeaking(true);
-  };
-
-  const handleToggleRecording = () => {
-    if (!user) {
-      toast.error("Please log in to use speech input");
-      return;
-    }
-    if (!recognitionRef.current) {
-      toast.error("Speech recognition not supported in this browser.");
-      return;
-    }
-    if (isRecording) {
-      recognitionRef.current.stop();
-      setIsRecording(false);
-    } else {
-      try {
-        recognitionRef.current.start();
-        setIsRecording(true);
-      } catch (error) {
-        console.error("Error starting speech recognition:", error);
-        toast.error("Failed to start speech recognition. Check microphone permissions.");
-        setIsRecording(false);
-      }
-    }
   };
 
   const exportChat = () => {
@@ -943,16 +873,32 @@ function ChatContent() {
     }
   };
 
-  const generateAIResponse = async (userMessage: string, selectedModel: string): Promise<string> => {
+  const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string): Promise<string> => {
     try {
-      const modelMap: Record<string, string> = {
-        "gemini-2.0-flash": "gemini-2.0-flash",
-        "gpt-4o": "gpt-4o",
-        "medibot": "llama-3.3-70b-versatile",
+      const controller = new AbortController();
+      setAbortController(controller);
+
+      const modelMap: Record<string, { api: string; model: string; key: string }> = {
+        "gemini-2.0-flash": {
+          api: "gemini",
+          model: "gemini-2.0-flash",
+          key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+        },
+        "gpt-4o": {
+          api: "openai",
+          model: "gpt-4o",
+          key: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
+        },
+        "medibot": {
+          api: "groq",
+          model: "llama-3.3-70b-versatile",
+          key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        },
       };
 
-      const resolvedModel = modelMap[selectedModel];
-      if (!resolvedModel) throw new Error(`Invalid model: ${selectedModel}`);
+      const config = modelMap[selectedModel];
+      if (!config) throw new Error(`Invalid model: ${selectedModel}`);
+      if (!config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
 
       const recentMessages = currentSession?.messages
         .slice(-5)
@@ -962,27 +908,110 @@ function ChatContent() {
       const prompt = `You are MediBot, a health-focused AI assistant. Provide a concise, informative, and professional response. Ensure the response is educational, not a substitute for medical advice, and includes a reminder to consult a healthcare professional. Context: ${recentMessages}\n\nQuery: ${userMessage}`;
 
       let response;
-      if (typeof window !== "undefined" && !window.puter) {
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = "https://js.puter.com/v2/";
-          script.async = true;
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error("Failed to load Puter.js"));
-          document.head.appendChild(script);
+      let content;
+
+      if (config.api === "gemini") {
+        response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.key}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: prompt },
+                  ],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.5,
+                maxOutputTokens: 500,
+              },
+            }),
+            signal: controller.signal,
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+        }
+
+        const data: GeminiResponse = await response.json();
+        content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!content) throw new Error("No valid response from Gemini API");
+      } else if (config.api === "openai") {
+        response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${config.key}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: config.model,
+            messages: [
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+            temperature: 0.5,
+            max_tokens: 500,
+          }),
+          signal: controller.signal,
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        }
+
+        const data: OpenAIResponse = await response.json();
+        content = data.choices?.[0]?.message?.content;
+        if (!content) throw new Error("No valid response from OpenAI API");
+      } else if (config.api === "groq") {
+        response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${config.key}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: config.model,
+            messages: [
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+            temperature: 0.5,
+            max_tokens: 500,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Groq API error: ${response.status} - ${errorText}`);
+        }
+
+        const data: GroqResponse = await response.json();
+        content = data.choices?.[0]?.message?.content;
+        if (!content) throw new Error("No valid response from Groq API");
       }
 
-      response = await window.puter.ai.chat(prompt, { model: resolvedModel });
-      if (!response?.message?.content) {
-        throw new Error("No valid response from AI service");
-      }
-      return response.message.content.trim();
+      return content.trim();
     } catch (error: any) {
-      console.error("Error generating AI response:", error);
+      if (error.name === "AbortError") {
+        return "";
+      }
+      console.error(`Error generating ${selectedModel} response:`, error);
       if (selectedModel !== "medibot") {
         toast.warning("Primary model failed, falling back to MediBot model...");
-        return generateAIResponse(userMessage, "medibot");
+        return generateAIResponse(userMessage, "medibot", messageId);
       }
       return "I'm sorry, I couldn't process your request. Please try again or consult a healthcare professional.";
     }
@@ -993,41 +1022,39 @@ function ChatContent() {
       setAnalyzingPrescription(true);
       const fileBase64 = await fileToBase64(file);
       const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      if (!geminiApiKey) throw new Error("Gemini API key is not configured.");
 
-      if (selectedModel !== "medibot" && !geminiApiKey) {
-        throw new Error("Gemini API key is not configured.");
-      }
-
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`;
-
-      const response = await fetch(`${endpoint}?key=${geminiApiKey}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text:
-                    "Analyze this prescription image or PDF and extract medications, dosages, instructions, and warnings. Return JSON with fields: medications (array), dosages (array), instructions (string), warnings (array).",
-                },
-                {
-                  inlineData: {
-                    mimeType: file.type,
-                    data: fileBase64,
-                  },
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.5,
-            maxOutputTokens: 500,
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        }),
-      });
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text:
+                      "Analyze this prescription image or PDF and extract medications, dosages, instructions, and warnings. Return JSON with fields: medications (array), dosages (array), instructions (string), warnings (array).",
+                  },
+                  {
+                    inlineData: {
+                      mimeType: file.type,
+                      data: fileBase64,
+                    },
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              temperature: 0.5,
+              maxOutputTokens: 500,
+            },
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -1054,11 +1081,6 @@ function ChatContent() {
       };
     } catch (error: any) {
       console.error("Error analyzing prescription:", error);
-      if (selectedModel !== "medibot") {
-        toast.warning("Primary model failed, falling back to MediBot model...");
-        setSelectedModel("medibot");
-        return analyzePrescription(file);
-      }
       toast.error(`Failed to analyze prescription: ${error.message || "Unknown error"}`);
       return {
         medications: ["Error"],
@@ -1174,85 +1196,83 @@ function ChatContent() {
 
       return (
         <div key={msg.id}>
-          
+          {showDateDivider && (
+            <div className="text-center my-4">
+              <span className="text-gray-500 dark:text-gray-400 text-xs bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+                {messageDate}
+              </span>
+            </div>
+          )}
           <div className="space-y-4">
             {/* User Message */}
             <div className="flex justify-end items-start space-x-2 max-w-[70%] ml-auto">
-  <div className="relative group">
-    <div className="bg-blue-600/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
-      {isValidImageUrl(msg.image) ? (
-        <div className="mb-2">
-          <Image
-            src={msg.image || ""}
-            alt="Uploaded file"
-            width={200}
-            height={200}
-            className="rounded-lg object-contain"
-            onError={(e) => console.error(`File failed to load: ${msg.image}`)}
-          />
-        </div>
-      ) : msg.image !== null ? (
-        <p className="text-xs text-red-400 mb-2">Invalid or missing file</p>
-      ) : null}
-
-      {editingMessageId === msg.id ? (
-        <div className="flex items-center space-x-2">
-          <Input
-            value={editedMessage}
-            onChange={(e) => setEditedMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            className="bg-gray-100 dark:bg-gray-700 border-none dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
-            aria-label="Edit message"
-          />
-          <Button
-            onClick={() => handleEditMessage(msg.id, editedMessage)}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 w-8"
-            aria-label="Send edited message"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      ) : (
-        <p>{msg.message}</p>
-      )}
-     
-    </div>
-
-    {/* Hover icons below the card */}
-    <div className="absolute -bottom-6 right-4 flex space-x-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-  <Button
-    variant="ghost"
-    size="icon"
-    onClick={() => handleCopyText(msg.message)}
-    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
-    title="Copy Message"
-  >
-    <Copy className="h-4 w-4" />
-  </Button>
-  <Button
-    variant="ghost"
-    size="icon"
-    onClick={() => handleEditMessage(msg.id, msg.message)}
-    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
-    title="Edit Message"
-  >
-    <Edit className="h-4 w-4" />
-  </Button>
-</div>
-
-  </div>
-
-  <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
-    <AvatarImage src={userProfile?.photoURL || user?.photoURL || ""} />
-    <AvatarFallback className="bg-blue-600 text-white text-sm">
-      {userProfile?.displayName?.charAt(0).toUpperCase() ||
-        user?.displayName?.charAt(0).toUpperCase() ||
-        user?.email?.charAt(0).toUpperCase() || "U"}
-    </AvatarFallback>
-  </Avatar>
-</div>
-
-
+              <div className="relative group">
+                <div className="bg-blue-600/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
+                  {isValidImageUrl(msg.image) ? (
+                    <div className="mb-2">
+                      <Image
+                        src={msg.image || ""}
+                        alt="Uploaded file"
+                        width={200}
+                        height={200}
+                        className="rounded-lg object-contain"
+                        onError={(e) => console.error(`File failed to load: ${msg.image}`)}
+                      />
+                    </div>
+                  ) : msg.image !== null ? (
+                    <p className="text-xs text-red-400 mb-2">Invalid or missing file</p>
+                  ) : null}
+                  {editingMessageId === msg.id ? (
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        value={editedMessage}
+                        onChange={(e) => setEditedMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        className="bg-gray-100 dark:bg-gray-700 border-none dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+                        aria-label="Edit message"
+                      />
+                      <Button
+                        onClick={() => handleEditMessage(msg.id, editedMessage)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 w-8"
+                        aria-label="Send edited message"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <p>{msg.message}</p>
+                  )}
+                </div>
+                <div className="absolute -bottom-6 right-4 flex space-x-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleCopyText(msg.message)}
+                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+                    title="Copy Message"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEditMessage(msg.id, msg.message)}
+                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+                    title="Edit Message"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
+                <AvatarImage src={userProfile?.photoURL || user?.photoURL || ""} />
+                <AvatarFallback className="bg-blue-600 text-white text-sm">
+                  {userProfile?.displayName?.charAt(0).toUpperCase() ||
+                    user?.displayName?.charAt(0).toUpperCase() ||
+                    user?.email?.charAt(0).toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+            </div>
             {/* Assistant Response */}
             {msg.response || isTyping[msg.id] ? (
               <div className="flex items-start space-x-2 max-w-[70%]">
@@ -1311,6 +1331,17 @@ function ChatContent() {
                     >
                       <RefreshCw className="h-4 w-4" />
                     </Button>
+                    {isTyping[msg.id] && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleStopResponse(msg.id)}
+                        className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6"
+                        title="Stop Response"
+                      >
+                        <StopCircle className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1563,7 +1594,7 @@ function ChatContent() {
                     className="w-full resize-none bg-transparent text-sm placeholder-gray-500 dark:placeholder-gray-400 dark:text-white outline-none"
                     rows={1}
                     maxLength={1000}
-                    disabled={loading || isRecording}
+                    disabled={loading}
                     aria-label="Message input"
                   />
                   <div className="flex justify-between items-center pt-2">
@@ -1586,15 +1617,6 @@ function ChatContent() {
                         title="Upload File"
                       >
                         <Upload className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        onClick={handleToggleRecording}
-                        size="icon"
-                        variant="ghost"
-                        className={`h-8 w-8 ${isRecording ? "bg-red-600 animate-pulse" : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"}`}
-                        title={isRecording ? "Stop Recording" : "Record Voice"}
-                      >
-                        <Mic className="h-4 w-4" />
                       </Button>
                       <input
                         ref={fileInputRef}
@@ -1690,7 +1712,7 @@ function ChatContent() {
                               });
                               toast.success("Prescription analyzed successfully!");
                             })
-                            .catch((error) => {
+                            .catch((error: any) => {
                               console.error("Error analyzing prescription:", error);
                               toast.error("Failed to analyze prescription");
                             })
@@ -1848,21 +1870,22 @@ function ChatContent() {
                               try {
                                 if (session.id) {
                                   await deleteChatSession(session.id);
+                                  setSessions((prev) => prev.filter((s) => s.id !== session.id));
+                                  if (currentSession?.id === session.id) {
+                                    setCurrentSession(null);
+                                    localStorage.removeItem(`lastSessionId_${user.uid}`);
+                                  }
+                                  toast.success("Chat session deleted!");
                                 } else {
                                   console.error("Session ID is undefined or null.");
+                                  toast.error("Failed to delete chat session: Invalid session ID");
                                 }
-                                setSessions((prev) => prev.filter((s) => s.id !== session.id));
-                                if (currentSession?.id === session.id) {
-                                  setCurrentSession(null);
-                                  localStorage.removeItem(`lastSessionId_${user.uid}`);
-                                }
-                                toast.success("Chat session deleted successfully!");
-                              } catch (error) {
+                              } catch (error: any) {
                                 console.error("Error deleting session:", error);
-                                toast.error("Failed to delete chat session");
+                                toast.error(`Failed to delete chat session: ${error.message || "Unknown error"}`);
                               }
                             }}
-                            className="text-red-500 hover:text-red-600 h-6 w-6"
+                            className="text-red-500 hover:text-red-600 h-8 w-8"
                             title="Delete Session"
                           >
                             <X className="h-4 w-4" />
@@ -1871,20 +1894,10 @@ function ChatContent() {
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-8">
-                      <RotateCcw className="h-12 w-12 text-gray-400 mx-auto animate-spin" />
-                                            <p className="text-gray-500 dark:text-gray-400 text-sm">No chat history available.</p>
-                    </div>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm text-center">
+                      No chat sessions found.
+                    </p>
                   )}
-                </div>
-                <div className="mt-4">
-                  <Button
-                    onClick={() => setHistoryDialogOpen(false)}
-                    variant="outline"
-                    className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  >
-                    Close
-                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -1895,6 +1908,12 @@ function ChatContent() {
   );
 }
 
-// Removed duplicate ChatContent function definition
-
-export default ChatContent;
+export default function Chat() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthGuard>
+        <ChatContent />
+      </AuthGuard>
+    </Suspense>
+  );
+}
