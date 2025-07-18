@@ -391,18 +391,45 @@ export default function MedicationsPage() {
               </svg>
             </div>
           </div>
+         <div className="max-w-5xl mx-auto mb-10 px-4">
+  <div className="flex flex-col md:flex-row items-center gap-8">
+    {/* Left: Image with curved shape */}
+    <div className="flex-1 order-1 md:order-none">
+      <div className="w-full h-auto overflow-hidden rounded-[3rem] shadow-xl flex justify-center items-center">
+  <img
+    src="/medicationimg.png"
+    alt="Medication Reminder"
+    className="max-w-full h-auto object-contain"
+  />
+</div>
+
+    </div>
+
+    {/* Right: Text */}
+    <div className="flex-1 text-center md:text-left">
+      <h2 className="text-2xl md:text-3xl font-bold text-[#a855f7] mb-3">
+        Never Miss a Dose Again
+      </h2>
+      <p className="text-muted-foreground mb-4 leading-relaxed">
+        Stay on top of your health with smart medication reminders. Set schedules, receive alerts, and track your daily intake – all in one place.
+      </p>
+      <Button
+        onClick={handleAddMedication}
+        className="bg-[#a855f7] hover:bg-teal-600 dark:bg-[#a855f7] dark:hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2"
+      >
+        <Plus className="mr-1 h-4 w-4" /> Set a Reminder
+      </Button>
+    </div>
+  </div>
+</div>
+
 
           {/* Medications Header */}
           <div className="flex justify-between items-center mt-10 mb-4">
             <h2 className="text-xl font-semibold text-foreground">Your Medications</h2>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button
-                  onClick={handleAddMedication}
-                  className="bg-[#a855f7] hover:bg-teal-600 dark:bg-[#a855f7] dark:hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2"
-                >
-                  <Plus className="mr-1 h-4 w-4" /> Add
-                </Button>
+               
               </DialogTrigger>
               <DialogContent className="bg-card text-foreground border-border max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
