@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, Suspense, useMemo } from "react";
@@ -446,61 +447,59 @@ function ChatContent() {
   };
 
   // Fetch sessions and handle sessionId from URL or localStorage
-useEffect(() => {
-  if (!user) {
-    setLoading(false);
-    setCurrentSession(null);
-    setSessions([]);
-    return;
-  }
-
-  let unsubscribe: () => void;
-
-  const fetchSessions = async () => {
-    try {
-      setLoading(true);
-      unsubscribe = subscribeToUserChatSessions(user.uid, (userSessions) => {
-        const normalizedSessions = userSessions
-          .map(normalizeSession)
-          .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-        setSessions(normalizedSessions);
-
-        const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
-        const lastSessionId = getLastSessionId();
-
-        // Prioritize sessionId from URL, then last session from localStorage, then most recent session
-        let selectedSession: ProcessedChatSession | undefined;
-        if (sessionIdFromUrl) {
-          selectedSession = normalizedSessions.find((s) => s.id === sessionIdFromUrl);
-        } else if (lastSessionId) {
-          selectedSession = normalizedSessions.find((s) => s.id === lastSessionId);
-        } else if (normalizedSessions.length > 0) {
-          selectedSession = normalizedSessions[0]; // Default to most recent session
-        }
-
-        if (selectedSession) {
-          setCurrentSession(selectedSession);
-          if (selectedSession.id) {
-            setLastSessionId(selectedSession.id);
-          }
-        } else {
-          // No valid session found; initialize an empty session without saving to Firestore
-          setCurrentSession(null);
-        }
-      });
-    } catch (error) {
-      console.error("Error fetching sessions:", error);
-      toast.error("Failed to load chat sessions");
-      setCurrentSession(null);
-    } finally {
+  useEffect(() => {
+    if (!user) {
       setLoading(false);
+      setCurrentSession(null);
+      setSessions([]);
+      return;
     }
-  };
 
-  fetchSessions();
+    let unsubscribe: () => void;
 
-  return () => unsubscribe?.();
-}, [user, searchParams]);
+    const fetchSessions = async () => {
+      try {
+        setLoading(true);
+        unsubscribe = subscribeToUserChatSessions(user.uid, (userSessions) => {
+          const normalizedSessions = userSessions
+            .map(normalizeSession)
+            .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+          setSessions(normalizedSessions);
+
+          const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
+          const lastSessionId = getLastSessionId();
+
+          let selectedSession: ProcessedChatSession | undefined;
+          if (sessionIdFromUrl) {
+            selectedSession = normalizedSessions.find((s) => s.id === sessionIdFromUrl);
+          } else if (lastSessionId) {
+            selectedSession = normalizedSessions.find((s) => s.id === lastSessionId);
+          } else if (normalizedSessions.length > 0) {
+            selectedSession = normalizedSessions[0];
+          }
+
+          if (selectedSession) {
+            setCurrentSession(selectedSession);
+            if (selectedSession.id) {
+              setLastSessionId(selectedSession.id);
+            }
+          } else {
+            setCurrentSession(null);
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching sessions:", error);
+        toast.error("Failed to load chat sessions");
+        setCurrentSession(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSessions();
+
+    return () => unsubscribe?.();
+  }, [user, searchParams]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -517,34 +516,34 @@ useEffect(() => {
     }
   }, [message]);
 
- const startNewChat = async () => {
-  if (!user) {
-    toast.error("Please log in to start a new chat");
-    return;
-  }
+  const startNewChat = async () => {
+    if (!user) {
+      toast.error("Please log in to start a new chat");
+      return;
+    }
 
-  try {
-    const sessionId = await createChatSession(user.uid, "New Chat");
-    const newSession: ProcessedChatSession = {
-      id: sessionId,
-      userId: user.uid,
-      title: "New Chat",
-      messages: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setCurrentSession(newSession);
-    setLastSessionId(sessionId);
-    setSessions((prev) => [newSession, ...prev]);
-    setMessage("");
-    setSelectedFile(null);
-    setFileName("");
-    toast.success("New chat started!");
-  } catch (error) {
-    console.error("Error starting new chat:", error);
-    toast.error("Failed to start new chat");
-  }
-};
+    try {
+      const sessionId = await createChatSession(user.uid, "New Chat");
+      const newSession: ProcessedChatSession = {
+        id: sessionId,
+        userId: user.uid,
+        title: "New Chat",
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setCurrentSession(newSession);
+      setLastSessionId(sessionId);
+      setSessions((prev) => [newSession, ...prev]);
+      setMessage("");
+      setSelectedFile(null);
+      setFileName("");
+      toast.success("New chat started!");
+    } catch (error) {
+      console.error("Error starting new chat:", error);
+      toast.error("Failed to start new chat");
+    }
+  };
 
   const uploadImageToCloudinary = async (file: File): Promise<string | null> => {
     try {
@@ -588,170 +587,165 @@ useEffect(() => {
   };
 
   const handleSendMessage = async () => {
-  if (!user) {
-    toast.error("Please log in to send messages");
-    return;
-  }
+    if (!user) {
+      toast.error("Please log in to send messages");
+      return;
+    }
 
-  if (!message.trim() && !selectedFile) {
-    toast.error("Please enter a message or upload a file");
-    return;
-  }
+    if (!message.trim() && !selectedFile) {
+      toast.error("Please enter a message or upload a file");
+      return;
+    }
 
-  const userMessage = message.trim() || "File uploaded";
-  const messageId = uuidv4();
-  setLoading(true);
+    const userMessage = message.trim() || "File uploaded";
+    const messageId = uuidv4();
+    setLoading(true);
 
-  try {
-    // Create or use existing session
-    let sessionId = currentSession?.id;
-    let isNewSession = !currentSession || currentSession.messages.length === 0;
-    let smartTitle = currentSession?.title || "New Chat";
+    try {
+      let sessionId = currentSession?.id;
+      let isNewSession = !currentSession || currentSession.messages.length === 0;
+      let smartTitle = currentSession?.title || "New Chat";
 
-    if (isNewSession) {
-      smartTitle = message.trim() ? generateChatTitle(message) : "File Chat";
-      if (!currentSession) {
-        sessionId = await createChatSession(user.uid, smartTitle);
-        const newSession: ProcessedChatSession = {
-          id: sessionId,
-          userId: user.uid,
-          title: smartTitle,
-          messages: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        setCurrentSession(newSession);
-        setLastSessionId(sessionId);
-        setSessions((prev) => [newSession, ...prev]);
+      if (isNewSession) {
+        smartTitle = message.trim() ? generateChatTitle(message) : "File Chat";
+        if (!currentSession) {
+          sessionId = await createChatSession(user.uid, smartTitle);
+          const newSession: ProcessedChatSession = {
+            id: sessionId,
+            userId: user.uid,
+            title: smartTitle,
+            messages: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          setCurrentSession(newSession);
+          setLastSessionId(sessionId);
+          setSessions((prev) => [newSession, ...prev]);
+        }
+      } else if (currentSession?.title === "New Chat" && message.trim()) {
+        smartTitle = generateChatTitle(message);
+        await updateChatSessionTitle(sessionId!, smartTitle);
+        setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
       }
-    } else if (currentSession?.title === "New Chat" && message.trim()) {
-      smartTitle = generateChatTitle(message);
-      // Update title in Firestore (implement updateChatSessionTitle in firestore.ts)
-      await updateChatSessionTitle(sessionId!, smartTitle);
-      setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
-    }
 
-    let fileUrl: string | null = null;
-    if (selectedFile) {
-      fileUrl = await uploadImageToCloudinary(selectedFile);
-    }
+      let fileUrl: string | null = null;
+      if (selectedFile) {
+        fileUrl = await uploadImageToCloudinary(selectedFile);
+      }
 
-    const tempMessage: ProcessedChatSession["messages"][0] = {
-      id: messageId,
-      userId: user.uid,
-      message: userMessage,
-      response: "",
-      timestamp: new Date(),
-      type: "chat",
-      image: fileUrl ?? null,
-    };
-
-    // Update current session with the new message
-    setCurrentSession((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        messages: [...prev.messages, tempMessage],
-        updatedAt: new Date(),
-        title: smartTitle,
+      const tempMessage: ProcessedChatSession["messages"][0] = {
+        id: messageId,
+        userId: user.uid,
+        message: userMessage,
+        response: "",
+        timestamp: new Date(),
+        type: "chat",
+        image: fileUrl ?? null,
       };
-    });
 
-    setMessage("");
-    setSelectedFile(null);
-    setFileName("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
+      setCurrentSession((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: [...prev.messages, tempMessage],
+          updatedAt: new Date(),
+          title: smartTitle,
+        };
+      });
 
-    let botResponse = "";
-    if (message.trim()) {
-      botResponse = await generateAIResponse(userMessage, selectedModel);
-    }
-    if (fileUrl) {
-      const analysis = await analyzePrescription(selectedFile!);
-      const analysisText = `**Prescription Analysis**:\n- **Medications**: ${analysis.medications.join(", ")}\n- **Dosages**: ${analysis.dosages.join(", ")}\n- **Instructions**: ${analysis.instructions}${analysis.warnings.length ? "\n- **Warnings**: " + analysis.warnings.join(", ") : ""}`;
-      botResponse = botResponse ? `${botResponse}\n\n${analysisText}` : analysisText;
-    }
+      setMessage("");
+      setSelectedFile(null);
+      setFileName("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
 
-    setIsTyping((prev) => ({ ...prev, [messageId]: true }));
-    setDisplayedResponse((prev) => ({ ...prev, [messageId]: "" }));
+      let botResponse = "";
+      if (message.trim()) {
+        botResponse = await generateAIResponse(userMessage, selectedModel);
+      }
+      if (fileUrl) {
+        const analysis = await analyzePrescription(selectedFile!);
+        const analysisText = `**Prescription Analysis**:\n- **Medications**: ${analysis.medications.join(", ")}\n- **Dosages**: ${analysis.dosages.join(", ")}\n- **Instructions**: ${analysis.instructions}${analysis.warnings.length ? "\n- **Warnings**: " + analysis.warnings.join(", ") : ""}`;
+        botResponse = botResponse ? `${botResponse}\n\n${analysisText}` : analysisText;
+      }
 
-    let currentText = "";
-    for (let i = 0; i < botResponse.length; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 20));
-      currentText += botResponse[i];
-      setDisplayedResponse((prev) => ({ ...prev, [messageId]: currentText }));
-    }
+      setIsTyping((prev) => ({ ...prev, [messageId]: true }));
+      setDisplayedResponse((prev) => ({ ...prev, [messageId]: "" }));
 
-    setIsTyping((prev) => ({ ...prev, [messageId]: false }));
+      let currentText = "";
+      for (let i = 0; i < botResponse.length; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        currentText += botResponse[i];
+        setDisplayedResponse((prev) => ({ ...prev, [messageId]: currentText }));
+      }
 
-    // Save message to Firestore and update session
-    const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
-    setCurrentSession((prev) => {
-      if (!prev) return prev;
-      const updatedMessages = prev.messages.map((msg) =>
-        msg.id === messageId
-          ? {
-              ...newMessage,
-              id: newMessage.id || uuidv4(),
-              timestamp: newMessage.timestamp instanceof Date
-                ? newMessage.timestamp
-                : (newMessage.timestamp as any).toDate(),
-              image: newMessage.image ?? null,
-            }
-          : msg
+      setIsTyping((prev) => ({ ...prev, [messageId]: false }));
+
+      const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
+      setCurrentSession((prev) => {
+        if (!prev) return prev;
+        const updatedMessages = prev.messages.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...newMessage,
+                id: newMessage.id || uuidv4(),
+                timestamp: newMessage.timestamp instanceof Date
+                  ? newMessage.timestamp
+                  : (newMessage.timestamp as any).toDate(),
+                image: newMessage.image ?? null,
+              }
+            : msg
+        );
+        return {
+          ...prev,
+          messages: updatedMessages,
+          updatedAt: new Date(),
+          title: smartTitle,
+        };
+      });
+
+      setSessions((prev) =>
+        prev.map((session) =>
+          session.id === sessionId
+            ? {
+                ...session,
+                messages: [
+                  ...session.messages,
+                  {
+                    ...newMessage,
+                    timestamp:
+                      newMessage.timestamp instanceof Date
+                        ? newMessage.timestamp
+                        : (newMessage.timestamp as any)?.toDate?.() || new Date(),
+                  },
+                ],
+                updatedAt: new Date(),
+                title: smartTitle,
+              }
+            : session
+        )
       );
-      return {
-        ...prev,
-        messages: updatedMessages,
-        updatedAt: new Date(),
-        title: smartTitle,
-      };
-    });
 
-    // Update sessions to reflect the updated message count and timestamp
-    setSessions((prev) =>
-      prev.map((session) =>
-        session.id === sessionId
-          ? {
-              ...session,
-              messages: [
-                ...session.messages,
-                {
-                  ...newMessage,
-                  timestamp:
-                    newMessage.timestamp instanceof Date
-                      ? newMessage.timestamp
-                      : (newMessage.timestamp as any)?.toDate?.() || new Date(),
-                },
-              ],
-              updatedAt: new Date(),
-              title: smartTitle,
-            }
-          : session
-      )
-    );
-
-    sendMessageNotification(userMessage, botResponse);
-    toast.success("Message sent successfully");
-  } catch (error: any) {
-    console.error("Error sending message:", error);
-    toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
-    setMessage(userMessage);
-    if (selectedFile) {
-      setSelectedFile(selectedFile);
-      setFileName(selectedFile.name);
+      sendMessageNotification(userMessage, botResponse);
+      toast.success("Message sent successfully");
+    } catch (error: any) {
+      console.error("Error sending message:", error);
+      toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
+      setMessage(userMessage);
+      if (selectedFile) {
+        setSelectedFile(selectedFile);
+        setFileName(selectedFile.name);
+      }
+      setCurrentSession((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: prev.messages.filter((msg) => msg.id !== messageId),
+        };
+      });
+    } finally {
+      setLoading(false);
     }
-    setCurrentSession((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        messages: prev.messages.filter((msg) => msg.id !== messageId),
-      };
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleRetryResponse = async (messageId: string, userMessage: string) => {
     if (!user) {
@@ -1180,84 +1174,89 @@ useEffect(() => {
 
       return (
         <div key={msg.id}>
-          {showDateDivider && (
-            <div className="text-center text-xs text-gray-500 dark:text-gray-400 my-4">
-              {messageDate === new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })
-                ? "Today"
-                : messageDate}
-            </div>
-          )}
-          <div className="space-y-2">
+          
+          <div className="space-y-4">
+            {/* User Message */}
             <div className="flex justify-end items-start space-x-2 max-w-[70%] ml-auto">
-              <div className="bg-blue-600/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
-                {isValidImageUrl(msg.image) ? (
-                  <div className="mb-2">
-                    <Image
-                      src={msg.image || ""}
-                      alt="Uploaded file"
-                      width={200}
-                      height={200}
-                      className="rounded-lg object-contain"
-                      onError={(e) => console.error(`File failed to load: ${msg.image}`)}
-                    />
-                  </div>
-                ) : msg.image !== null ? (
-                  <p className="text-xs text-red-400 mb-2">Invalid or missing file</p>
-                ) : null}
-                {editingMessageId === msg.id ? (
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      value={editedMessage}
-                      onChange={(e) => setEditedMessage(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      className="bg-gray-100 dark:bg-gray-700 border-none dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
-                      aria-label="Edit message"
-                    />
-                    <Button
-                      onClick={() => handleEditMessage(msg.id, editedMessage)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 w-8"
-                      aria-label="Send edited message"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <p>{msg.message}</p>
-                )}
-                <div className="flex space-x-2 mt-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleCopyText(msg.message)}
-                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
-                    title="Copy Message"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEditMessage(msg.id, msg.message)}
-                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
-                    title="Edit Message"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{formatISTDateTime(msg.timestamp)}</p>
-              </div>
-              <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
-                <AvatarImage src={userProfile?.photoURL || user?.photoURL || ""} />
-                <AvatarFallback className="bg-blue-600 text-white text-sm">
-                  {userProfile?.displayName?.charAt(0).toUpperCase() ||
-                    user?.displayName?.charAt(0).toUpperCase() ||
-                    user?.email?.charAt(0).toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+  <div className="relative group">
+    <div className="bg-blue-600/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
+      {isValidImageUrl(msg.image) ? (
+        <div className="mb-2">
+          <Image
+            src={msg.image || ""}
+            alt="Uploaded file"
+            width={200}
+            height={200}
+            className="rounded-lg object-contain"
+            onError={(e) => console.error(`File failed to load: ${msg.image}`)}
+          />
+        </div>
+      ) : msg.image !== null ? (
+        <p className="text-xs text-red-400 mb-2">Invalid or missing file</p>
+      ) : null}
+
+      {editingMessageId === msg.id ? (
+        <div className="flex items-center space-x-2">
+          <Input
+            value={editedMessage}
+            onChange={(e) => setEditedMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="bg-gray-100 dark:bg-gray-700 border-none dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+            aria-label="Edit message"
+          />
+          <Button
+            onClick={() => handleEditMessage(msg.id, editedMessage)}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 w-8"
+            aria-label="Send edited message"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : (
+        <p>{msg.message}</p>
+      )}
+     
+    </div>
+
+    {/* Hover icons below the card */}
+    <div className="absolute -bottom-6 right-4 flex space-x-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+  <Button
+    variant="ghost"
+    size="icon"
+    onClick={() => handleCopyText(msg.message)}
+    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+    title="Copy Message"
+  >
+    <Copy className="h-4 w-4" />
+  </Button>
+  <Button
+    variant="ghost"
+    size="icon"
+    onClick={() => handleEditMessage(msg.id, msg.message)}
+    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+    title="Edit Message"
+  >
+    <Edit className="h-4 w-4" />
+  </Button>
+</div>
+
+  </div>
+
+  <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
+    <AvatarImage src={userProfile?.photoURL || user?.photoURL || ""} />
+    <AvatarFallback className="bg-blue-600 text-white text-sm">
+      {userProfile?.displayName?.charAt(0).toUpperCase() ||
+        user?.displayName?.charAt(0).toUpperCase() ||
+        user?.email?.charAt(0).toUpperCase() || "U"}
+    </AvatarFallback>
+  </Avatar>
+</div>
+
+
+            {/* Assistant Response */}
             {msg.response || isTyping[msg.id] ? (
-              <div className="flex items-start space-x-2 max-w-[80%]">
-                <div className="bg-gray-100 dark:bg-gray-700 rounded-xl p-4 dark:text-white text-sm leading-relaxed border dark:border-gray-600">
+              <div className="flex items-start space-x-2 max-w-[70%]">
+                <div className="p-4 dark:text-white text-sm leading-relaxed group relative">
                   {(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response)?.split("\n").map((line, i) => (
                     <p key={i} className={line.startsWith("**") ? "font-semibold" : ""}>
                       {line}
@@ -1266,7 +1265,7 @@ useEffect(() => {
                   {isTyping[msg.id] && (
                     <div className="inline-block w-2 h-4 bg-blue-500 animate-pulse"></div>
                   )}
-                  <div className="flex space-x-2 mt-2">
+                  <div className="flex space-x-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1322,13 +1321,12 @@ useEffect(() => {
                       <Search className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{formatISTDateTime(msg.timestamp)}</p>
                 </div>
               </div>
             ) : (
               loading && (
-                <div className="flex items-start space-x-2 max-w-[80%]">
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-xl p-4 border dark:border-gray-600">
+                <div className="flex items-start space-x-2 max-w-[70%]">
+                  <div className="p-4">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
@@ -1357,146 +1355,137 @@ useEffect(() => {
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-         <div className="sticky top-0 z-20 flex flex-wrap md:flex-nowrap items-center justify-between p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm">
-  {/* Left Side - Menu & Plan Select */}
-  <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
-    {/* Sidebar Button (Visible only on small screens) */}
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setSidebarOpen(true)}
-      className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden rounded-full h-9 w-9"
-      aria-label="Open sidebar"
-    >
-      <Menu className="h-5 w-5" />
-    </Button>
-
-    {/* Plan Selector */}
-    <Select
-      value={selectedPlan}
-      onValueChange={(value) => {
-        setSelectedPlan(value);
-        setSelectedPlanForPayment(value);
-        setPaymentDialogOpen(true);
-      }}
-    >
-      <SelectTrigger className="h-10 bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-full px-4 hover:bg-gray-200/70 dark:hover:bg-gray-600/60 transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:outline-none w-full md:w-[240px]">
-        <div className="flex items-center space-x-2">
-          {selectedPlan === "premium" ? (
-            <Crown className="h-4 w-4 text-yellow-500" />
-          ) : (
-            <Sparkles className="h-4 w-4 text-blue-500" />
-          )}
-          <span>Medibot</span>
-        </div>
-      </SelectTrigger>
-      <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 border-[0.5px] w-[280px] p-1 space-y-1">
-        <SelectItem
-          value="premium"
-          className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <Crown className="h-4 w-4 text-yellow-500" />
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold">Premium Plan</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">₹100 / $2 per month</span>
+          <div className="sticky top-0 z-20 flex flex-wrap md:flex-nowrap items-center justify-between p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm">
+            <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(true)}
+                className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden rounded-full h-9 w-9"
+                aria-label="Open sidebar"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+              <Select
+                value={selectedPlan}
+                onValueChange={(value) => {
+                  setSelectedPlan(value);
+                  setSelectedPlanForPayment(value);
+                  setPaymentDialogOpen(true);
+                }}
+              >
+                <SelectTrigger className="h-10 bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-full px-4 hover:bg-gray-200/70 dark:hover:bg-gray-600/60 transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:outline-none w-full md:w-[240px]">
+                  <div className="flex items-center space-x-2">
+                    {selectedPlan === "premium" ? (
+                      <Crown className="h-4 w-4 text-yellow-500" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 text-blue-500" />
+                    )}
+                    <span>Medibot</span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 border-[0.5px] w-[280px] p-1 space-y-1">
+                  <SelectItem
+                    value="premium"
+                    className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Crown className="h-4 w-4 text-yellow-500" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold">Premium Plan</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">₹100 / $2 per month</span>
+                      </div>
+                    </div>
+                    {selectedPlan === "premium" && (
+                      <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
+                    )}
+                  </SelectItem>
+                  <SelectItem
+                    value="base"
+                    className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Sparkles className="h-4 w-4 text-blue-500" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold">Base Plan</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Free access (Current plan)</span>
+                      </div>
+                    </div>
+                    {selectedPlan === "base" && (
+                      <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
+                    )}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
+                <span className="bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">MediBot</span>
+                <span className="hidden sm:inline text-gray-600 dark:text-gray-300"> - Your Health Assistant</span>
+              </h1>
+            </div>
+            <div className="flex items-center gap-2 mt-4 md:mt-0 w-full md:w-auto justify-end">
+              {user ? (
+                <>
+                  <PaymentDialog
+                    open={paymentDialogOpen}
+                    onOpenChange={setPaymentDialogOpen}
+                    plan={selectedPlanForPayment}
+                  />
+                  <Button
+                    onClick={startNewChat}
+                    variant="ghost"
+                    size="icon"
+                    className="bg-purple-600/10 hover:bg-purple-600/20 dark:bg-purple-400/10 dark:hover:bg-purple-400/20 text-purple-600 dark:text-purple-400 rounded-full h-9 w-9"
+                    aria-label="Start new chat"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    onClick={handlePrescriptionAnalysis}
+                    variant="ghost"
+                    size="icon"
+                    className="bg-blue-600/10 hover:bg-blue-600/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 text-blue-600 dark:text-blue-400 rounded-full h-9 w-9"
+                    aria-label="Analyze Prescription"
+                  >
+                    <Camera className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    onClick={handleHistoryDialog}
+                    variant="ghost"
+                    size="icon"
+                    className="bg-green-600/10 hover:bg-green-600/20 dark:bg-green-400/10 dark:hover:bg-green-400/20 text-green-600 dark:text-green-400 rounded-full h-9 w-9"
+                    aria-label="View chat history"
+                  >
+                    <RotateCcw className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    onClick={exportChat}
+                    variant="ghost"
+                    size="icon"
+                    className="bg-orange-600/10 hover:bg-orange-600/20 dark:bg-orange-400/10 dark:hover:bg-orange-400/20 text-orange-600 dark:text-orange-400 rounded-full h-9 w-9"
+                    aria-label="Export Chat"
+                  >
+                    <Download className="h-5 w-5" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/signin">
+                    <Button
+                      variant="outline"
+                      className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-9 px-4 rounded-full"
+                    >
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/auth/signup">
+                    <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-9 px-4 rounded-full shadow-sm">
+                      Get Started
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
-          {selectedPlan === "premium" && (
-            <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
-          )}
-        </SelectItem>
-        <SelectItem
-          value="base"
-          className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-4 w-4 text-blue-500" />
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold">Base Plan</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">Free access (Current plan)</span>
-            </div>
-          </div>
-          {selectedPlan === "base" && (
-            <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
-          )}
-        </SelectItem>
-      </SelectContent>
-    </Select>
-
-    {/* Branding Title */}
-    <h1 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-      <span className="bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">MediBot</span>
-      <span className="hidden sm:inline text-gray-600 dark:text-gray-300"> - Your Health Assistant</span>
-    </h1>
-  </div>
-
-  {/* Right Side - Actions */}
-  <div className="flex items-center gap-2 mt-4 md:mt-0 w-full md:w-auto justify-end">
-    {user ? (
-      <>
-        <PaymentDialog
-          open={paymentDialogOpen}
-          onOpenChange={setPaymentDialogOpen}
-          plan={selectedPlanForPayment}
-        />
-        <Button
-          onClick={startNewChat}
-          variant="ghost"
-          size="icon"
-          className="bg-purple-600/10 hover:bg-purple-600/20 dark:bg-purple-400/10 dark:hover:bg-purple-400/20 text-purple-600 dark:text-purple-400 rounded-full h-9 w-9"
-          aria-label="Start new chat"
-        >
-          <Plus className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={handlePrescriptionAnalysis}
-          variant="ghost"
-          size="icon"
-          className="bg-blue-600/10 hover:bg-blue-600/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 text-blue-600 dark:text-blue-400 rounded-full h-9 w-9"
-          aria-label="Analyze Prescription"
-        >
-          <Camera className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={handleHistoryDialog}
-          variant="ghost"
-          size="icon"
-          className="bg-green-600/10 hover:bg-green-600/20 dark:bg-green-400/10 dark:hover:bg-green-400/20 text-green-600 dark:text-green-400 rounded-full h-9 w-9"
-          aria-label="View chat history"
-        >
-          <RotateCcw className="h-5 w-5" />
-        </Button>
-        <Button
-          onClick={exportChat}
-          variant="ghost"
-          size="icon"
-          className="bg-orange-600/10 hover:bg-orange-600/20 dark:bg-orange-400/10 dark:hover:bg-orange-400/20 text-orange-600 dark:text-orange-400 rounded-full h-9 w-9"
-          aria-label="Export Chat"
-        >
-          <Download className="h-5 w-5" />
-        </Button>
-      </>
-    ) : (
-      <>
-        <Link href="/auth/signin">
-          <Button
-            variant="outline"
-            className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-9 px-4 rounded-full"
-          >
-            Login
-          </Button>
-        </Link>
-        <Link href="/auth/signup">
-          <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-9 px-4 rounded-full shadow-sm">
-            Get Started
-          </Button>
-        </Link>
-      </>
-    )}
-  </div>
-</div>
-
 
           {/* Chat Area */}
           <ScrollArea className="flex-1 p-6" ref={scrollAreaRef}>
@@ -1803,117 +1792,109 @@ useEffect(() => {
           )}
 
           {/* History Dialog */}
-         {user && (
-  <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
-    <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-md mx-auto">
-      <DialogHeader>
-        <DialogTitle className="flex items-center space-x-2 text-lg">
-          <RotateCcw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-          <span>Recent Chats</span>
-        </DialogTitle>
-        <DialogDescription>
-          View your recent chat sessions.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="space-y-4 overflow-y-auto max-h-96">
-        {sessions.length > 0 ? (
-          sessions.map((session) => (
-            <div
-              key={session.id}
-              className={`p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
-                currentSession?.id === session.id
-                  ? "bg-blue-600/20 border-blue-600"
-                  : "bg-gray-100 dark:bg-gray-700 hover:bg-blue-600/10"
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div
-                  className="flex-1"
-                  onClick={() => {
-                    setCurrentSession(normalizeSession(session));
-                    if (session.id) {
-                      setLastSessionId(session.id);
-                    }
-                    setHistoryDialogOpen(false);
-                    setTimeout(() => {
-                      if (scrollAreaRef.current) {
-                        scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-                      }
-                    }, 0);
-                  }}
-                >
-                  <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">
-                    {session.messages.length} messages • {formatISTDateTime(session.updatedAt)}
-                  </p>
-                  {session.messages.length > 0 && (
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 truncate">
-                      {session.messages[session.messages.length - 1]?.message || "No messages"}
-                    </p>
+          {user && (
+            <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+              <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-md mx-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-2 text-lg">
+                    <RotateCcw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                    <span>Recent Chats</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    View your recent chat sessions.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 overflow-y-auto max-h-96">
+                  {sessions.length > 0 ? (
+                    sessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className={`p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
+                          currentSession?.id === session.id
+                            ? "bg-blue-600/20 border-blue-600"
+                            : "bg-gray-100 dark:bg-gray-700 hover:bg-blue-600/10"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div
+                            className="flex-1"
+                            onClick={() => {
+                              setCurrentSession(normalizeSession(session));
+                              if (session.id) {
+                                setLastSessionId(session.id);
+                              }
+                              setHistoryDialogOpen(false);
+                              setTimeout(() => {
+                                if (scrollAreaRef.current) {
+                                  scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+                                }
+                              }, 0);
+                            }}
+                          >
+                            <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm">
+                              {session.messages.length} messages • {formatISTDateTime(session.updatedAt)}
+                            </p>
+                            {session.messages.length > 0 && (
+                              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 truncate">
+                                {session.messages[session.messages.length - 1]?.message || "No messages"}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={async () => {
+                              try {
+                                if (session.id) {
+                                  await deleteChatSession(session.id);
+                                } else {
+                                  console.error("Session ID is undefined or null.");
+                                }
+                                setSessions((prev) => prev.filter((s) => s.id !== session.id));
+                                if (currentSession?.id === session.id) {
+                                  setCurrentSession(null);
+                                  localStorage.removeItem(`lastSessionId_${user.uid}`);
+                                }
+                                toast.success("Chat session deleted successfully!");
+                              } catch (error) {
+                                console.error("Error deleting session:", error);
+                                toast.error("Failed to delete chat session");
+                              }
+                            }}
+                            className="text-red-500 hover:text-red-600 h-6 w-6"
+                            title="Delete Session"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <RotateCcw className="h-12 w-12 text-gray-400 mx-auto animate-spin" />
+                                            <p className="text-gray-500 dark:text-gray-400 text-sm">No chat history available.</p>
+                    </div>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={async () => {
-                    try {
-                      if (session.id) {
-                        await deleteChatSession(session.id);
-                      } else {
-                        console.error("Session ID is undefined or null.");
-                      }
-                      setSessions((prev) => prev.filter((s) => s.id !== session.id));
-                      if (currentSession?.id === session.id) {
-                        setCurrentSession(null);
-                        localStorage.removeItem(`lastSessionId_${user.uid}`);
-                      }
-                      toast.success("Chat session deleted successfully!");
-                    } catch (error) {
-                      console.error("Error deleting session:", error);
-                      toast.error("Failed to delete chat session");
-                    }
-                  }}
-                  className="text-red-500 hover:text-red-600 h-6 w-6"
-                  title="Delete Session"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-center py-8">
-            <RotateCcw className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400 text-sm">No chat history yet</p>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation to see your history here</p>
-          </div>
-        )}
-      </div>
-      <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-        <Link href="/history">
-          <Button
-            variant="outline"
-            className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
-            onClick={() => setHistoryDialogOpen(false)}
-          >
-            View Full History
-          </Button>
-        </Link>
-      </div>
-    </DialogContent>
-  </Dialog>
-)}
-          
+                <div className="mt-4">
+                  <Button
+                    onClick={() => setHistoryDialogOpen(false)}
+                    variant="outline"
+                    className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
     </AuthGuard>
   );
 }
 
-export default function ChatPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">Loading...</div>}>
-      <ChatContent />
-    </Suspense>
-  );
-}
+// Removed duplicate ChatContent function definition
+
+export default ChatContent;
