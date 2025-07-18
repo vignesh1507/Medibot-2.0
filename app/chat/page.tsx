@@ -1198,9 +1198,7 @@ function ChatContent() {
       <div key={msg.id}>
         {showDateDivider && (
           <div className="text-center my-4">
-            <span className="text-gray-500 dark:text-gray-400 text-xs bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
-              {messageDate}
-            </span>
+            
           </div>
         )}
         <div className="space-y-4">
