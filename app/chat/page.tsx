@@ -1003,7 +1003,7 @@ function ChatContent() {
         if (!content) throw new Error("No valid response from Groq API");
       }
 
-      return content.trim();
+      return (content ?? "").trim();
     } catch (error: any) {
       if (error.name === "AbortError") {
         return "";
