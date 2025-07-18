@@ -68,7 +68,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const menuItems = [
     { icon: MessageCircle, label: "AI Chatbot", href: "/chat" },
     { icon: FileText, label: "Info Summarizer", href: "/summarizer" },
-    // { icon: Calendar, label: "Appointments", href: "/appointments" },
+    { icon: Calendar, label: "Appointments", href: "/appointments" },
     { icon: Pill, label: "Medications", href: "/medications" },
     { icon: History, label: "Chat History", href: "/history" },
     { icon: User, label: "My Profile", href: "/profile" },
