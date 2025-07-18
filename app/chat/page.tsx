@@ -1183,196 +1183,197 @@ function ChatContent() {
     return !!url && typeof url === "string" && url.startsWith("https://");
   };
 
-  const renderMessages = useMemo(() => {
-    if (!user || !currentSession?.messages || currentSession.messages.length === 0) {
-      return null;
-    }
+ const renderMessages = useMemo(() => {
+  if (!user || !currentSession?.messages || currentSession.messages.length === 0) {
+    return null;
+  }
 
-    let lastDate: string | null = null;
-    return currentSession.messages.map((msg) => {
-      const messageDate = msg.timestamp.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
-      const showDateDivider = messageDate !== lastDate;
-      lastDate = messageDate;
+  let lastDate: string | null = null;
+  return currentSession.messages.map((msg) => {
+    const messageDate = msg.timestamp.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
+    const showDateDivider = messageDate !== lastDate;
+    lastDate = messageDate;
 
-      return (
-        <div key={msg.id}>
-          {showDateDivider && (
-            <div className="text-center my-4">
-              <span className="text-gray-500 dark:text-gray-400 text-xs bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
-                {messageDate}
-              </span>
-            </div>
-          )}
-          <div className="space-y-4">
-            {/* User Message */}
-            <div className="flex justify-end items-start space-x-2 max-w-[70%] ml-auto">
-              <div className="relative group">
-                <div className="bg-blue-600/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
-                  {isValidImageUrl(msg.image) ? (
-                    <div className="mb-2">
-                      <Image
-                        src={msg.image || ""}
-                        alt="Uploaded file"
-                        width={200}
-                        height={200}
-                        className="rounded-lg object-contain"
-                        onError={(e) => console.error(`File failed to load: ${msg.image}`)}
-                      />
-                    </div>
-                  ) : msg.image !== null ? (
-                    <p className="text-xs text-red-400 mb-2">Invalid or missing file</p>
-                  ) : null}
-                  {editingMessageId === msg.id ? (
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        value={editedMessage}
-                        onChange={(e) => setEditedMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        className="bg-gray-100 dark:bg-gray-700 border-none dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
-                        aria-label="Edit message"
-                      />
-                      <Button
-                        onClick={() => handleEditMessage(msg.id, editedMessage)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 w-8"
-                        aria-label="Send edited message"
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <p>{msg.message}</p>
-                  )}
-                </div>
-                <div className="absolute -bottom-6 right-4 flex space-x-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleCopyText(msg.message)}
-                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
-                    title="Copy Message"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEditMessage(msg.id, msg.message)}
-                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
-                    title="Edit Message"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </div>
+    return (
+      <div key={msg.id}>
+        {showDateDivider && (
+          <div className="text-center my-4">
+            <span className="text-gray-500 dark:text-gray-400 text-xs bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
+              {messageDate}
+            </span>
+          </div>
+        )}
+        <div className="space-y-4">
+          {/* User Message */}
+          <div className="flex justify-end items-start space-x-2 max-w-[70%] ml-auto">
+            <div className="relative group">
+              <div className="bg-blue-600/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
+                {isValidImageUrl(msg.image) ? (
+                  <div className="mb-2">
+                    <Image
+                      src={msg.image || ""}
+                      alt="Uploaded file"
+                      width={200}
+                      height={200}
+                      className="rounded-lg object-contain"
+                      onError={(e) => console.error(`File failed to load: ${msg.image}`)}
+                    />
+                  </div>
+                ) : msg.image !== null ? (
+                  <p className="text-xs text-red-400 mb-2">Invalid or missing file</p>
+                ) : null}
+                {editingMessageId === msg.id ? (
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      value={editedMessage}
+                      onChange={(e) => setEditedMessage(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      className="bg-gray-100 dark:bg-gray-700 border-none dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
+                      aria-label="Edit message"
+                    />
+                    <Button
+                      onClick={() => handleEditMessage(msg.id, editedMessage)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 w-8"
+                      aria-label="Send edited message"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <p>{msg.message}</p>
+                )}
               </div>
-              <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
-                <AvatarImage src={userProfile?.photoURL || user?.photoURL || ""} />
-                <AvatarFallback className="bg-blue-600 text-white text-sm">
-                  {userProfile?.displayName?.charAt(0).toUpperCase() ||
-                    user?.displayName?.charAt(0).toUpperCase() ||
-                    user?.email?.charAt(0).toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
+              <div className="absolute -bottom-6 right-4 flex space-x-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleCopyText(msg.message)}
+                  className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+                  title="Copy Message"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleEditMessage(msg.id, msg.message)}
+                  className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+                  title="Edit Message"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            {/* Assistant Response */}
-            {msg.response || isTyping[msg.id] ? (
-              <div className="flex items-start space-x-2 max-w-[70%]">
-                <div className="p-4 dark:text-white text-sm leading-relaxed group relative">
+            <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
+              <AvatarImage src={userProfile?.photoURL || user?.photoURL || ""} />
+              <AvatarFallback className="bg-blue-600 text-white text-sm">
+                {userProfile?.displayName?.charAt(0).toUpperCase() ||
+                  user?.displayName?.charAt(0).toUpperCase() ||
+                  user?.email?.charAt(0).toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+          {/* Assistant Response */}
+          {msg.response || isTyping[msg.id] ? (
+            <div className="flex items-start space-x-2 max-w-[70%]">
+              <div className="relative group">
+                <div className="bg-gray-300/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
                   {(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response)?.split("\n").map((line, i) => (
                     <p key={i} className={line.startsWith("**") ? "font-semibold" : ""}>
                       {line}
                     </p>
                   ))}
                   {isTyping[msg.id] && (
-                    <div className="inline-block w-2 h-4 bg-blue-500 animate-pulse"></div>
+                    <div className="inline-block w-2 h-4 bg-gray-500 animate-pulse"></div>
                   )}
-                  <div className="flex space-x-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                </div>
+                <div className="absolute -bottom-6 left-4 flex space-x-2 justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleCopyText(msg.response)}
+                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+                    title="Copy Response"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleSpeakResponse(msg.response)}
+                    className={`text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 ${isSpeaking ? "animate-pulse bg-gray-500/20" : ""}`}
+                    title={isSpeaking ? "Stop Speaking" : "Speak Response"}
+                  >
+                    <Volume2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleFeedback(msg.id, true)}
+                    className="text-gray-500 dark:text-gray-300 hover:text-green-500 h-6 w-6"
+                    title="Thumbs Up"
+                  >
+                    <ThumbsUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleFeedback(msg.id, false)}
+                    className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6"
+                    title="Thumbs Down"
+                  >
+                    <ThumbsDown className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRetryResponse(msg.id, msg.message)}
+                    className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
+                    title="Retry Response"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  {isTyping[msg.id] && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleCopyText(msg.response)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
-                      title="Copy Response"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleSpeakResponse(msg.response)}
-                      className={`text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 ${isSpeaking ? "animate-pulse bg-blue-500/20" : ""}`}
-                      title={isSpeaking ? "Stop Speaking" : "Speak Response"}
-                    >
-                      <Volume2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleFeedback(msg.id, true)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-green-500 h-6 w-6"
-                      title="Thumbs Up"
-                    >
-                      <ThumbsUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleFeedback(msg.id, false)}
+                      onClick={() => handleStopResponse(msg.id)}
                       className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6"
-                      title="Thumbs Down"
+                      title="Stop Response"
                     >
-                      <ThumbsDown className="h-4 w-4" />
+                      <StopCircle className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRetryResponse(msg.id, msg.message)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
-                      title="Retry Response"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    {isTyping[msg.id] && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleStopResponse(msg.id)}
-                        className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6"
-                        title="Stop Response"
-                      >
-                        <StopCircle className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => window.open(`https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(msg.message)}`, "_blank")}
-                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
-                      title="Search PubMed"
-                    >
-                      <Search className="h-4 w-4" />
-                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => window.open(`https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(msg.message)}`, "_blank")}
+                    className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
+                    title="Search PubMed"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            loading && (
+              <div className="flex items-start space-x-2 max-w-[70%]">
+                <div className="p-4">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
                   </div>
                 </div>
               </div>
-            ) : (
-              loading && (
-                <div className="flex items-start space-x-2 max-w-[70%]">
-                  <div className="p-4">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-                    </div>
-                  </div>
-                </div>
-              )
-            )}
-          </div>
+            )
+          )}
         </div>
-      );
-    });
-  }, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, displayedResponse, isTyping]);
-
+      </div>
+    );
+  });
+}, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, displayedResponse, isTyping]);
   return (
     <AuthGuard>
       <div className="min-h-screen flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
