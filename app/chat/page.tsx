@@ -1546,7 +1546,6 @@ Provide a personalized, contextual response that acknowledges their history whil
       className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-10 w-10 sm:h-11 sm:w-11"
       aria-label="Open sidebar"
     >
-      <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
     </Button>
 
     {/* Plan Select */}
