@@ -1536,138 +1536,117 @@ Provide a personalized, contextual response that acknowledges their history whil
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="sticky top-0 z-20 flex flex-wrap md:flex-nowrap items-center justify-between p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm">
-            <div className="flex flex-wrap md:flex-nowrap items-center gap-3 w-full md:w-auto">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(true)}
-                className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden rounded-full h-9 w-9"
-                aria-label="Open sidebar"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-              <Select
-                value={selectedPlan}
-                onValueChange={(value) => {
-                  setSelectedPlan(value);
-                  setSelectedPlanForPayment(value);
-                  setPaymentDialogOpen(true);
-                }}
-              >
-                <SelectTrigger className="h-10 bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-full px-4 hover:bg-gray-200/70 dark:hover:bg-gray-600/60 transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:outline-none w-full md:w-[240px]">
-                  <div className="flex items-center space-x-2">
-                    {selectedPlan === "premium" ? (
-                      <Crown className="h-4 w-4 text-yellow-500" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 text-blue-500" />
-                    )}
-                    <span>Medibot</span>
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 border-[0.5px] w-[280px] p-1 space-y-1">
-                  <SelectItem
-                    value="premium"
-                    className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Crown className="h-4 w-4 text-yellow-500" />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold">Premium Plan</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">₹100 / $2 per month</span>
-                      </div>
-                    </div>
-                    {selectedPlan === "premium" && (
-                      <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
-                    )}
-                  </SelectItem>
-                  <SelectItem
-                    value="base"
-                    className="flex justify-between items-center gap-2 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer rounded-md transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Sparkles className="h-4 w-4 text-blue-500" />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold">Base Plan</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">Free access (Current plan)</span>
-                      </div>
-                    </div>
-                    {selectedPlan === "base" && (
-                      <Check className="h-4 w-4 text-green-500 dark:text-green-400" />
-                    )}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">
-                <span className="bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">MediBot</span>
-                <span className="hidden sm:inline text-gray-600 dark:text-gray-300"> - Your Health Assistant</span>
-              </h1>
-            </div>
-            <div className="flex items-center gap-2 mt-4 md:mt-0 w-full md:w-auto justify-end">
-              {user ? (
-                <>
-                  <PaymentDialog
-                    open={paymentDialogOpen}
-                    onOpenChange={setPaymentDialogOpen}
-                    plan={selectedPlanForPayment}
-                  />
-                  <Button
-                    onClick={startNewChat}
-                    variant="ghost"
-                    size="icon"
-                    className="bg-purple-600/10 hover:bg-purple-600/20 dark:bg-purple-400/10 dark:hover:bg-purple-400/20 text-purple-600 dark:text-purple-400 rounded-full h-9 w-9"
-                    aria-label="Start new chat"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    onClick={handlePrescriptionAnalysis}
-                    variant="ghost"
-                    size="icon"
-                    className="bg-blue-600/10 hover:bg-blue-600/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 text-blue-600 dark:text-blue-400 rounded-full h-9 w-9"
-                    aria-label="Analyze Prescription"
-                  >
-                    <Camera className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    onClick={handleHistoryDialog}
-                    variant="ghost"
-                    size="icon"
-                    className="bg-green-600/10 hover:bg-green-600/20 dark:bg-green-400/10 dark:hover:bg-green-400/20 text-green-600 dark:text-green-400 rounded-full h-9 w-9"
-                    aria-label="View chat history"
-                  >
-                    <RotateCcw className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    onClick={exportChat}
-                    variant="ghost"
-                    size="icon"
-                    className="bg-orange-600/10 hover:bg-orange-600/20 dark:bg-orange-400/10 dark:hover:bg-orange-400/20 text-orange-600 dark:text-orange-400 rounded-full h-9 w-9"
-                    aria-label="Export Chat"
-                  >
-                    <Download className="h-5 w-5" />
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Link href="/auth/signin">
-                    <Button
-                      variant="outline"
-                      className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-9 px-4 rounded-full"
-                    >
-                      Login
-                    </Button>
-                  </Link>
-                  <Link href="/auth/signup">
-                    <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-9 px-4 rounded-full shadow-sm">
-                      Get Started
-                    </Button>
-                  </Link>
-                </>
-              )}
+          <div className="sticky top-0 z-20 flex flex-row items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm w-full">
+  {/* Left Section */}
+  <div className="flex flex-row items-center gap-2 sm:gap-3">
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setSidebarOpen(true)}
+      className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-10 w-10 sm:h-11 sm:w-11"
+      aria-label="Open sidebar"
+    >
+      <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
+    </Button>
+
+    {/* Plan Select */}
+    <Select
+      value={selectedPlan}
+      onValueChange={(value) => {
+        setSelectedPlan(value);
+        setSelectedPlanForPayment(value);
+        setPaymentDialogOpen(true);
+      }}
+    >
+      <SelectTrigger className="h-10 bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100 rounded-full px-3 sm:px-4 hover:bg-gray-200/70 dark:hover:bg-gray-600/60 transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:outline-none w-auto">
+        <div className="flex items-center space-x-2">
+          {selectedPlan === "premium" ? (
+            <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
+          ) : (
+            <>
+              <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+              <span className="hidden sm:inline">Medibot</span>
+            </>
+          )}
+        </div>
+      </SelectTrigger>
+
+      <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm rounded-xl shadow-xl p-1 space-y-1">
+        <SelectItem value="premium" className="flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <div className="flex items-center gap-3">
+            <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
+            <div>
+              <span className="text-sm font-semibold">Premium Plan</span>
+              <div className="text-xs text-gray-500 dark:text-gray-400">₹100 / $2 per month</div>
             </div>
           </div>
-          <div className="relative flex-1 overflow-hidden">
+          {selectedPlan === "premium" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+        </SelectItem>
+
+        <SelectItem value="base" className="flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <div className="flex items-center gap-3">
+            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+            <div>
+              <span className="text-sm font-semibold">Base Plan</span>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
+            </div>
+          </div>
+          {selectedPlan === "base" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+        </SelectItem>
+      </SelectContent>
+    </Select>
+
+    {/* Brand Title - hidden on small screens */}
+    <h1 className="hidden sm:block text-lg sm:text-xl md:text-2xl font-bold text-gray-800 dark:text-white ml-1 sm:ml-3">
+      <span className="bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">MediBot</span>
+      <span className="text-gray-600 dark:text-gray-300"> – Your Health Assistant</span>
+    </h1>
+  </div>
+
+  {/* Right Section - icons aligned in row */}
+  <div className="flex flex-row items-center gap-2 sm:gap-3">
+    {user ? (
+      <>
+        <PaymentDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          plan={selectedPlanForPayment}
+        />
+
+        <Button onClick={startNewChat} variant="ghost" size="icon" className="bg-purple-600/10 hover:bg-purple-600/20 dark:bg-purple-400/10 dark:hover:bg-purple-400/20 text-purple-600 dark:text-purple-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
+          <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
+        </Button>
+
+        <Button onClick={handlePrescriptionAnalysis} variant="ghost" size="icon" className="bg-blue-600/10 hover:bg-blue-600/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 text-blue-600 dark:text-blue-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
+          <Camera className="h-5 w-5 sm:h-6 sm:w-6" />
+        </Button>
+
+        <Button onClick={handleHistoryDialog} variant="ghost" size="icon" className="bg-green-600/10 hover:bg-green-600/20 dark:bg-green-400/10 dark:hover:bg-green-400/20 text-green-600 dark:text-green-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
+          <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6" />
+        </Button>
+
+        <Button onClick={exportChat} variant="ghost" size="icon" className="bg-orange-600/10 hover:bg-orange-600/20 dark:bg-orange-400/10 dark:hover:bg-orange-400/20 text-orange-600 dark:text-orange-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
+          <Download className="h-5 w-5 sm:h-6 sm:w-6" />
+        </Button>
+      </>
+    ) : (
+      <>
+        <Link href="/auth/signin">
+          <Button variant="outline" className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-10 px-4 sm:h-11 sm:px-5 w-full sm:w-auto rounded-full">
+            Login
+          </Button>
+        </Link>
+        <Link href="/auth/signup">
+          <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-10 px-4 sm:h-11 sm:px-5 w-full sm:w-auto rounded-full shadow-sm">
+            Get Started
+          </Button>
+        </Link>
+      </>
+    )}
+  </div>
+</div>
+
+          <div className="relative flex-1  mt-40 overflow-hidden">
             <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
               <div className="max-w-3xl mx-auto space-y-4">
                 {!user ? (
