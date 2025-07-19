@@ -50,6 +50,7 @@ import {
   Volume2,
   RefreshCw,
   StopCircle,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -343,6 +344,13 @@ function ChatContent() {
   const [selectedPlan, setSelectedPlan] = useState<string>("base");
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<string>("base");
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+  
+  // 🔥 ENHANCED SCROLL-TO-LATEST FUNCTIONALITY
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+  const [messageCount, setMessageCount] = useState(0);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  
   const { user, userProfile } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -350,24 +358,65 @@ function ChatContent() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const searchParams = useSearchParams();
-  const [showScrollButton, setShowScrollButton] = useState(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // 🔥 ENHANCED SCROLL TO BOTTOM FUNCTION
+  const scrollToBottom = (behavior: 'smooth' | 'instant' = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+    setHasNewMessages(false);
+    setShowScrollButton(false);
   };
 
+  // 🔥 ENHANCED SCROLL DETECTION
   useEffect(() => {
     const scrollEl = scrollAreaRef.current;
+    if (!scrollEl) return;
+
     const handleScroll = () => {
-      if (!scrollEl) return;
       const { scrollTop, scrollHeight, clientHeight } = scrollEl;
-      const isAtBottom = scrollHeight - scrollTop <= clientHeight + 100;
-      setShowScrollButton(!isAtBottom);
+      const threshold = 150; // Pixels from bottom to consider "at bottom"
+      const currentIsAtBottom = scrollHeight - scrollTop <= clientHeight + threshold;
+      
+      setIsAtBottom(currentIsAtBottom);
+      
+      // Show button if there are new messages and user is not at bottom
+      if (hasNewMessages && !currentIsAtBottom) {
+        setShowScrollButton(true);
+      } else if (currentIsAtBottom) {
+        setShowScrollButton(false);
+        setHasNewMessages(false);
+      }
     };
 
-    scrollEl?.addEventListener("scroll", handleScroll);
-    return () => scrollEl?.removeEventListener("scroll", handleScroll);
-  }, []);
+    scrollEl.addEventListener("scroll", handleScroll);
+    return () => scrollEl.removeEventListener("scroll", handleScroll);
+  }, [hasNewMessages]);
+
+  // 🔥 DETECT NEW MESSAGES AND TRIGGER SCROLL BUTTON
+  useEffect(() => {
+    if (!currentSession?.messages) return;
+    
+    const newCount = currentSession.messages.length;
+    
+    // If messages increased and user is not at bottom, show scroll button
+    if (newCount > messageCount && messageCount > 0 && !isAtBottom) {
+      setHasNewMessages(true);
+      setShowScrollButton(true);
+    }
+    
+    setMessageCount(newCount);
+    
+    // Auto scroll to bottom if user is already at bottom
+    if (isAtBottom && newCount > messageCount && messageCount > 0) {
+      setTimeout(() => scrollToBottom('smooth'), 100);
+    }
+  }, [currentSession?.messages?.length, messageCount, isAtBottom]);
+
+  // 🔥 SCROLL TO BOTTOM ON SESSION CHANGE
+  useEffect(() => {
+    if (currentSession?.messages) {
+      setTimeout(() => scrollToBottom('instant'), 100);
+    }
+  }, [currentSession?.id]);
 
   const normalizeSession = (session: ChatSession): ProcessedChatSession => ({
     ...session,
@@ -446,12 +495,6 @@ function ChatContent() {
     fetchSessions();
     return () => unsubscribe?.();
   }, [user, searchParams]);
-
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-    }
-  }, [currentSession?.messages]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -563,6 +606,7 @@ CONVERSATION PATTERNS:
       setMessage("");
       setSelectedFile(null);
       setFileName("");
+      setMessageCount(0); // Reset message count for new session
       toast.success("New chat started!");
     } catch (error: any) {
       console.error("Error starting new chat:", error);
@@ -1460,6 +1504,35 @@ Provide a personalized, contextual response that acknowledges their history whil
             max-height: 120px;
             overflow-y: auto;
           }
+          
+          /* 🔥 ENHANCED SCROLL BUTTON ANIMATIONS */
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          @keyframes pulse {
+            0%, 100% {
+              transform: scale(1);
+            }
+            50% {
+              transform: scale(1.05);
+            }
+          }
+          
+          .scroll-button-enter {
+            animation: fadeIn 0.3s ease-out;
+          }
+          
+          .scroll-button-pulse {
+            animation: pulse 2s infinite;
+          }
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -1594,69 +1667,85 @@ Provide a personalized, contextual response that acknowledges their history whil
               )}
             </div>
           </div>
-          <ScrollArea className="flex-1 p-6" ref={scrollAreaRef}>
-            <div className="max-w-3xl mx-auto space-y-4">
-              {!user ? (
-                <div className="min-h-full flex items-center justify-center">
-                  <div className="w-full max-w-md text-center space-y-8">
-                    <div className="flex flex-col items-center space-y-6">
-                      <div className="w-20 h-20 relative">
-                        <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
+          <div className="relative flex-1 overflow-hidden">
+            <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
+              <div className="max-w-3xl mx-auto space-y-4">
+                {!user ? (
+                  <div className="min-h-full flex items-center justify-center">
+                    <div className="w-full max-w-md text-center space-y-8">
+                      <div className="flex flex-col items-center space-y-6">
+                        <div className="w-20 h-20 relative">
+                          <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
+                        </div>
+                        <div>
+                          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">Please log in or sign up to start chatting.</p>
+                        </div>
                       </div>
-                      <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Please log in or sign up to start chatting.</p>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <Link href="/auth/signin">
-                        <Button
-                          variant="outline"
-                          className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
-                        >
-                          Login
-                        </Button>
-                      </Link>
-                      <Link href="/auth/signup">
-                        <Button
-                          variant="outline"
-                          className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
-                        >
-                          Signup
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ) : (!currentSession || currentSession.messages.length === 0) ? (
-                <div className="min-h-full flex items-center justify-center">
-                  <div className="w-full max-w-md text-center space-y-8">
-                    <div className="flex flex-col items-center space-y-6">
-                      <div className="w-20 h-20 relative">
-                        <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
-                      </div>
-                      <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation below or select a previous chat from history.</p>
+                      <div className="space-y-4">
+                        <Link href="/auth/signin">
+                          <Button
+                            variant="outline"
+                            className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                          >
+                            Login
+                          </Button>
+                        </Link>
+                        <Link href="/auth/signup">
+                          <Button
+                            variant="outline"
+                            className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                          >
+                            Signup
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   </div>
+                ) : (!currentSession || currentSession.messages.length === 0) ? (
+                  <div className="min-h-full flex items-center justify-center">
+                    <div className="w-full max-w-md text-center space-y-8">
+                      <div className="flex flex-col items-center space-y-6">
+                        <div className="w-20 h-20 relative">
+                          <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
+                        </div>
+                        <div>
+                          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation below or select a previous chat from history.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  renderMessages
+                )}
+              </div>
+              <div ref={messagesEndRef} />
+            </ScrollArea>
+            
+            {/* 🔥 ENHANCED SCROLL-TO-LATEST BUTTON */}
+            {showScrollButton && (
+              <button
+                onClick={() => scrollToBottom('smooth')}
+                className="fixed bottom-24 right-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 z-50 scroll-button-enter scroll-button-pulse border border-blue-400/30"
+                aria-label="Scroll to latest message"
+                style={{
+                  transform: showScrollButton ? 'translateY(0)' : 'translateY(100px)',
+                  opacity: showScrollButton ? 1 : 0,
+                }}
+              >
+                <div className="flex items-center justify-center">
+                  <ChevronDown className="h-5 w-5" />
+                  {hasNewMessages && (
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full h-3 w-3 flex items-center justify-center">
+                      <div className="h-1.5 w-1.5 bg-white rounded-full animate-ping"></div>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                renderMessages
-              )}
-            </div>
-            <div ref={messagesEndRef} />
-          </ScrollArea>
-          {showScrollButton && (
-            <button
-              onClick={scrollToBottom}
-              className="fixed bottom-20 right-6 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-all z-50"
-              aria-label="Scroll to bottom"
-            >
-              ↓
-            </button>
-          )}
+              </button>
+            )}
+          </div>
+          
           {user && (
             <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-6 pt-4">
               <div className="mx-auto max-w-3xl">
@@ -1737,6 +1826,8 @@ Provide a personalized, contextual response that acknowledges their history whil
               </div>
             </div>
           )}
+          
+          {/* Additional dialogs and components remain the same */}
           {user && (
             <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
               <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
@@ -1892,6 +1983,7 @@ Provide a personalized, contextual response that acknowledges their history whil
               </DialogContent>
             </Dialog>
           )}
+          
           {user && (
             <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
               <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-md mx-auto">
@@ -1924,11 +2016,6 @@ Provide a personalized, contextual response that acknowledges their history whil
                                 setLastSessionId(session.id);
                               }
                               setHistoryDialogOpen(false);
-                              setTimeout(() => {
-                                if (scrollAreaRef.current) {
-                                  scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-                                }
-                              }, 0);
                             }}
                           >
                             <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
