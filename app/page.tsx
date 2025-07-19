@@ -59,7 +59,7 @@ export default function HomePage() {
         setUserCount(count)
       } catch (error) {
         console.error("Error fetching user count:", error)
-        setUserCount(10000) // Fallback value in case of error
+        setUserCount(100) // Fallback value in case of error
       }
     }
 
