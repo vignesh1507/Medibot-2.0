@@ -19,7 +19,7 @@ const nextConfig = {
             value: 'medibot-ai-two.vercel.app',
           },
         ],
-        destination: 'https://medibot-ai.com',
+        destination: 'medibot-ai',
         permanent: true,
       },
     ];
