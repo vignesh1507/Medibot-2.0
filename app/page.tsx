@@ -8,6 +8,8 @@ import { Pill, MessageCircle, Clock, Star, Calendar, Heart, CheckCircle, Chevron
 import { motion, useAnimation } from "framer-motion"
 import { useInView } from "react-intersection-observer"
 import { useEffect, useState } from "react"
+import { db } from "@/lib/firebase"
+import { collection, getDocs } from "firebase/firestore"
 
 export default function HomePage() {
   // Light medical-themed color variables
@@ -40,10 +42,28 @@ export default function HomePage() {
     triggerOnce: true
   })
 
+  // State for user count
+  const [userCount, setUserCount] = useState(0)
+
   useEffect(() => {
     if (inView) {
       controls.start("visible")
     }
+
+    // Fetch user count from Firebase
+    const fetchUserCount = async () => {
+      try {
+        const usersCollection = collection(db, "users")
+        const usersSnapshot = await getDocs(usersCollection)
+        const count = usersSnapshot.size
+        setUserCount(count)
+      } catch (error) {
+        console.error("Error fetching user count:", error)
+        setUserCount(10000) // Fallback value in case of error
+      }
+    }
+
+    fetchUserCount()
   }, [controls, inView])
 
   const container = {
@@ -161,7 +181,6 @@ export default function HomePage() {
               >
                 <Link href="/auth/signup">Get Started Free</Link>
               </Button>
-             
             </motion.div>
           </div>
           
@@ -397,13 +416,11 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-             
-               <Link href="/chat">
-              <Button className={buttonClasses}>
-               
-               Try AI Assistant
-              </Button>
-            </Link>
+              <Link href="/chat">
+                <Button className={buttonClasses}>
+                  Try AI Assistant
+                </Button>
+              </Link>
             </motion.div>
           </div>
         </div>
@@ -420,7 +437,7 @@ export default function HomePage() {
             className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
           >
             {[
-              { number: "10K+", label: "Active Users", icon: <Heart className="h-6 w-6 text-[#e91e63]" /> },
+              { number: `${userCount.toLocaleString()}`, label: "Active Users", icon: <Heart className="h-6 w-6 text-[#e91e63]" /> },
               { number: "98%", label: "Satisfaction Rate", icon: <Star className="h-6 w-6 text-[#ff9800]" /> },
               { number: "500K+", label: "Doses Tracked", icon: <Pill className="h-6 w-6 text-[#4caf50]" /> },
               { number: "24/7", label: "Support Available", icon: <Stethoscope className="h-6 w-6 text-[#2196f3]" /> }
@@ -446,87 +463,84 @@ export default function HomePage() {
         </div>
       </section>
 
-     
-
       {/* FAQ Section */}
-         {/* FAQ Section */}
-    <section className="w-full max-w-4xl mx-auto px-6 py-20 ">
-      <div className="text-center mb-16">
-        <span className={`inline-block px-4 py-2 bg-[#e3f2fd] text-[#1565c0] rounded-full text-sm font-medium mb-4`}>
-          Need Help?
-        </span>
-        <h2 className="text-4xl md:text-5xl font-bold text-[#263238]">
-          Frequently Asked <span className="bg-gradient-to-r from-[#42a5f5] to-[#4dd0e1] bg-clip-text text-transparent">Questions</span>
-        </h2>
-      </div>
-      
-      <div className="space-y-4">
-        {[
-          {
-            question: "How does MediBot ensure my medical data is secure?",
-            answer: "We use HIPAA-compliant end-to-end encryption and comply with all healthcare data protection regulations. Your information is never shared without your explicit consent."
-          },
-          {
-            question: "Can MediBot integrate with my electronic health records?",
-            answer: "Yes, MediBot offers seamless integration with major EHR systems through our secure API connections."
-          },
-          {
-            question: "Is MediBot suitable for elderly patients?",
-            answer: "Absolutely! We designed MediBot with accessibility in mind, featuring large text options, simple navigation, and voice commands."
-          },
-          {
-            question: "How accurate are the medication interaction warnings?",
-            answer: "Our database is continuously updated with the latest medical research, providing 99.9% accurate interaction warnings verified by healthcare professionals."
-          },
-          {
-            question: "Can healthcare providers monitor patient compliance?",
-            answer: "Yes, our professional tier allows providers to monitor patient adherence (with consent) and receive alerts for missed medications."
-          }
-        ].map((faq, index) => {
-          const [isOpen, setIsOpen] = useState(false);
-          
-          return (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              viewport={{ once: true }}
-            >
-              <Card 
-                className={`bg-white rounded-xl border border-gray-200 hover:border-[#4dd0e1]/50 transition-all ${isOpen ? 'shadow-md' : ''}`}
+      <section className="w-full max-w-4xl mx-auto px-6 py-20">
+        <div className="text-center mb-16">
+          <span className={`inline-block px-4 py-2 bg-[#e3f2fd] text-[#1565c0] rounded-full text-sm font-medium mb-4`}>
+            Need Help?
+          </span>
+          <h2 className="text-4xl md:text-5xl font-bold text-[#263238]">
+            Frequently Asked <span className="bg-gradient-to-r from-[#42a5f5] to-[#4dd0e1] bg-clip-text text-transparent">Questions</span>
+          </h2>
+        </div>
+        
+        <div className="space-y-4">
+          {[
+            {
+              question: "How does MediBot ensure my medical data is secure?",
+              answer: "We use HIPAA-compliant end-to-end encryption and comply with all healthcare data protection regulations. Your information is never shared without your explicit consent."
+            },
+            {
+              question: "Can MediBot integrate with my electronic health records?",
+              answer: "Yes, MediBot offers seamless integration with major EHR systems through our secure API connections."
+            },
+            {
+              question: "Is MediBot suitable for elderly patients?",
+              answer: "Absolutely! We designed MediBot with accessibility in mind, featuring large text options, simple navigation, and voice commands."
+            },
+            {
+              question: "How accurate are the medication interaction warnings?",
+              answer: "Our database is continuously updated with the latest medical research, providing 99.9% accurate interaction warnings verified by healthcare professionals."
+            },
+            {
+              question: "Can healthcare providers monitor patient compliance?",
+              answer: "Yes, our professional tier allows providers to monitor patient adherence (with consent) and receive alerts for missed medications."
+            }
+          ].map((faq, index) => {
+            const [isOpen, setIsOpen] = useState(false);
+            
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
               >
-                <CardHeader 
-                  className="group cursor-pointer" 
-                  onClick={() => setIsOpen(!isOpen)}
+                <Card 
+                  className={`bg-white rounded-xl border border-gray-200 hover:border-[#4dd0e1]/50 transition-all ${isOpen ? 'shadow-md' : ''}`}
                 >
-                  <CardTitle className="flex justify-between items-center">
-                    <span className="text-lg font-medium text-[#263238]">{faq.question}</span>
-                    {isOpen ? (
-                      <ChevronDown className="h-5 w-5 text-[#4dd0e1] transition-transform" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-[#78909c] group-hover:text-[#4dd0e1] transition-transform" />
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                {isOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
+                  <CardHeader 
+                    className="group cursor-pointer" 
+                    onClick={() => setIsOpen(!isOpen)}
                   >
-                    <CardContent className="pt-0 pb-6">
-                      <p className="text-[#546e7a]">{faq.answer}</p>
-                    </CardContent>
-                  </motion.div>
-                )}
-              </Card>
-            </motion.div>
-          );
-        })}
-      </div>
-    </section>
+                    <CardTitle className="flex justify-between items-center">
+                      <span className="text-lg font-medium text-[#263238]">{faq.question}</span>
+                      {isOpen ? (
+                        <ChevronDown className="h-5 w-5 text-[#4dd0e1] transition-transform" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 text-[#78909c] group-hover:text-[#4dd0e1] transition-transform" />
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <CardContent className="pt-0 pb-6">
+                        <p className="text-[#546e7a]">{faq.answer}</p>
+                      </CardContent>
+                    </motion.div>
+                  )}
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* CTA Section */}
       <motion.section
@@ -559,7 +573,7 @@ export default function HomePage() {
             Ready to Transform Your <span className="bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent">Healthcare</span>?
           </h2>
           <p className="text-[#546e7a] text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            Join thousands of patients and healthcare professionals who trust MediBot for better health outcomes.
+            Join {userCount.toLocaleString()}+ patients and healthcare professionals who trust MediBot for better health outcomes.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <Link href="/auth/signup">
@@ -567,9 +581,6 @@ export default function HomePage() {
                 Get Started Free
               </Button>
             </Link>
-           
-             
-            
           </div>
         </div>
       </motion.section>
