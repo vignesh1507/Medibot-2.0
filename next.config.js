@@ -16,10 +16,10 @@ const nextConfig = {
         has: [
           {
             type: 'host',
-            value: 'medibot-ai-two.vercel.app',
+            value: 'medibot-ai',
           },
         ],
-        destination: 'medibot-ai',
+        destination: 'medibot-ai-two.vercel.app',
         permanent: true,
       },
     ];
