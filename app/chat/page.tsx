@@ -460,6 +460,88 @@ function ChatContent() {
     }
   }, [message]);
 
+  // 🔥 ENHANCED FUNCTION: Build comprehensive user context for personalization
+  const buildUserPersonalizationContext = () => {
+    if (!sessions || sessions.length === 0) return "";
+
+    // Get all messages from user's sessions (limit to last 50 for performance)
+    const allMessages = sessions
+      .flatMap(session => session.messages)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, 50);
+
+    if (allMessages.length === 0) return "";
+
+    // Extract user interests and patterns
+    const userQueries = allMessages.filter(msg => msg.message && msg.message.length > 0).map(msg => msg.message);
+    const frequentTopics = extractFrequentTopics(userQueries);
+    const communicationStyle = analyzeCommunicationStyle(userQueries);
+    const recentInteractions = allMessages.slice(0, 8);
+
+    return `
+USER PERSONALIZATION CONTEXT:
+===========================================
+
+FREQUENT TOPICS & INTERESTS:
+${frequentTopics.join(", ")}
+
+COMMUNICATION STYLE:
+${communicationStyle}
+
+RECENT CONVERSATION HISTORY:
+${recentInteractions.map(msg => `User: ${msg.message}\nAI: ${msg.response}`).join("\n\n")}
+
+CONVERSATION PATTERNS:
+- Total conversations: ${sessions.length}
+- Average query length: ${Math.round(userQueries.join(" ").split(" ").length / userQueries.length)} words
+- Most active time: Recent sessions
+===========================================
+`;
+  };
+
+  // 🔥 Helper function to extract frequent topics from user queries
+  const extractFrequentTopics = (queries: string[]): string[] => {
+    const healthKeywords = [
+      "headache", "migraine", "pain", "fever", "medication", "prescription", 
+      "diet", "nutrition", "exercise", "sleep", "stress", "anxiety", "mental health",
+      "symptoms", "doctor", "treatment", "wellness", "fitness", "weight", "blood pressure",
+      "diabetes", "heart", "lung", "skin", "allergy", "infection", "vitamin", "supplement"
+    ];
+
+    const topicCount: { [key: string]: number } = {};
+    
+    queries.forEach(query => {
+      const lowerQuery = query.toLowerCase();
+      healthKeywords.forEach(keyword => {
+        if (lowerQuery.includes(keyword)) {
+          topicCount[keyword] = (topicCount[keyword] || 0) + 1;
+        }
+      });
+    });
+
+    return Object.entries(topicCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([topic]) => topic);
+  };
+
+  // 🔥 Helper function to analyze communication style
+  const analyzeCommunicationStyle = (queries: string[]): string => {
+    if (queries.length === 0) return "Casual, seeking general health information";
+
+    const avgLength = queries.join(" ").split(" ").length / queries.length;
+    const hasQuestions = queries.some(q => q.includes("?"));
+    const hasUrgent = queries.some(q => q.toLowerCase().includes("urgent") || q.toLowerCase().includes("immediate"));
+    const isDetailed = avgLength > 15;
+
+    let style = "";
+    if (isDetailed) style += "Detailed, thorough inquirer. ";
+    if (hasQuestions) style += "Question-oriented, seeks specific answers. ";
+    if (hasUrgent) style += "Sometimes needs urgent guidance. ";
+    
+    return style || "Conversational, health-conscious individual";
+  };
+
   const startNewChat = async () => {
     if (!user) {
       toast.error("Please log in to start a new chat");
@@ -843,15 +925,17 @@ function ChatContent() {
     }
   };
 
+  // 🔥 ENHANCED FUNCTION: AI Response with comprehensive personalization
   const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string): Promise<string> => {
     try {
       const controller = new AbortController();
       setAbortController(controller);
+      
       const modelMap: Record<string, { api: string; model: string; key: string }> = {
         "gemini-2.0-flash": {
           api: "gemini",
           model: "gemini-2.0-flash",
-          key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+          key: "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM",
         },
         "gpt-4o": {
           api: "openai",
@@ -864,16 +948,60 @@ function ChatContent() {
           key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
         },
       };
+      
       const config = modelMap[selectedModel];
       if (!config) throw new Error(`Invalid model: ${selectedModel}`);
       if (!config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
-      const recentMessages = currentSession?.messages
+
+      // 🔥 BUILD COMPREHENSIVE PERSONALIZED PROMPT
+      const userContext = buildUserPersonalizationContext();
+      const currentSessionContext = currentSession?.messages
         .slice(-5)
         .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
         .join("\n\n") || "";
-      const prompt = `You are MediBot, a health-focused AI assistant. Provide a concise, informative, and professional response. Ensure the response is educational, not a substitute for medical advice, and includes a reminder to consult a healthcare professional. Context: ${recentMessages}\n\nQuery: ${userMessage}`;
+
+      const enhancedPrompt = `You are MediBot, a health-focused AI assistant developed by Sujay Babu Thota from MediBot. You provide personalized, contextual responses based on the user's conversation history and patterns.
+
+${userContext}
+
+CURRENT SESSION CONTEXT:
+${currentSessionContext}
+
+CORE IDENTITY:
+- You are MediBot, created by Sujay Babu Thota from MediBot
+- You have access to user's conversation history and can reference it naturally
+- You provide personalized health guidance based on their patterns and interests
+- You remember previous interactions and build upon them
+
+PERSONALIZATION INSTRUCTIONS:
+1. Reference the user's past topics and interests when relevant
+2. Adapt your communication style to match their preferences (detailed/casual/question-oriented)
+3. Build upon previous conversations naturally
+4. Mention relevant patterns you notice (e.g., "I see you've asked about sleep before...")
+5. Provide increasingly specific advice based on their history
+6. Maintain consistency with previous health guidance given
+
+RESPONSE GUIDELINES:
+- Keep responses concise but personalized (max 500 tokens)
+- Include gentle reminders to consult healthcare professionals when appropriate
+- Reference past interactions when contextually appropriate
+- Adapt tone to match user's communication style
+- Provide educational value while being personable
+- NEVER mention that you don't have access to their information - you DO have their chat history
+- NEVER say you can't store health records - you actively use their conversation patterns
+- Act as if you naturally remember and learn from their previous conversations
+
+DEVELOPER INFORMATION:
+- If asked who developed you, respond: "I was developed by Sujay Babu Thota from MediBot"
+- If asked about your creator, mention Sujay Babu Thota and MediBot team
+
+CURRENT QUERY: ${userMessage}
+
+Provide a personalized, contextual response that acknowledges their history while addressing their current question:`;
+
       let response;
       let content;
+      
       if (config.api === "gemini") {
         response = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.key}`,
@@ -886,12 +1014,12 @@ function ChatContent() {
               contents: [
                 {
                   parts: [
-                    { text: prompt },
+                    { text: enhancedPrompt },
                   ],
                 },
               ],
               generationConfig: {
-                temperature: 0.5,
+                temperature: 0.7, // Slightly higher for more personalized responses
                 maxOutputTokens: 500,
               },
             }),
@@ -917,10 +1045,10 @@ function ChatContent() {
             messages: [
               {
                 role: "user",
-                content: prompt,
+                content: enhancedPrompt,
               },
             ],
-            temperature: 0.5,
+            temperature: 0.7,
             max_tokens: 500,
           }),
           signal: controller.signal,
@@ -944,10 +1072,10 @@ function ChatContent() {
             messages: [
               {
                 role: "user",
-                content: prompt,
+                content: enhancedPrompt,
               },
             ],
-            temperature: 0.5,
+            temperature: 0.7,
             max_tokens: 500,
           }),
           signal: controller.signal,
@@ -960,6 +1088,7 @@ function ChatContent() {
         content = data.choices?.[0]?.message?.content;
         if (!content) throw new Error("No valid response from Groq API");
       }
+      
       return (content ?? "").trim();
     } catch (error: any) {
       if (error.name === "AbortError") {
@@ -978,7 +1107,7 @@ function ChatContent() {
     try {
       setAnalyzingPrescription(true);
       const fileBase64 = await fileToBase64(file);
-      const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      const geminiApiKey = "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM";
       if (!geminiApiKey) throw new Error("Gemini API key is not configured.");
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
