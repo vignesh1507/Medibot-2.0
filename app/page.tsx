@@ -42,8 +42,9 @@ export default function HomePage() {
     triggerOnce: true
   })
 
-  // State for user count
+  // State for user count and loading
   const [userCount, setUserCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     if (inView) {
@@ -53,6 +54,7 @@ export default function HomePage() {
     // Fetch user count from Firebase
     const fetchUserCount = async () => {
       try {
+        setIsLoading(true)
         const usersCollection = collection(db, "users")
         const usersSnapshot = await getDocs(usersCollection)
         const count = usersSnapshot.size
@@ -60,6 +62,8 @@ export default function HomePage() {
       } catch (error) {
         console.error("Error fetching user count:", error)
         setUserCount(100) // Fallback value in case of error
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -360,8 +364,10 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              <Button className={buttonClasses}>
-                Download Mobile App
+              <Button asChild className={buttonClasses}>
+                <a href="/MediBot.apk" download="MediBot.apk">
+                  Download Mobile App
+                </a>
               </Button>
             </motion.div>
           </div>
@@ -437,7 +443,7 @@ export default function HomePage() {
             className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
           >
             {[
-              { number: `${userCount.toLocaleString()}`, label: "Active Users", icon: <Heart className="h-6 w-6 text-[#e91e63]" /> },
+              { number: isLoading ? "Loading..." : `${userCount.toLocaleString()}`, label: "Active Users", icon: <Heart className="h-6 w-6 text-[#e91e63]" /> },
               { number: "92%", label: "Satisfaction Rate", icon: <Star className="h-6 w-6 text-[#ff9800]" /> },
               { number: "100+", label: "Tokens per day", icon: <Pill className="h-6 w-6 text-[#4caf50]" /> },
               { number: "24/7", label: "Support Available", icon: <Stethoscope className="h-6 w-6 text-[#2196f3]" /> }
@@ -573,7 +579,7 @@ export default function HomePage() {
             Ready to Transform Your <span className="bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent">Healthcare</span>?
           </h2>
           <p className="text-[#546e7a] text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            Join {userCount.toLocaleString()}+ patients and healthcare professionals who trust MediBot for better health outcomes.
+            Join {isLoading ? "many" : `${userCount.toLocaleString()}+`} patients and healthcare professionals who trust MediBot for better health outcomes.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <Link href="/auth/signup">
@@ -584,7 +590,6 @@ export default function HomePage() {
           </div>
         </div>
       </motion.section>
-
       {/* Footer */}
       <footer className={`w-full bg-white py-12 border-t border-gray-200 shadow-sm`}>
         <div className="max-w-7xl mx-auto px-6">
