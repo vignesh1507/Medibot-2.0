@@ -438,8 +438,8 @@ export default function HomePage() {
           >
             {[
               { number: `${userCount.toLocaleString()}`, label: "Active Users", icon: <Heart className="h-6 w-6 text-[#e91e63]" /> },
-              { number: "98%", label: "Satisfaction Rate", icon: <Star className="h-6 w-6 text-[#ff9800]" /> },
-              { number: "500K+", label: "Doses Tracked", icon: <Pill className="h-6 w-6 text-[#4caf50]" /> },
+              { number: "92%", label: "Satisfaction Rate", icon: <Star className="h-6 w-6 text-[#ff9800]" /> },
+              { number: "100+", label: "Tokens per day", icon: <Pill className="h-6 w-6 text-[#4caf50]" /> },
               { number: "24/7", label: "Support Available", icon: <Stethoscope className="h-6 w-6 text-[#2196f3]" /> }
             ].map((stat, index) => (
               <motion.div
