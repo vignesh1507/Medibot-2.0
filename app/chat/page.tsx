@@ -1646,7 +1646,7 @@ Provide a personalized, contextual response that acknowledges their history whil
   </div>
 </div>
 
-          <div className="relative flex-1  mt-40 overflow-hidden">
+          <div className="relative flex-1 overflow-hidden">
             <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
               <div className="max-w-3xl mx-auto space-y-4">
                 {!user ? (
