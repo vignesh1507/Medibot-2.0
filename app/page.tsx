@@ -56,12 +56,24 @@ export default function HomePage() {
       try {
         setIsLoading(true)
         const usersCollection = collection(db, "users")
+        console.log("Querying collection:", usersCollection.path)
         const usersSnapshot = await getDocs(usersCollection)
         const count = usersSnapshot.size
+        console.log(`Fetched ${count} users. Document IDs:`, usersSnapshot.docs.map(doc => doc.id))
+        if (count !== 23) {
+          console.warn(`Expected 23 users, but found ${count}. Verify collection data or rules.`)
+        }
         setUserCount(count)
       } catch (error) {
-        console.error("Error fetching user count:", error)
-        setUserCount(100) // Fallback value in case of error
+        if (error instanceof Error) {
+          console.error("Error fetching user count:", error.message)
+        } else {
+          console.error("Error fetching user count:", error)
+        }
+        if (error instanceof Error && error.message.includes("permission-denied")) {
+          console.error("Check Firestore rules: Read access may be restricted.")
+        }
+        setUserCount(0)
       } finally {
         setIsLoading(false)
       }
@@ -364,11 +376,12 @@ export default function HomePage() {
                   </li>
                 ))}
               </ul>
-              <Button asChild className={buttonClasses}>
-                <a href="/MediBot.apk" download="MediBot.apk">
-                  Download Mobile App
-                </a>
-              </Button>
+            <Button asChild className={buttonClasses}>
+  <a href="/MediBot.apk" download="MediBot.apk" target="_blank" rel="noopener noreferrer">
+    Download Mobile App
+  </a>
+</Button>
+
             </motion.div>
           </div>
           
@@ -590,6 +603,7 @@ export default function HomePage() {
           </div>
         </div>
       </motion.section>
+
       {/* Footer */}
       <footer className={`w-full bg-white py-12 border-t border-gray-200 shadow-sm`}>
         <div className="max-w-7xl mx-auto px-6">
