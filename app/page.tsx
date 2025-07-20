@@ -1,4 +1,6 @@
+
 "use client"
+
 import { Eye } from "lucide-react";
 import Link from "next/link"
 import Image from "next/image"
@@ -103,18 +105,7 @@ export default function HomePage() {
       }
     }
   }
-const [pageViews, setPageViews] = useState(0);
 
-useEffect(() => {
-  // Get current view count from localStorage or initialize
-  const views = parseInt(localStorage.getItem('pageViews') || '0') + 1;
-  localStorage.setItem('pageViews', views.toString());
-  setPageViews(views);
-}, []);
-
-const getPageViewCount = () => {
-  return pageViews.toLocaleString();
-};
   return (
     <div className={`min-h-screen bg-gradient-to-br from-[#f5f5f5] via-[#e8f5e9] to-[#e3f2fd] text-[#263238] flex flex-col items-center justify-start overflow-x-hidden`}>
       {/* Animated Background Elements */}
@@ -458,56 +449,56 @@ const getPageViewCount = () => {
 
       {/* Stats Section */}
       <section className={`w-full py-20 bg-gradient-to-br from-[#e0f7fa] via-[#e8f5e9] to-[#e3f2fd]`}>
-  <div className="max-w-7xl mx-auto px-6">
-    <motion.div
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.8 }}
-      className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
-    >
-      {[
-        { 
-          number: isLoading ? "Loading..." : `${getPageViewCount()}`, 
-          label: "Page Views", 
-          icon: <Eye className="h-6 w-6 text-[#e91e63]" /> 
-        },
-        { 
-          number: "92%", 
-          label: "Satisfaction Rate", 
-          icon: <Star className="h-6 w-6 text-[#ff9800]" /> 
-        },
-        { 
-          number: "100+", 
-          label: "Tokens per day", 
-          icon: <Pill className="h-6 w-6 text-[#4caf50]" /> 
-        },
-        { 
-          number: "24/7", 
-          label: "Support Available", 
-          icon: <Stethoscope className="h-6 w-6 text-[#2196f3]" /> 
-        }
-      ].map((stat, index) => (
-        <motion.div
-          key={index}
-          whileHover={{ scale: 1.05 }}
-          transition={{ duration: 0.2 }}
-          className="p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-200 shadow-md"
-        >
-          <div className="flex justify-center mb-3">
-            {stat.icon}
-          </div>
-          <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent mb-2">
-            {stat.number}
-          </div>
-          <div className="text-[#546e7a] text-lg">
-            {stat.label}
-          </div>
-        </motion.div>
-      ))}
-    </motion.div>
-  </div>
-</section>
+        <div className="max-w-7xl mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
+          >
+            {[
+              { 
+                number: isLoading ? "Loading..." : `${userCount.toLocaleString()}`, 
+                label: "Users Count", 
+                icon: <Eye className="h-6 w-6 text-[#e91e63]" /> 
+              },
+              { 
+                number: "92%", 
+                label: "Satisfaction Rate", 
+                icon: <Star className="h-6 w-6 text-[#ff9800]" /> 
+              },
+              { 
+                number: "100+", 
+                label: "Tokens per day", 
+                icon: <Pill className="h-6 w-6 text-[#4caf50]" /> 
+              },
+              { 
+                number: "24/7", 
+                label: "Support Available", 
+                icon: <Stethoscope className="h-6 w-6 text-[#2196f3]" /> 
+              }
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
+                className="p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-200 shadow-md"
+              >
+                <div className="flex justify-center mb-3">
+                  {stat.icon}
+                </div>
+                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent mb-2">
+                  {stat.number}
+                </div>
+                <div className="text-[#546e7a] text-lg">
+                  {stat.label}
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
 
       {/* Pricing Section */}
       <motion.section
@@ -548,8 +539,8 @@ const getPageViewCount = () => {
             },
             {
               title: "Premium",
-              price: "2$",
-              period: " month",
+              price: "$2",
+              period: "month",
               features: [
                 "Advanced Medication Tracking",
                 "Unlimited AI Health Chat",
@@ -563,7 +554,7 @@ const getPageViewCount = () => {
             },
             {
               title: "Enterprise",
-              price: "49$",
+              price: "$49",
               period: "",
               features: [
                 "Full Medication Management",
@@ -740,7 +731,7 @@ const getPageViewCount = () => {
       <footer className={`w-full bg-white py-12 border-t border-gray-200 shadow-sm`}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center mb-12">
-            <div className="flex items-center space-x-3 mb-6 md:nb-0">
+            <div className="flex items-center space-x-3 mb-6 md:mb-0">
               <div className="w-12 h-12 relative">
                 <Image src="/logo.png" alt="MediBot Logo" width={48} height={48} className="rounded-full object-cover" />
               </div>
@@ -756,22 +747,22 @@ const getPageViewCount = () => {
                 </ul>
               </div>
               <div>
-                <h3 className="text-[#263238]  font-semibold mb-4">Features</h3>
+                <h3 className="text-[#263238] font-semibold mb-4">Features</h3>
                 <ul className="space-y-3">
-                  <li><Link href="/chat" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">Ai chatbot</Link></li>
+                  <li><Link href="/chat" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">AI Chatbot</Link></li>
                   <li><Link href="/medications" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">Medication Reminders</Link></li>
-                  <li><Link href="/summarizer" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">Medical summarizer</Link></li>
-                  <li><Link href="/chat" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">Analyze prescriptions     </Link></li>
+                  <li><Link href="/summarizer" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">Medical Summarizer</Link></li>
+                  <li><Link href="/chat" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">Prescription Analysis</Link></li>
                 </ul>
               </div>
-             <div>
-  <h3 className="text-[#263238] font-semibold mb-4">Legal</h3>
-  <ul className="space-y-3">
-    <li><Link href="/privacy" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">Privacy Policy</Link></li>
-    <li><Link href="/terms" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">Terms of Service</Link></li>
-    <li><Link href="/hipaa" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">HIPAA Compliance</Link></li>
-  </ul>
-</div>
+              <div>
+                <h3 className="text-[#263238] font-semibold mb-4">Legal</h3>
+                <ul className="space-y-3">
+                  <li><Link href="/privacy" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">Privacy Policy</Link></li>
+                  <li><Link href="/terms" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">Terms of Service</Link></li>
+                  <li><Link href="/hipaa" className="text-[#546e7a] hover:text-[#00acc1] transition-colors">HIPAA Compliance</Link></li>
+                </ul>
+              </div>
             </div>
           </div>
           
