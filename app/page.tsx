@@ -377,7 +377,7 @@ export default function HomePage() {
                 ))}
               </ul>
             <Button asChild className={buttonClasses}>
-  <a href="/mediBot.apk" download="mediBot.apk" target="_blank" rel="noopener noreferrer">
+  <a href="/medibot.apk" download="medibot.apk" target="_blank" rel="noopener noreferrer">
     Download Mobile App
   </a>
 </Button>
