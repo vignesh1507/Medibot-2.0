@@ -2,7 +2,6 @@
 
 import type React from "react";
 import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
 import { Sidebar } from "@/components/sidebar";
 import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
@@ -12,8 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Menu, Plus, Pill, Clock, Trash2, Edit, Bell, Phone } from "lucide-react";
+import { Menu, Plus, Pill, Clock, Trash2, Edit, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   addMedication,
@@ -41,8 +39,6 @@ export default function MedicationsPage() {
     endDate: "",
     notes: "",
     reminderTimes: [""],
-    enableWhatsApp: false,
-    phoneNumber: "",
   });
   const [search, setSearch] = useState("");
   const [isMobile, setIsMobile] = useState(false);
@@ -134,7 +130,6 @@ export default function MedicationsPage() {
         const notifications = [
           sendMobileNotification(user!.uid, `Medication Reminder: ${medication.name}`, message),
           sendEmailNotification(email, `Medication Reminder: ${medication.name}`, message),
-          sendMedicationReminder(user!.uid, medication.name, medication.enableWhatsApp ? medication.phoneNumber : undefined, medication.enableWhatsApp),
         ];
         Promise.all(notifications);
 
@@ -175,14 +170,12 @@ export default function MedicationsPage() {
     };
   }, [user]);
 
-  // Enhanced search functionality
   const filteredMedications = medications.filter((med) =>
     [
       med.name,
       med.dosage,
       med.frequency,
       med.notes || "",
-      med.phoneNumber || "",
       med.startDate,
       med.endDate || "",
       ...med.reminderTimes,
@@ -198,8 +191,6 @@ export default function MedicationsPage() {
       endDate: "",
       notes: "",
       reminderTimes: [""],
-      enableWhatsApp: false,
-      phoneNumber: "",
     });
     setEditingMedication(null);
   };
@@ -218,8 +209,6 @@ export default function MedicationsPage() {
       endDate: medication.endDate || "",
       notes: medication.notes || "",
       reminderTimes: medication.reminderTimes.length ? medication.reminderTimes : [""],
-      enableWhatsApp: medication.enableWhatsApp || false,
-      phoneNumber: medication.phoneNumber || "",
     });
     setEditingMedication(medication);
     setDialogOpen(true);
@@ -233,17 +222,15 @@ export default function MedicationsPage() {
     }
 
     try {
-      const medicationData: Omit<Medication, "id" | "userId" | "createdAt" | "updatedAt"> = {
+      const medicationData: any = {
         name: formData.name,
         dosage: formData.dosage,
         frequency: formData.frequency,
         startDate: formData.startDate,
-        endDate: formData.endDate || undefined,
+        endDate: formData.endDate || null,
         notes: formData.notes || "",
-        reminderTimes: formData.reminderTimes.filter((time) => time.trim() !== ""),
+        reminderTimes: formData.reminderTimes.filter(time => time.trim() !== ""),
         isActive: true,
-        enableWhatsApp: formData.enableWhatsApp,
-        phoneNumber: formData.enableWhatsApp ? formData.phoneNumber : undefined,
       };
 
       let medicationId: string;
@@ -261,7 +248,6 @@ export default function MedicationsPage() {
       const notifications = [
         sendMobileNotification(user.uid, "Medication Saved", message),
         user.email ? sendEmailNotification(user.email, "Medication Saved", message) : Promise.resolve(),
-        sendMedicationReminder(user!.uid, medicationData.name, medicationData.enableWhatsApp ? medicationData.phoneNumber : undefined, medicationData.enableWhatsApp),
       ];
       await Promise.all(notifications);
 
@@ -273,9 +259,6 @@ export default function MedicationsPage() {
         sendMobileNotification(user.uid, "Medication Save Error", `Failed to save medication: ${errorMessage}`),
         user.email ? sendEmailNotification(user.email, "Medication Save Error", `Failed to save medication: ${errorMessage}`) : Promise.resolve(),
       ];
-      if (formData.enableWhatsApp && formData.phoneNumber) {
-        sendMedicationReminder(user.uid, formData.name, formData.phoneNumber, true);
-      }
       await Promise.all(notifications);
       toast.error(`Failed to save medication: ${errorMessage}`);
     }
@@ -294,9 +277,6 @@ export default function MedicationsPage() {
           sendMobileNotification(user.uid, "Medication Delete Error", `Failed to delete medication: ${errorMessage}`),
           user.email ? sendEmailNotification(user.email, "Medication Delete Error", `Failed to delete medication: ${errorMessage}`) : Promise.resolve(),
         ];
-        if (medication?.enableWhatsApp && medication.phoneNumber) {
-          notifications.push(Promise.resolve(sendMedicationReminder(user.uid, medication.name, medication.phoneNumber, true)));
-        }
         await Promise.all(notifications);
       }
       toast.error(`Failed to delete medication: ${errorMessage}`);
@@ -337,10 +317,9 @@ export default function MedicationsPage() {
       const notifications = [
         sendMobileNotification(user.uid, "Test Reminder", message),
         user.email ? sendEmailNotification(user.email, "Test Reminder", message) : Promise.resolve(),
-        sendMedicationReminder(user.uid, medication.name, medication.enableWhatsApp ? medication.phoneNumber : undefined, medication.enableWhatsApp),
       ];
       await Promise.all(notifications);
-      toast.success("Notifications sent successfully! 📱📧📲");
+      toast.success("Notifications sent successfully! 📱📧");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (user) {
@@ -348,9 +327,6 @@ export default function MedicationsPage() {
           sendMobileNotification(user.uid, "Test Reminder Error", `Failed to send test reminder for ${medication.name}: ${errorMessage}`),
           user.email ? sendEmailNotification(user.email, "Test Reminder Error", `Failed to send test reminder for ${medication.name}: ${errorMessage}`) : Promise.resolve(),
         ];
-        if (medication.enableWhatsApp && medication.phoneNumber) {
-          notifications.push(Promise.resolve(sendMedicationReminder(user.uid, medication.name, medication.phoneNumber, true)));
-        }
         await Promise.all(notifications);
       }
       toast.error(`Failed to send test notifications: ${errorMessage}`);
@@ -371,13 +347,11 @@ export default function MedicationsPage() {
       <div className="flex min-h-screen bg-white dark:bg-[#0e1a2b] text-black dark:text-white">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 overflow-y-auto px-4 pt-10 max-w-5xl mx-auto">
-          {/* Header without Theme Toggle */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-[#a855f7]">Manage Your Medications</h1>
             <p className="text-muted-foreground mt-1 mb-6">Track your medications and set reminders</p>
           </div>
 
-          {/* Search Bar */}
           <div className="relative max-w-2xl mx-auto mb-8">
             <input
               value={search}
@@ -392,7 +366,35 @@ export default function MedicationsPage() {
             </div>
           </div>
 
-          {/* Medications Header */}
+          <div className="max-w-5xl mx-auto mb-10 px-4">
+            <div className="flex flex-col md:flex-row items-center gap-8">
+              <div className="flex-1 order-1 md:order-none">
+                <div className="w-full h-auto overflow-hidden rounded-[3rem] shadow-xl flex justify-center items-center">
+                  <img
+                    src="/medicationimg.png"
+                    alt="Medication Reminder"
+                    className="max-w-full h-auto object-contain"
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 text-center md:text-left">
+                <h2 className="text-2xl md:text-3xl font-bold text-[#a855f7] mb-3">
+                  Never Miss a Dose Again
+                </h2>
+                <p className="text-muted-foreground mb-4 leading-relaxed">
+                  Stay on top of your health with smart medication reminders. Set schedules, receive alerts, and track your daily intake – all in one place.
+                </p>
+                <Button
+                  onClick={handleAddMedication}
+                  className="bg-[#a855f7] hover:bg-teal-600 dark:bg-[#a855f7] dark:hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2"
+                >
+                  <Plus className="mr-1 h-4 w-4" /> Set a Reminder
+                </Button>
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-between items-center mt-10 mb-4">
             <h2 className="text-xl font-semibold text-foreground">Your Medications</h2>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -401,7 +403,7 @@ export default function MedicationsPage() {
                   onClick={handleAddMedication}
                   className="bg-[#a855f7] hover:bg-teal-600 dark:bg-[#a855f7] dark:hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2"
                 >
-                  <Plus className="mr-1 h-4 w-4" /> Add
+                  <Plus className="mr-1 h-4 w-4" /> Add Medication
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-card text-foreground border-border max-h-[90vh] overflow-y-auto">
@@ -513,33 +515,6 @@ export default function MedicationsPage() {
                   </div>
 
                   <div>
-                    <Label className="text-muted-foreground">WhatsApp Reminders</Label>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <Switch
-                        id="enableWhatsApp"
-                        checked={formData.enableWhatsApp}
-                        onCheckedChange={(checked) =>
-                          setFormData({ ...formData, enableWhatsApp: checked, phoneNumber: checked ? formData.phoneNumber : "" })
-                        }
-                      />
-                      <Label htmlFor="enableWhatsApp" className="text-muted-foreground">Enable WhatsApp Reminders</Label>
-                    </div>
-                    {formData.enableWhatsApp && (
-                      <div className="mt-2">
-                        <Label htmlFor="phoneNumber" className="text-muted-foreground">Phone Number</Label>
-                        <Input
-                          id="phoneNumber"
-                          value={formData.phoneNumber}
-                          onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                          placeholder="e.g., +1234567890"
-                          className="bg-card border-border text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500"
-                          required={formData.enableWhatsApp}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
                     <Label htmlFor="notes" className="text-muted-foreground">Notes (Optional)</Label>
                     <Input
                       id="notes"
@@ -571,7 +546,6 @@ export default function MedicationsPage() {
             </Dialog>
           </div>
 
-          {/* Medications Content */}
           {loading ? (
             <div className="text-center py-10 text-muted-foreground">Loading medications...</div>
           ) : filteredMedications.length === 0 ? (
@@ -588,12 +562,7 @@ export default function MedicationsPage() {
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start">
                         <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-foreground font-semibold text-base">{medication.name}</h4>
-                            {medication.enableWhatsApp && (
-                              <Badge className="bg-green-600 dark:bg-green-500 text-white text-xs">WhatsApp</Badge>
-                            )}
-                          </div>
+                          <h4 className="text-foreground font-semibold text-base">{medication.name}</h4>
                           <p className="text-muted-foreground text-sm">
                             {medication.dosage} • {medication.frequency} • {formatDate(medication.startDate)}
                             {medication.endDate && ` - ${formatDate(medication.endDate)}`}
@@ -646,11 +615,6 @@ export default function MedicationsPage() {
                       {medication.notes && (
                         <div className="mt-2 bg-muted text-muted-foreground p-2 rounded text-sm">
                           Note: {medication.notes}
-                        </div>
-                      )}
-                      {medication.phoneNumber && (
-                        <div className="mt-2 text-muted-foreground text-sm">
-                          Phone: {medication.phoneNumber}
                         </div>
                       )}
                       <div className="mt-2 flex justify-end">

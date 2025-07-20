@@ -1,4 +1,3 @@
-
 import {
   collection,
   doc,
@@ -79,8 +78,6 @@ export interface Medication {
   notes?: string;
   reminderTimes: string[];
   isActive: boolean;
-  enableWhatsApp?: boolean;
-  phoneNumber?: string;
   createdAt: Timestamp | Date;
   updatedAt: Timestamp | Date;
 }
@@ -299,13 +296,9 @@ export const addMessageToSession = async (
 export const updateChatSessionTitle = async (sessionId: string, title: string) => {
   try {
     const sessionRef = doc(db, "chatSessions", sessionId);
-    await updateDoc(sessionRef, {
-      title: title.slice(0, 100),
-      updatedAt: serverTimestamp(),
-    });
-    console.log("Updated session title:", sessionId, title);
+    await updateDoc(sessionRef, { title });
   } catch (error) {
-    console.error("Error updating chat session title:", error);
+    console.error("Error updating session title:", error);
     throw new Error("Failed to update chat session title");
   }
 };
@@ -351,9 +344,8 @@ export const deleteChatSession = async (sessionId: string) => {
   try {
     const sessionRef = doc(db, "chatSessions", sessionId);
     await deleteDoc(sessionRef);
-    console.log("Deleted session:", sessionId);
   } catch (error) {
-    console.error("Error deleting chat session:", error);
+    console.error("Error deleting session:", error);
     throw new Error("Failed to delete chat session");
   }
 };
@@ -465,8 +457,6 @@ export const addMedication = async (
       userId,
       ...medication,
       isActive: true,
-      enableWhatsApp: medication.enableWhatsApp || false,
-      phoneNumber: medication.enableWhatsApp ? medication.phoneNumber : undefined,
       createdAt: serverTimestamp() as Timestamp,
       updatedAt: serverTimestamp() as Timestamp,
     };
@@ -474,7 +464,7 @@ export const addMedication = async (
     const docRef = await addDoc(medicationRef, medicationData);
 
     if (medication.reminderTimes.length) {
-      await scheduleMedicationReminders(userId, docRef.id, medication.reminderTimes, medication.enableWhatsApp, medication.phoneNumber);
+      await scheduleMedicationReminders(userId, docRef.id, medication.reminderTimes);
     }
 
     return docRef.id;
@@ -547,8 +537,6 @@ export const scheduleMedicationReminders = async (
   userId: string,
   medicationId: string,
   reminderTimes: string[],
-  enableWhatsApp?: boolean,
-  phoneNumber?: string,
 ) => {
   try {
     const remindersRef = collection(db, "medicationReminders");
@@ -557,8 +545,6 @@ export const scheduleMedicationReminders = async (
         userId,
         medicationId,
         time,
-        enableWhatsApp: enableWhatsApp || false,
-        phoneNumber: enableWhatsApp ? phoneNumber : null,
         createdAt: serverTimestamp(),
       };
       await addDoc(remindersRef, reminderData);
@@ -569,33 +555,11 @@ export const scheduleMedicationReminders = async (
   }
 };
 
-export const addHealthRecord = async (
-  userId: string,
-  record: Omit<HealthRecord, "id" | "userId" | "createdAt">,
-) => {
-  try {
-    const recordsRef = collection(db, "healthRecords");
-    const recordData: Omit<HealthRecord, "id"> = {
-      userId,
-      ...record,
-      createdAt: serverTimestamp() as Timestamp,
-    };
-
-    const docRef = await addDoc(recordsRef, recordData);
-    return docRef.id;
-  } catch (error) {
-    console.error("Error adding health record:", error);
-    throw new Error("Failed to add health record");
-  }
-};
-
 export function sendMedicationReminder(
   userId: string,
   medicationName: string,
-  phoneNumber?: string,
-  enableWhatsApp?: boolean,
 ) {
-  console.log("Reminder:", userId, medicationName, phoneNumber, enableWhatsApp);
+  console.log("Reminder:", userId, medicationName);
 }
 
 export const subscribeToUserMedications = (
@@ -627,6 +591,26 @@ export const subscribeToUserMedications = (
   } catch (error) {
     console.error("Error subscribing to medications:", error);
     return () => {};
+  }
+};
+
+export const addHealthRecord = async (
+  userId: string,
+  record: Omit<HealthRecord, "id" | "userId" | "createdAt">,
+) => {
+  try {
+    const recordsRef = collection(db, "healthRecords");
+    const recordData: Omit<HealthRecord, "id"> = {
+      userId,
+      ...record,
+      createdAt: serverTimestamp() as Timestamp,
+    };
+
+    const docRef = await addDoc(recordsRef, recordData);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error adding health record:", error);
+    throw new Error("Failed to add health record");
   }
 };
 

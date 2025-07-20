@@ -104,19 +104,50 @@ export default function AppointmentsPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="relative max-w-2xl mx-auto mb-8">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by hospital, doctor, location..."
-              className="w-full pl-10 pr-4 py-3 rounded-full bg-card text-foreground placeholder-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-teal-500"
-            />
-            <div className="absolute top-1/2 left-3 transform -translate-y-1/2 text-muted-foreground">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m1.62-5.88a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </div>
+         {/* Search Bar */}
+<div className="relative max-w-2xl mx-auto mb-8">
+  <input
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    placeholder="Search by hospital, doctor, location..."
+    className="w-full pl-10 pr-4 py-3 rounded-full bg-card text-foreground placeholder-muted-foreground border border-border focus:outline-none focus:ring-2 focus:ring-teal-500"
+  />
+  <div className="absolute top-1/2 left-3 transform -translate-y-1/2 text-muted-foreground">
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m1.62-5.88a7 7 0 11-14 0 7 7 0 0114 0z" />
+    </svg>
+  </div>
+</div>
+{/* Hero Section below search bar */}
+<div className="max-w-5xl mx-auto mb-10 px-4">
+  <div className="flex flex-col md:flex-row items-center gap-8">
+    {/* Left: Text */}
+    <div className="flex-1">
+      <h2 className="text-2xl md:text-3xl font-bold text-[#a855f7] mb-3">
+        Hassle-Free Healthcare Scheduling
+      </h2>
+      <p className="text-muted-foreground mb-4 leading-relaxed">
+        Book appointments with trusted doctors, clinics, and hospitals in seconds. No queues, no delays — just seamless healthcare access from your phone or laptop.
+      </p>
+      <Button className="bg-[#a855f7] hover:bg-teal-600 text-white rounded-lg px-5 py-2 text-sm">
+        Get Started
+      </Button>
+    </div>
+
+    {/* Right: Image */}
+    <div className="flex-1">
+      <img
+        src="https://static.vecteezy.com/system/resources/previews/012/852/501/large_2x/schedule-doctor-appointment-2d-isolated-illustration-healthcare-service-flat-characters-on-cartoon-background-planning-colourful-editable-scene-for-mobile-website-presentation-vector.jpg"
+        alt="Doctor Scheduling Illustration"
+        className="w-full rounded-xl shadow-xl"
+      />
+    </div>
+  </div>
+</div>
+
+
+
+
 
           {/* Error Message */}
           {error && (

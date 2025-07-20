@@ -8,7 +8,7 @@ import { Toaster } from "sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MEDIBOT_REM - AI Medical Assistant",
+  title: "Medibot",
   description: "Your friendly AI medical assistant for health information, reminders, and guidance",
   themeColor: "#0f172a",
   viewport: "width=device-width, initial-scale=1.0",
