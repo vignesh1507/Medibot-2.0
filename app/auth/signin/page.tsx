@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
@@ -9,7 +8,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AuthGuard } from "@/components/auth-guard"
-import { ArrowLeft, Eye, EyeOff } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { toast } from "sonner"
 
@@ -27,10 +26,24 @@ export default function SignInPage() {
 
     try {
       await signIn(email, password)
-      toast.success("Signed in successfully!")
+      toast.success("Signed in successfully!", {
+        position: "top-center",
+        style: {
+          background: '#0f172a',
+          color: '#ffffff',
+          border: '1px solid #1e293b'
+        }
+      })
       router.push("/dashboard")
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign in")
+      toast.error(error.message || "Failed to sign in", {
+        position: "top-center",
+        style: {
+          background: '#0f172a',
+          color: '#ffffff',
+          border: '1px solid #1e293b'
+        }
+      })
     } finally {
       setLoading(false)
     }
@@ -40,10 +53,24 @@ export default function SignInPage() {
     setLoading(true)
     try {
       await signInWithGoogle()
-      toast.success("Signed in with Google successfully!")
+      toast.success("Signed in with Google successfully!", {
+        position: "top-center",
+        style: {
+          background: '#0f172a',
+          color: '#ffffff',
+          border: '1px solid #1e293b'
+        }
+      })
       router.push("/dashboard")
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign in with Google")
+      toast.error(error.message || "Failed to sign in with Google", {
+        position: "top-center",
+        style: {
+          background: '#0f172a',
+          color: '#ffffff',
+          border: '1px solid #1e293b'
+        }
+      })
     } finally {
       setLoading(false)
     }
@@ -53,10 +80,24 @@ export default function SignInPage() {
     setLoading(true)
     try {
       await signInWithFacebook()
-      toast.success("Signed in with Facebook successfully!")
+      toast.success("Signed in with Facebook successfully!", {
+        position: "top-center",
+        style: {
+          background: '#0f172a',
+          color: '#ffffff',
+          border: '1px solid #1e293b'
+        }
+      })
       router.push("/dashboard")
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign in with Facebook")
+      toast.error(error.message || "Failed to sign in with Facebook", {
+        position: "top-center",
+        style: {
+          background: '#0f172a',
+          color: '#ffffff',
+          border: '1px solid #1e293b'
+        }
+      })
     } finally {
       setLoading(false)
     }
@@ -64,49 +105,64 @@ export default function SignInPage() {
 
   return (
     <AuthGuard requireAuth={false}>
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-slate-900 rounded-2xl border border-slate-800 p-6 sm:p-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-slate-800/50 shadow-xl shadow-slate-950/50 p-8 sm:p-10">
           {/* Header */}
-          <div className="flex items-center mb-6 sm:mb-8">
+          <div className="flex items-center mb-8">
             <Link href="/">
-              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white mr-3">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all"
+              >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <span className="text-white font-medium">Back</span>
+            <span className="text-white font-medium text-sm">Back to home</span>
           </div>
 
           {/* Logo and Title */}
-          <div className="text-center mb-6 sm:mb-8">
-            <div className="flex items-center justify-center space-x-3 mb-4 sm:mb-6">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 relative">
-                <Image src="/logo.png" alt="Medibot Logo" width={64} height={64} className="rounded-full" />
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center space-x-3 mb-5">
+              <div className="w-14 h-14 relative">
+                <Image 
+                  src="/logo.png" 
+                  alt="Medibot Logo" 
+                  width={56} 
+                  height={56} 
+                  className="rounded-full border-2 border-slate-700 shadow-sm"
+                />
               </div>
-              <span className="text-purple-400 font-semibold text-xl sm:text-2xl">Medibot</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 font-bold text-2xl tracking-tight">
+                Medibot
+              </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 sm:mb-3">Welcome Back</h1>
-            <p className="text-slate-400 text-sm sm:text-base">Sign in to continue to Medibot</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Welcome Back</h1>
+            <p className="text-slate-400 text-sm">Sign in to access your dashboard</p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-            <div>
-              <label className="block text-white font-medium mb-2 sm:mb-3 text-sm sm:text-base">Email</label>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="block text-slate-300 font-medium text-sm">Email Address</label>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="bg-slate-800 border-slate-700 text-white h-11 sm:h-12 rounded-xl text-sm sm:text-base"
+                className="bg-slate-800/50 border-slate-700 focus:border-blue-500 focus:ring-blue-500 text-white h-11 rounded-lg text-sm placeholder-slate-500"
                 required
               />
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-2 sm:mb-3">
-                <label className="block text-white font-medium text-sm sm:text-base">Password</label>
-                <Link href="/auth/forgot-password" className="text-green-400 text-xs sm:text-sm hover:underline">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-slate-300 font-medium text-sm">Password</label>
+                <Link 
+                  href="/auth/forgot-password" 
+                  className="text-blue-400 hover:text-blue-300 text-xs hover:underline"
+                >
                   Forgot password?
                 </Link>
               </div>
@@ -116,17 +172,21 @@ export default function SignInPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="bg-slate-800 border-slate-700 text-white h-11 sm:h-12 rounded-xl pr-12 text-sm sm:text-base"
+                  className="bg-slate-800/50 border-slate-700 focus:border-blue-500 focus:ring-blue-500 text-white h-11 rounded-lg pr-12 text-sm placeholder-slate-500"
                   required
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -134,22 +194,36 @@ export default function SignInPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 sm:h-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl shadow-lg text-sm sm:text-base font-medium"
+              className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg shadow-md transition-all duration-200 text-sm font-medium"
             >
-              {loading ? "Signing In..." : "Sign In"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
 
-            <div className="text-center">
-              <span className="text-slate-400 text-sm sm:text-base">or continue with</span>
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-700/50"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-2 bg-slate-900/80 text-slate-400">
+                  Or continue with
+                </span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <Button
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={loading}
                 variant="outline"
-                className="h-11 sm:h-12 bg-slate-800 border-slate-700 text-white hover:bg-slate-700 rounded-xl text-sm sm:text-base"
+                className="h-11 bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 text-white rounded-lg text-sm transition-all"
               >
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path
@@ -176,7 +250,7 @@ export default function SignInPage() {
                 onClick={handleFacebookSignIn}
                 disabled={loading}
                 variant="outline"
-                className="h-11 sm:h-12 bg-slate-800 border-slate-700 text-white hover:bg-slate-700 rounded-xl text-sm sm:text-base"
+                className="h-11 bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 text-white rounded-lg text-sm transition-all"
               >
                 <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -185,10 +259,13 @@ export default function SignInPage() {
               </Button>
             </div>
 
-            <div className="text-center">
-              <span className="text-slate-400 text-sm sm:text-base">{"Don't have an account? "}</span>
-              <Link href="/auth/signup" className="text-green-400 hover:underline text-sm sm:text-base">
-                Sign Up
+            <div className="text-center text-sm">
+              <span className="text-slate-400">Don't have an account? </span>
+              <Link 
+                href="/auth/signup" 
+                className="text-blue-400 hover:text-blue-300 hover:underline font-medium"
+              >
+                Sign up
               </Link>
             </div>
           </form>
