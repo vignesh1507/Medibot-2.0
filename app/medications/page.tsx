@@ -313,10 +313,10 @@ export default function MedicationsPage() {
         toast.error("User not authenticated");
         return;
       }
-      const message = `🧪 This is a test reminder for your medication ${medication.name} (${medication.dosage}). 💊`;
+      const message = `🧪 This is a  reminder for your medication ${medication.name} (${medication.dosage}). 💊`;
       const notifications = [
-        sendMobileNotification(user.uid, "Test Reminder", message),
-        user.email ? sendEmailNotification(user.email, "Test Reminder", message) : Promise.resolve(),
+        sendMobileNotification(user.uid, " Reminder", message),
+        user.email ? sendEmailNotification(user.email, " Reminder", message) : Promise.resolve(),
       ];
       await Promise.all(notifications);
       toast.success("Notifications sent successfully! 📱📧");
@@ -324,12 +324,12 @@ export default function MedicationsPage() {
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (user) {
         const notifications = [
-          sendMobileNotification(user.uid, "Test Reminder Error", `Failed to send test reminder for ${medication.name}: ${errorMessage}`),
-          user.email ? sendEmailNotification(user.email, "Test Reminder Error", `Failed to send test reminder for ${medication.name}: ${errorMessage}`) : Promise.resolve(),
+          sendMobileNotification(user.uid, " Reminder Error", `Failed to send  reminder for ${medication.name}: ${errorMessage}`),
+          user.email ? sendEmailNotification(user.email, " Reminder Error", `Failed to send  reminder for ${medication.name}: ${errorMessage}`) : Promise.resolve(),
         ];
         await Promise.all(notifications);
       }
-      toast.error(`Failed to send test notifications: ${errorMessage}`);
+      toast.error(`Failed to send  notifications: ${errorMessage}`);
     }
   };
 
@@ -575,7 +575,7 @@ export default function MedicationsPage() {
                               size="icon"
                               onClick={() => testReminder(medication)}
                               className="text-muted-foreground hover:text-teal-300 dark:hover:text-teal-500"
-                              title="Test Reminder"
+                              title=" Reminder"
                             >
                               <Bell className="h-4 w-4" />
                             </Button>
