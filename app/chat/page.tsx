@@ -1725,84 +1725,84 @@ Provide a personalized, contextual response that acknowledges their history whil
           </div>
           
           {user && (
-            <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-6 pt-4">
-              <div className="mx-auto max-w-3xl">
-                <div className="flex flex-col gap-2 rounded-xl bg-white dark:bg-gray-800 p-4 shadow-lg">
-                  <textarea
-                    ref={textareaRef}
-                    value={message}
-                    onChange={(e) => {
-                      setMessage(e.target.value);
-                      if (textareaRef.current) {
-                        textareaRef.current.style.height = 'auto';
-                        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-                      }
-                    }}
-                    onKeyDown={handleKeyPress}
-                    placeholder="Ask a health question or upload a file..."
-                    className="w-full resize-none bg-transparent text-sm placeholder-gray-500 dark:placeholder-gray-400 dark:text-white outline-none"
-                    rows={1}
-                    maxLength={1000}
-                    disabled={loading}
-                    aria-label="Message input"
-                  />
-                  <div className="flex justify-between items-center pt-2">
-                    <div className="flex items-center gap-2">
-                      <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger className="h-8 bg-gray-100 dark:bg-gray-700 dark:text-white text-sm border-none focus:ring-1 focus:ring-blue-500">
-                          <SelectValue placeholder="Model" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-gray-100 dark:bg-gray-800 dark:text-white text-sm border-gray-200 dark:border-gray-700">
-                          <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
-                          <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                          <SelectItem value="medibot">MediBot</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        onClick={handleFileUpload}
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
-                        title="Upload File"
-                      >
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*,application/pdf"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
-                    </div>
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={loading || (!message.trim() && !selectedFile)}
-                      className="h-8 w-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full disabled:opacity-40"
-                      aria-label="Send Message"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {fileName && (
-                    <div className="flex items-center gap-2 pt-1">
-                      <Badge className="bg-gray-100 dark:bg-gray-700 dark:text-white text-sm truncate max-w-[300px]">
-                        {fileName}
-                      </Badge>
-                      <Button
-                        onClick={removeFile}
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-red-500 hover:text-red-600"
-                        title="Remove File"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+           <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-6 pt-4 sm:sticky md:sticky lg:sticky xl:sticky">
+  <div className="mx-auto max-w-3xl">
+    <div className="flex flex-col gap-2 rounded-xl bg-white dark:bg-gray-800 p-4 shadow-lg">
+      <textarea
+        ref={textareaRef}
+        value={message}
+        onChange={(e) => {
+          setMessage(e.target.value);
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+          }
+        }}
+        onKeyDown={handleKeyPress}
+        placeholder="Ask a health question or upload a file..."
+        className="w-full resize-none bg-transparent text-sm placeholder-gray-500 dark:placeholder-gray-400 dark:text-white outline-none"
+        rows={1}
+        maxLength={1000}
+        disabled={loading}
+        aria-label="Message input"
+      />
+      <div className="flex justify-between items-center pt-2">
+        <div className="flex items-center gap-2">
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger className="h-8 bg-gray-100 dark:bg-gray-700 dark:text-white text-sm border-none focus:ring-1 focus:ring-blue-500">
+              <SelectValue placeholder="Model" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-100 dark:bg-gray-800 dark:text-white text-sm border-gray-200 dark:border-gray-700">
+              <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
+              <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+              <SelectItem value="medibot">MediBot</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={handleFileUpload}
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+            title="Upload File"
+          >
+            <Upload className="h-4 w-4" />
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,application/pdf"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+        </div>
+        <Button
+          onClick={handleSendMessage}
+          disabled={loading || (!message.trim() && !selectedFile)}
+          className="h-8 w-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full disabled:opacity-40"
+          aria-label="Send Message"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
+      {fileName && (
+        <div className="flex items-center gap-2 pt-1">
+          <Badge className="bg-gray-100 dark:bg-gray-700 dark:text-white text-sm truncate max-w-[300px]">
+            {fileName}
+          </Badge>
+          <Button
+            onClick={removeFile}
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-red-500 hover:text-red-600"
+            title="Remove File"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
           )}
           
           {/* Additional dialogs and components remain the same */}
