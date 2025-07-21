@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+ import { setDoc, serverTimestamp } from "firebase/firestore"; // Add this at the top
 import {
   type User,
   onAuthStateChanged,
@@ -136,17 +137,39 @@ export function useAuth() {
     return signInWithEmailAndPassword(auth, email, password);
   };
 
-  const signUp = async (
-    email: string,
-    password: string,
-    displayName?: string
-  ) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    if (displayName && result.user) {
-      await updateProfile(result.user, { displayName });
-    }
-    return result;
-  };
+
+
+const signUp = async (
+  email: string,
+  password: string,
+  displayName?: string
+) => {
+  const result = await createUserWithEmailAndPassword(auth, email, password);
+
+  const user = result.user;
+
+  if (displayName && user) {
+    await updateProfile(user, { displayName });
+  }
+
+  // Save additional user data to Firestore
+  await setDoc(doc(db, "users", user.uid), {
+    displayName: displayName || "",
+    email: user.email,
+    createdAt: serverTimestamp(),
+    dateOfBirth: "", // default, can be updated later in profile-setup
+    photoURL: user.photoURL || "",
+    medicalInfo: {
+      allergies: ["none"],
+      bloodType: "",
+      conditions: ["none"],
+    },
+    preferences: {},
+  });
+
+  return result;
+};
+
 
   const signInWithGoogle = async () => {
     return signInWithPopup(auth, googleProvider);
