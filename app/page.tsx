@@ -472,8 +472,8 @@ export default function HomePage() {
               >
                 <Button asChild className={buttonClasses}>
                   <a
-                    href="/mediBot.apk"
-                    download="mediBot.apk"
+                    href="/medibot.apk"
+                    download="medibot.apk"
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={handleDownload}
