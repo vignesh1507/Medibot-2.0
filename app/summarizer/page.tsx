@@ -184,7 +184,7 @@ export default function SummarizerPage() {
                 className="text-muted-foreground hover:text-foreground lg:hidden h-10 w-10"
                 aria-label="Open sidebar"
               >
-                <Menu className="h-5 w-5" />
+                
               </Button>
               <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
                 <FileText className="h-4 w-4 text-white" />
