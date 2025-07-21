@@ -122,14 +122,13 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
       <div className="lg:flex lg:items-start">
         <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          className="fixed top-4 left-4 z-50 bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg lg:hidden h-10 w-10"
-          aria-label="Toggle sidebar"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+  onClick={toggleSidebar}
+  aria-label="Toggle sidebar"
+  className="fixed top-4 left-4 z-50 h-10 w-10 rounded-md bg-transparent text-muted-foreground lg:hidden focus:outline-none focus:ring-0 active:bg-transparent"
+>
+  <Menu className="h-5 w-5" />
+</Button>
+
 
         <div
           className={cn(
