@@ -336,12 +336,13 @@ export default function HomePage() {
               image: "/healthtrack.png",
             },
             {
-              icon: <MessageCircle className="h-6 w-6 text-[#00acc1]" />,
-              title: "AI-Powered Health Chat",
-              description:
-                "Ask MediBot anything about your health or prescriptions. Our AI provides accurate, personalized advice to support your wellness journey.",
-              image: "/chat.png",
-            },
+  icon: <MessageCircle className="h-6 w-6 text-[#00acc1]" />,
+  title: "AI-Powered Health Chat",
+  description:
+    "Ask MediBot anything about your health or prescriptions. Our AI provides accurate, personalized advice to support your wellness journey.",
+  image: "/chat.png",
+},
+
             {
               icon: <Clock className="h-6 w-6 text-[#00acc1]" />,
               title: "Timely Reminders",
