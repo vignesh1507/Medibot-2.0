@@ -194,23 +194,20 @@ export default function HomePage() {
               MediBot
             </motion.h1>
           </div>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="flex items-center space-x-4"
-          >
-            <Link href="/auth/signin">
-              <Button className={`${buttonClasses}`}>Sign In</Button>
-            </Link>
-            <Link href="/auth/signup">
-              <Button
-                className={`${buttonClasses} bg-gradient-to-r from-[#80deea] to-[#90caf9] hover:from-[#4dd0e1] hover:to-[#64b5f6]`}
-              >
-                Sign Up
-              </Button>
-            </Link>
-          </motion.div>
+         <motion.div
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ duration: 0.5, delay: 0.4 }}
+  className="flex flex-col sm:flex-row items-center gap-2 sm:space-x-4"
+>
+  <Link href="/auth/signin" className="w-full sm:w-auto">
+    <Button className={`${buttonClasses} w-full sm:w-auto`}>
+      Sign In
+    </Button>
+  </Link>
+  
+</motion.div>
+
         </div>
       </header>
 
