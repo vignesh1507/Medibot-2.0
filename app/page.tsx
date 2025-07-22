@@ -1010,14 +1010,7 @@ export default function HomePage() {
                      Refund Policy
                     </Link>
                   </li>
-                  <li>
-                    <Link
-                      href="/hipaa"
-                      className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
-                    >
-                      HIPAA Compliance
-                    </Link>
-                  </li>
+                  
                 </ul>
               </div>
             </div>
