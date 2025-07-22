@@ -88,9 +88,55 @@ export default function TermsPage() {
             <CardHeader>
               <CardTitle className="text-xl font-semibold">3. Intellectual Property</CardTitle>
             </CardHeader>
-            <CardContent className="text-[#546e7a]">
-              <p>
-                All content, design, and graphics on the Platform are proprietary and owned or licensed by us. You may not claim any rights or copy/reproduce it without permission.
+            <CardContent>
+              <ul className="space-y-3 text-[#546e7a]">
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-[#4dd0e1] mt-0.5 mr-3 flex-shrink-0" />
+                  <span>You are responsible for maintaining the accuracy of your medication information</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-[#4dd0e1] mt-0.5 mr-3 flex-shrink-0" />
+                  <span>You must ensure your contact information is current to receive reminders</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="h-5 w-5 text-[#4dd0e1] mt-0.5 mr-3 flex-shrink-0" />
+                  <span>You agree not to misuse the Service or use it for any unlawful purpose</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-[#263238]">
+                4. Privacy Policy
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-[#546e7a] mb-4">
+                Your use of the Service is also governed by our Privacy Policy, which explains how we collect, use, and protect your personal information.
+              </p>
+              <Link href="/privacy">
+                <Button className={buttonClasses}>
+                  View Privacy Policy
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-[#263238]">
+                5. Service Modifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-[#546e7a]">
+                MediBot reserves the right to modify or discontinue, temporarily or permanently, the Service (or any part thereof) with or without notice. We shall not be liable to you or any third party for any modification, suspension, or discontinuance of the Service.
               </p>
             </CardContent>
           </Card>
@@ -99,11 +145,13 @@ export default function TermsPage() {
         <motion.div variants={item}>
           <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">4. Prohibited Usage</CardTitle>
+              <CardTitle className="text-xl font-semibold text-[#263238]">
+                6. Limitation of Liability
+              </CardTitle>
             </CardHeader>
-            <CardContent className="text-[#546e7a]">
-              <p>
-                You agree not to use the Platform for any unlawful or forbidden activities under Indian law or local regulations.
+            <CardContent>
+              <p className="text-[#546e7a]">
+                In no event shall MediBot, its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the Service.
               </p>
             </CardContent>
           </Card>
@@ -112,37 +160,13 @@ export default function TermsPage() {
         <motion.div variants={item}>
           <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">5. Third-party Links</CardTitle>
+              <CardTitle className="text-xl font-semibold text-[#263238]">
+                7. Governing Law
+              </CardTitle>
             </CardHeader>
-            <CardContent className="text-[#546e7a]">
-              <p>
-                Our Platform may include links to external websites. Your access to such sites is governed by their respective policies and terms.
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold">6. Indemnification</CardTitle>
-            </CardHeader>
-            <CardContent className="text-[#546e7a]">
-              <p>
-                You agree to indemnify and hold harmless our company and affiliates from any losses, liabilities, or legal claims arising from your use or misuse of the Platform.
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div variants={item}>
-          <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold">7. Governing Law & Disputes</CardTitle>
-            </CardHeader>
-            <CardContent className="text-[#546e7a]">
-              <p>
-                These Terms are governed by the laws of India. All disputes are subject to the exclusive jurisdiction of the courts in New Delhi.
+            <CardContent>
+              <p className="text-[#546e7a]">
+                These Terms shall be governed and construed in accordance with the laws of [Your Country/State], without regard to its conflict of law provisions.
               </p>
             </CardContent>
           </Card>
@@ -152,20 +176,21 @@ export default function TermsPage() {
         <motion.div variants={item}>
           <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-xl font-semibold">8. Refund & Cancellation Policy</CardTitle>
+              <CardTitle className="text-xl font-semibold text-[#263238]">
+                8. Changes to Terms
+              </CardTitle>
             </CardHeader>
-            <CardContent className="text-[#546e7a] space-y-3">
-              <ul className="space-y-2">
-                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Cancellation requests must be made within 1 day of placing the order.</li>
-                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />No cancellations for perishable items like flowers or food.</li>
-                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Refunds/replacements are applicable for damaged or defective products reported within 1 day.</li>
-                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Refunds are processed within 2 days once approved by Asvix.</li>
-              </ul>
+            <CardContent>
+              <p className="text-[#546e7a] mb-4">
+                We reserve the right, at our sole discretion, to modify or replace these Terms at any time. We will provide notice of any changes by posting the new Terms on this page.
+              </p>
+              <p className="text-[#546e7a]">
+                By continuing to access or use our Service after those revisions become effective, you agree to be bound by the revised terms.
+              </p>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Contact & Navigation */}
         <motion.div variants={item} className="pt-6 text-center">
           <p className="text-[#546e7a] mb-6">
             For any queries related to these terms, please reach out via our Contact page.

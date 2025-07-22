@@ -1004,6 +1004,14 @@ export default function HomePage() {
                   </li>
                   <li>
                     <Link
+                      href="/refund"
+                      className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
+                    >
+                     Refund Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
                       href="/hipaa"
                       className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
                     >
