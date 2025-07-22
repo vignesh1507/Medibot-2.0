@@ -898,7 +898,7 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <Link href="/auth/signup">
               <Button
-                className={`${buttonClasses} w-60 h-14 text-lg bg-gradient-to-r from-[#00acc1] to-[#42a5f5] hover:from-[#00838f] hover:to-[#1e88e5] text-white`}
+                className={`${buttonClasses} w-60 h-14 text-lg bg-gradient-to-r from-[#00acc1] to-[#42a5f5] hover:from-[#00838f] hover:to-[#fffff] text-white`}
               >
                 Get Started Free
               </Button>
