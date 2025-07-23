@@ -617,17 +617,7 @@ export default function HomePage() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="mt-10 flex justify-center"
           >
-            <Button asChild className={buttonClasses}>
-              <a
-                href="/mediBot.apk"
-                download="mediBot.apk"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={handleDownload}
-              >
-                Download Mobile App
-              </a>
-            </Button>
+            
           </motion.div>
         </div>
       </section>
@@ -1018,7 +1008,7 @@ export default function HomePage() {
 
           <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
             <p className="text-[#78909c] mb-4 md:mb-0">
-              © {new Date().getFullYear()} MediBot. All rights reserved.
+              © {new Date().getFullYear()} MediBot by Asvix. All rights reserved.
             </p>
             <div className="flex space-x-6">
               <Link href="#" className="text-[#78909c] hover:text-[#00acc1] transition-colors">
