@@ -160,13 +160,11 @@ export default function TermsPage() {
         <motion.div variants={item}>
           <Card className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-xl font-semibold text-[#263238]">
-                7. Governing Law
-              </CardTitle>
+              <CardTitle className="text-xl font-semibold text-[#263238]">7. Governing Law</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-[#546e7a]">
-                These Terms shall be governed and construed in accordance with the laws of [Your Country/State], without regard to its conflict of law provisions.
+                These Terms shall be governed and construed in accordance with the laws of Delhi, India, without regard to its conflict of law provisions.
               </p>
             </CardContent>
           </Card>

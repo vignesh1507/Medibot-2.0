@@ -59,13 +59,20 @@ export default function RefundPolicyPage() {
               <CardTitle className="text-xl font-semibold">Refund & Cancellation Policy</CardTitle>
             </CardHeader>
             <CardContent className="text-[#546e7a] space-y-3">
+              <p>
+                At MediBot, we strive to ensure customer satisfaction with every purchase. If you are not entirely satisfied with your order, we are here to assist you with our refund and cancellation process.
+              </p>
               <ul className="space-y-2">
-                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Cancellations must be requested within 1 day of placing the order.</li>
-                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />No cancellations for perishable items like flowers or eatables.</li>
-                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Damaged/defective items must be reported within 1 day for replacement/refund.</li>
-                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Refunds (if approved) are processed within 2 working days.</li>
-                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Complaints for items with manufacturer warranty should be directed to them.</li>
+                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Cancellations must be requested within 1 day of placing the order to be eligible for a full refund.</li>
+                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Damaged or defective items must be reported within 1 day of delivery to qualify for a replacement or refund.</li>
+                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Refunds, if approved, are processed within 2-5 working days and credited to your original payment method in INR.</li>
+                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Complaints for items with a manufacturer's warranty should be directed to the respective manufacturer for resolution.</li>
+                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />To initiate a refund or cancellation, please contact our customer support team with your order details, including the order number and reason for the request.</li>
+                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Refunds will not be processed for items that have been used, damaged by the customer, or are not in their original condition upon return.</li>
               </ul>
+              <p>
+                Please note that processing times may vary depending on your bank or payment provider. For any additional assistance, our customer support team is available to guide you through the process. We value your trust and aim to make your experience with us as seamless as possible.
+              </p>
             </CardContent>
           </Card>
         </motion.div>
@@ -77,6 +84,12 @@ export default function RefundPolicyPage() {
           <Link href="/">
             <Button className={buttonClasses}>Back to Home</Button>
           </Link>
+        </motion.div>
+
+        <motion.div variants={item} className="pt-6 text-center">
+          <p className="text-[#546e7a] text-sm">
+            Managed by A G Vignesh Skanda
+          </p>
         </motion.div>
       </motion.div>
     </div>
