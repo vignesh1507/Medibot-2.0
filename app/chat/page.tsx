@@ -1638,7 +1638,7 @@ Provide a personalized, contextual response that acknowledges their history whil
             <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
             <div>
               <span className="text-sm font-semibold">Premium Plan</span>
-              <div className="text-xs text-gray-500 dark:text-gray-400">₹100 / $2 per month</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">99₹/month</div>
             </div>
           </div>
           {selectedPlan === "premium" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}

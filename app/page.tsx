@@ -481,15 +481,7 @@ export default function HomePage() {
                     Download Mobile App
                   </a>
                 </Button>
-                <div className="text-lg text-[#546e7a]">
-                  <Download className="h-5 w-5 text-[#9c27b0] inline mr-2" />
-                  <span>
-                    {isLoading ? "Loading..." : `${downloadCount.toLocaleString()} Downloads`}
-                  </span>
-                </div>
-                {downloadError && (
-                  <p className="text-sm text-red-600">{downloadError}</p>
-                )}
+               
               </motion.div>
             </motion.div>
           </div>
