@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-const Layout = ({ children }) => {
+const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="layout-container">
       <header className="layout-header">
