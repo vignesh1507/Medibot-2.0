@@ -1329,7 +1329,7 @@ Provide a personalized, contextual response that acknowledges their history whil
           <div className="space-y-4">
             <div className="flex justify-end items-start space-x-2 max-w-[70%] ml-auto">
               <div className="relative group">
-                <div className="bg-blue-600/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
+                <div className="bg-zinc-900 dark:bg-white rounded-xl p-4 text-white dark:text-gray-900 text-sm leading-relaxed border border-zinc-700 dark:border-gray-200">
                   {isValidImageUrl(msg.image) ? (
                     <div className="mb-2">
                       <Image
@@ -1345,38 +1345,82 @@ Provide a personalized, contextual response that acknowledges their history whil
                     <p className="text-xs text-red-400 mb-2">Invalid or missing file</p>
                   ) : null}
                   {editingMessageId === msg.id ? (
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        value={editedMessage}
-                        onChange={(e) => setEditedMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        className="bg-gray-100 dark:bg-gray-700 border-none dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
-                        aria-label="Edit message"
-                      />
-                     <button
-  onClick={handleSendMessage}
-  disabled={loading || (!message.trim() && !selectedFile)}
-  data-testid="send-button"
-  className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border dark:border-zinc-600"
-  aria-label="Send Message"
->
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 16 16"
-    fill="none"
-    style={{ color: "currentcolor" }}
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      fill="currentColor"
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M8.70711 1.39644C8.31659 1.00592 7.68342 1.00592 7.2929 1.39644L2.21968 6.46966L1.68935 6.99999L2.75001 8.06065L3.28034 7.53032L7.25001 3.56065V14.25V15H8.75001V14.25V3.56065L12.7197 7.53032L13.25 8.06065L14.3107 6.99999L13.7803 6.46966L8.70711 1.39644Z"
-    />
-  </svg>
-</button>
-
+                    <div className="flex flex-col w-full">
+                      <div className="w-full flex justify-center">
+                        <div style={{ width: '600px', maxWidth: '100%' }}>
+                          <textarea
+                            value={editedMessage}
+                            onChange={e => {
+                              // Limit to 60 characters per line
+                              const lines = e.target.value.split("\n").map(line => line.length > 60 ? line.match(/.{1,60}/g)?.join("\n") : line);
+                              setEditedMessage(lines.join("\n"));
+                              // Auto expand textarea height
+                              const ta = e.target as HTMLTextAreaElement;
+                              ta.style.height = 'auto';
+                              ta.style.height = Math.min(ta.scrollHeight, 300) + 'px';
+                            }}
+                            onKeyDown={handleKeyPress}
+                            maxLength={500}
+                            rows={4}
+                            style={{
+                              resize: "none",
+                              minHeight: 60,
+                              maxHeight: 300,
+                              width: '100%',
+                              fontFamily: 'inherit',
+                              fontSize: '1rem',
+                              lineHeight: 1.5,
+                              letterSpacing: '0.01em',
+                              background: 'linear-gradient(90deg, #f8fafc 0%, #e0e7ef 100%)',
+                              color: '#222',
+                              border: '1.5px solid #a5b4fc',
+                              boxShadow: '0 2px 8px 0 rgba(80, 80, 200, 0.07)',
+                              borderRadius: 12,
+                              padding: '10px 14px',
+                              outline: 'none',
+                              transition: 'border 0.2s, box-shadow 0.2s',
+                              overflowY: 'auto',
+                              scrollbarWidth: 'none', // Firefox
+                              msOverflowStyle: 'none', // IE/Edge
+                            }}
+                            className="hide-scrollbar dark:bg-white dark:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
+                            aria-label="Edit message"
+                            placeholder="Edit your message (max 60 chars/line, 500 total)"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-row justify-end gap-2 mt-2">
+                        <button
+                          onClick={() => {
+                            setEditingMessageId(null);
+                            setEditedMessage("");
+                          }}
+                          className="px-4 py-1 rounded-full border border-gray-300 dark:border-gray-400 bg-gray-100 dark:bg-gray-200 text-gray-700 dark:text-gray-800 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-300 transition"
+                          aria-label="Cancel Edit"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleEditMessage(msg.id, msg.message)}
+                          disabled={loading || editedMessage.trim() === msg.message.trim() || !editedMessage.trim()}
+                          data-testid="send-button"
+                          className={`px-4 py-1 rounded-full border border-blue-400 bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${loading || editedMessage.trim() === msg.message.trim() || !editedMessage.trim() ? '' : 'hover:bg-blue-600'}`}
+                          aria-label="Send Edited Message"
+                          title="Save Edit"
+                        >
+                          Send
+                        </button>
+                      </div>
+                      <style jsx>{`
+                        .hide-scrollbar::-webkit-scrollbar {
+                          display: none;
+                        }
+                        .hide-scrollbar {
+                          -ms-overflow-style: none;
+                          scrollbar-width: none;
+                        }
+                      `}</style>
                     </div>
                   ) : (
                     <p>{msg.message}</p>
