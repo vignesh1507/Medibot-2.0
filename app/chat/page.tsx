@@ -1353,13 +1353,30 @@ Provide a personalized, contextual response that acknowledges their history whil
                         className="bg-gray-100 dark:bg-gray-700 border-none dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"
                         aria-label="Edit message"
                       />
-                      <Button
-                        onClick={() => handleEditMessage(msg.id, editedMessage)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 w-8"
-                        aria-label="Send edited message"
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
+                     <button
+  onClick={handleSendMessage}
+  disabled={loading || (!message.trim() && !selectedFile)}
+  data-testid="send-button"
+  className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border dark:border-zinc-600"
+  aria-label="Send Message"
+>
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 16 16"
+    fill="none"
+    style={{ color: "currentcolor" }}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      fill="currentColor"
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M8.70711 1.39644C8.31659 1.00592 7.68342 1.00592 7.2929 1.39644L2.21968 6.46966L1.68935 6.99999L2.75001 8.06065L3.28034 7.53032L7.25001 3.56065V14.25V15H8.75001V14.25V3.56065L12.7197 7.53032L13.25 8.06065L14.3107 6.99999L13.7803 6.46966L8.70711 1.39644Z"
+    />
+  </svg>
+</button>
+
                     </div>
                   ) : (
                     <p>{msg.message}</p>
@@ -1398,7 +1415,7 @@ Provide a personalized, contextual response that acknowledges their history whil
             {msg.response || isTyping[msg.id] ? (
               <div className="flex items-start space-x-2 max-w-[70%]">
                 <div className="relative group">
-                  <div className="bg-gray-300/20 rounded-xl p-4 dark:text-white text-sm leading-relaxed">
+<div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed">
                     {(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response)?.split("\n").map((line, i) => (
                       <p key={i} className={line.startsWith("**") ? "font-semibold" : ""}>
                         {line}
@@ -1479,7 +1496,8 @@ Provide a personalized, contextual response that acknowledges their history whil
               </div>
             ) : (
               loading && (
-                <div className="flex items-start space-x-2 max-w-[70%]">
+                <div className="flex items-start space-x-2 w-full">
+
                   <div className="p-4">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
@@ -1727,7 +1745,7 @@ Provide a personalized, contextual response that acknowledges their history whil
           {user && (
            <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-6 pt-4 sm:sticky md:sticky lg:sticky xl:sticky">
   <div className="mx-auto max-w-3xl">
-    <div className="flex flex-col gap-2 rounded-xl bg-white dark:bg-gray-800 p-4 shadow-lg">
+<div className="flex flex-col gap-2 rounded-3xl bg-white dark:bg-gray-800 p-4 shadow-lg focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-gray-900 transition-all duration-300">
       <textarea
         ref={textareaRef}
         value={message}
@@ -1775,14 +1793,30 @@ Provide a personalized, contextual response that acknowledges their history whil
             className="hidden"
           />
         </div>
-        <Button
-          onClick={handleSendMessage}
-          disabled={loading || (!message.trim() && !selectedFile)}
-          className="h-8 w-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full disabled:opacity-40"
-          aria-label="Send Message"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+       <button
+  onClick={handleSendMessage}
+  disabled={loading || (!message.trim() && !selectedFile)}
+  data-testid="send-button"
+  className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border dark:border-zinc-600"
+  aria-label="Send Message"
+>
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 16 16"
+    fill="none"
+    style={{ color: "currentcolor" }}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      fill="currentColor"
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M8.70711 1.39644C8.31659 1.00592 7.68342 1.00592 7.2929 1.39644L2.21968 6.46966L1.68935 6.99999L2.75001 8.06065L3.28034 7.53032L7.25001 3.56065V14.25V15H8.75001V14.25V3.56065L12.7197 7.53032L13.25 8.06065L14.3107 6.99999L13.7803 6.46966L8.70711 1.39644Z"
+    />
+  </svg>
+</button>
+
       </div>
       {fileName && (
         <div className="flex items-center gap-2 pt-1">
