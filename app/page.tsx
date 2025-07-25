@@ -645,7 +645,7 @@ export default function HomePage() {
           {[
             {
               title: "Free",
-              price: "$0",
+              price: "0₹",
               period: "month",
               features: [
                 "Basic Medication Tracking",
@@ -659,7 +659,7 @@ export default function HomePage() {
             },
             {
               title: "Premium",
-              price: "$2",
+              price: "99 ₹",
               period: "month",
               features: [
                 "Advanced Medication Tracking",
@@ -674,8 +674,8 @@ export default function HomePage() {
             },
             {
               title: "Enterprise",
-              price: "$49",
-              period: "",
+              price: "999 ₹",
+              period: "year",
               features: [
                 "Full Medication Management",
                 "Priority AI Support",
