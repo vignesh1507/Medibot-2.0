@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import Head from "next/head";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, useAnimation } from "framer-motion";
@@ -156,175 +155,9 @@ export default function HomePage() {
   };
 
   return (
-    <>
-      <Head>
-        <title>MediBot - AI-Powered Health Assistant & Medication Management</title>
-        <meta name="description" content="Transform your healthcare with MediBot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights. Join 23+ users trusting MediBot for better health outcomes." />
-        <meta name="keywords" content="medication reminder, health app, AI health assistant, prescription tracker, medication management, healthcare app, pill reminder, health chatbot, medical AI, prescription analysis" />
-        <meta name="author" content="Asvix - Sujay Babu Thota" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        
-        {/* Open Graph / Facebook */}
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://medibot.vercel.app/" />
-        <meta property="og:title" content="MediBot - AI-Powered Health Assistant & Medication Management" />
-        <meta property="og:description" content="Transform your healthcare with MediBot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights." />
-        <meta property="og:image" content="https://medibot.vercel.app/main.png" />
-        <meta property="og:site_name" content="MediBot" />
-        
-        {/* Twitter */}
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content="https://medibot.vercel.app/" />
-        <meta property="twitter:title" content="MediBot - AI-Powered Health Assistant & Medication Management" />
-        <meta property="twitter:description" content="Transform your healthcare with MediBot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights." />
-        <meta property="twitter:image" content="https://medibot.vercel.app/main.png" />
-        
-        {/* Additional SEO */}
-        <meta name="robots" content="index, follow" />
-        <meta name="language" content="English" />
-        <meta name="revisit-after" content="7 days" />
-        <meta name="distribution" content="global" />
-        <meta name="rating" content="general" />
-        
-        {/* Canonical URL */}
-        <link rel="canonical" href="https://medibot.vercel.app/" />
-        
-        {/* Favicon */}
-        <link rel="icon" href="/logo.png" />
-        <link rel="apple-touch-icon" href="/logo.png" />
-        
-        {/* Structured Data - Organization */}
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            "name": "MediBot",
-            "alternateName": "Asvix MediBot",
-            "url": "https://medibot.vercel.app",
-            "logo": "https://medibot.vercel.app/logo.png",
-            "description": "AI-powered health assistant for medication management and personalized health insights",
-            "founder": {
-              "@type": "Person",
-              "name": "Sujay Babu Thota"
-            },
-            "foundingDate": "2024",
-            "sameAs": [
-              "https://twitter.com/medibot",
-              "https://facebook.com/medibot"
-            ]
-          })}
-        </script>
-        
-        {/* Structured Data - SoftwareApplication */}
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "SoftwareApplication",
-            "name": "MediBot",
-            "operatingSystem": "Android, iOS, Web",
-            "applicationCategory": "HealthApplication",
-            "aggregateRating": {
-              "@type": "AggregateRating",
-              "ratingValue": "4.8",
-              "ratingCount": "23"
-            },
-            "offers": {
-              "@type": "Offer",
-              "price": "0",
-              "priceCurrency": "INR"
-            },
-            "description": "AI-powered health assistant for medication management, prescription analysis, and personalized health insights",
-            "downloadUrl": "https://medibot.vercel.app/medibot.apk",
-            "screenshot": "https://medibot.vercel.app/main.png"
-          })}
-        </script>
-
-        {/* FAQ Structured Data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              "mainEntity": [
-                {
-                  "@type": "Question",
-                  "name": "What is MediBot?",
-                  "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": "MediBot is an AI-powered health assistant that helps you manage medications, track health vitals, schedule appointments, and provides personalized health insights through intelligent conversation."
-                  }
-                },
-                {
-                  "@type": "Question",
-                  "name": "How does MediBot help with medication management?",
-                  "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": "MediBot provides medication reminders, tracks your dosage schedule, analyzes prescriptions, checks for drug interactions, and sends SMS notifications to ensure you never miss a dose."
-                  }
-                },
-                {
-                  "@type": "Question",
-                  "name": "Is MediBot free to use?",
-                  "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": "Yes, MediBot offers core features for free including basic medication reminders, health tracking, and AI chat. Premium features may be available for advanced analytics and additional services."
-                  }
-                },
-                {
-                  "@type": "Question",
-                  "name": "Is my health data secure with MediBot?",
-                  "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": "Absolutely. MediBot uses enterprise-grade encryption and follows HIPAA compliance standards to protect your personal health information. Your data is never shared with third parties without your explicit consent."
-                  }
-                },
-                {
-                  "@type": "Question",
-                  "name": "Can MediBot replace my doctor?",
-                  "acceptedAnswer": {
-                    "@type": "Answer",
-                    "text": "No, MediBot is designed to complement, not replace, professional medical care. It provides health management tools and general information, but you should always consult with healthcare professionals for medical advice and treatment."
-                  }
-                }
-              ]
-            })
-          }}
-        />
-
-        {/* Medical Service Structured Data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "MedicalWebPage",
-              "name": "MediBot - AI Health Assistant",
-              "description": "AI-powered health management platform offering medication reminders, prescription analysis, and personalized health insights",
-              "url": "https://medibot.vercel.app",
-              "medicalAudience": {
-                "@type": "Patient"
-              },
-              "about": {
-                "@type": "MedicalCondition",
-                "name": "General Health Management"
-              },
-              "mainContentOfPage": {
-                "@type": "WebPageElement",
-                "cssSelector": "main"
-              },
-              "specialty": {
-                "@type": "MedicalSpecialty",
-                "name": "Digital Health"
-              }
-            })
-          }}
-        />
-      </Head>
-      
-      <div
-        className={`min-h-screen bg-gradient-to-br from-[#f5f5f5] via-[#e8f5e9] to-[#e3f2fd] text-[#263238] flex flex-col items-center justify-start overflow-x-hidden`}
-      >
+    <div
+      className={`min-h-screen bg-gradient-to-br from-[#f5f5f5] via-[#e8f5e9] to-[#e3f2fd] text-[#263238] flex flex-col items-center justify-start overflow-x-hidden`}
+    >
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-64 h-64 bg-[#b2ebf2]/50 rounded-full blur-3xl animate-float-slow"></div>
@@ -335,9 +168,8 @@ export default function HomePage() {
       {/* Header Section */}
       <header
         className={`fixed top-0 left-0 w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-200 shadow-sm`}
-        role="banner"
       >
-        <nav className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between" role="navigation" aria-label="Main navigation">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -347,7 +179,7 @@ export default function HomePage() {
             >
               <Image
                 src="/logo.png"
-                alt="MediBot Logo - AI Health Assistant"
+                alt="MediBot Logo"
                 width={40}
                 height={40}
                 className="rounded-full object-cover"
@@ -376,17 +208,11 @@ export default function HomePage() {
   
 </motion.div>
 
-          </nav>
-        </header>
+        </div>
+      </header>
 
       {/* Hero Section */}
-      <main role="main" aria-label="Main content">
-        <section 
-          id="hero"
-          className="relative py-12 md:pt-36 lg:pb-24 overflow-hidden"
-          role="banner"
-          aria-labelledby="hero-heading"
-        >
+      <section className="relative py-12 md:pt-36 lg:pb-24 overflow-hidden">
         <div className="absolute inset-0">
           <svg
             className="absolute top-0 left-0 w-full h-full"
@@ -413,7 +239,6 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
               className="text-4xl font-extrabold tracking-tight text-[#263238] sm:text-5xl md:text-6xl"
-              id="hero-heading"
             >
               Transform Your Health with{" "}
               <span className="bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent">
@@ -425,7 +250,6 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               className="mt-6 max-w-2xl mx-auto text-xl text-[#546e7a]"
-              aria-describedby="hero-heading"
             >
               Your AI-powered health companion that simplifies medication management,
               provides personalized insights, and ensures you never miss a dose.
@@ -478,11 +302,8 @@ export default function HomePage() {
         animate={controls}
         variants={container}
         className="w-full max-w-7xl mx-auto px-6 py-20 relative"
-        id="features"
-        aria-labelledby="features-heading"
-        role="region"
       >
-        <div className="absolute -top-20 left-0 w-full h-20 pointer-events-none" />
+        <div className="absolute -top-20 left-0 w-full h-20 pointer-events-none" id="features" />
 
         <motion.div variants={item} className="text-center mb-16">
           <span
@@ -490,7 +311,7 @@ export default function HomePage() {
           >
             Powerful Features
           </span>
-          <h2 id="features-heading" className="text-4xl md:text-5xl font-bold text-[#263238]">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#263238]">
             Take Control of Your{" "}
             <span className="bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent">
               Health
@@ -1067,14 +888,9 @@ export default function HomePage() {
           </div>
         </div>
       </motion.section>
-      </main>
 
       {/* Footer */}
-      <footer 
-        className={`w-full bg-white py-12 border-t border-gray-200 shadow-sm`}
-        role="contentinfo"
-        aria-label="Site footer"
-      >
+      <footer className={`w-full bg-white py-12 border-t border-gray-200 shadow-sm`}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center mb-12">
             <div className="flex items-center space-x-3 mb-6 md:mb-0">
@@ -1229,7 +1045,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-      </div>
-    </>
+    </div>
   );
 }
