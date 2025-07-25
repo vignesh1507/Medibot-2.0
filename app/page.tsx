@@ -159,8 +159,8 @@ export default function HomePage() {
     <>
       <Head>
         <title>MediBot - AI-Powered Health Assistant & Medication Management</title>
-        <meta name="description" content="Transform your healthcare with MediBot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights. Join 23+ users trusting MediBot for better health outcomes." />
-        <meta name="keywords" content="medication reminder, health app, AI health assistant, prescription tracker, medication management, healthcare app, pill reminder, health chatbot, medical AI, prescription analysis" />
+        <meta name="description" content="MediBot helps manage your prescriptions, schedule medications, and receive personalized AI-powered health insights anytime."/>
+        <meta name="keywords" content="MediBot, AI health, prescription manager, health assistant, medication tracker"/>
         <meta name="author" content="Asvix - Sujay Babu Thota" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
