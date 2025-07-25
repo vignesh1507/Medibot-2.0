@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Head from "next/head";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
@@ -98,10 +97,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <Head>
+      <body className={`${inter.className} bg-background text-foreground min-h-screen`}>
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
-        
         {/* Google Analytics */}
         <script
           async
@@ -117,7 +115,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             `,
           }}
         />
-        
         {/* Structured Data for Organization */}
         <script
           type="application/ld+json"
@@ -142,7 +139,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })
           }}
         />
-        
         {/* Structured Data for WebSite */}
         <script
           type="application/ld+json"
@@ -152,7 +148,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               "@type": "WebSite",
               "name": "MediBot",
               "url": "https://medibot.vercel.app",
-              "description": "AI-powered health assistant for medication management and personalized health insights",
+              "description": "AI-powered health assistant for medication management, prescription analysis, and personalized health insights",
               "potentialAction": {
                 "@type": "SearchAction",
                 "target": "https://medibot.vercel.app/search?q={search_term_string}",
@@ -161,8 +157,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })
           }}
         />
-        
-        {/* Structured Data for SoftwareApplication */}
+        {/* Structured Data for Software Application */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -170,26 +165,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
               "name": "MediBot",
-              "operatingSystem": "Android, iOS, Web",
+              "description": "AI-powered health assistant for medication management, prescription analysis, and personalized health insights",
               "applicationCategory": "HealthApplication",
-              "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": "4.8",
-                "ratingCount": "23"
-              },
+              "operatingSystem": "Web, Android, iOS",
               "offers": {
                 "@type": "Offer",
                 "price": "0",
                 "priceCurrency": "INR"
               },
-              "description": "AI-powered health assistant for medication management, prescription analysis, and personalized health insights",
               "downloadUrl": "https://medibot.vercel.app/medibot.apk",
               "screenshot": "https://medibot.vercel.app/main.png"
             })
           }}
         />
-      </Head>
-      <body className={`${inter.className} bg-background text-foreground min-h-screen`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
