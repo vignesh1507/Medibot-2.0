@@ -65,7 +65,7 @@ export default function RefundPolicyPage() {
               <ul className="space-y-2">
                 <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Cancellations must be requested within 1 day of placing the order to be eligible for a full refund.</li>
                 <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Damaged or defective items must be reported within 1 day of delivery to qualify for a replacement or refund.</li>
-                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Refunds, if approved, are processed within 2-5 working days and credited to your original payment method in INR.</li>
+                <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />If refund is approved, your refund will be processed and a credit will automatically be applied to your original method of payment within 7-10 business days.</li>
                 <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Complaints for items with a manufacturer's warranty should be directed to the respective manufacturer for resolution.</li>
                 <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />To initiate a refund or cancellation, please contact our customer support team with your order details, including the order number and reason for the request.</li>
                 <li><CheckCircle className="inline mr-2 text-[#4dd0e1]" />Refunds will not be processed for items that have been used, damaged by the customer, or are not in their original condition upon return.</li>
