@@ -1626,7 +1626,7 @@ Provide a personalized, contextual response that acknowledges their history whil
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="sticky top-0 z-20 flex flex-row items-center justify-between gap-3 sm:gap-4 p-2 sm:p-3 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm w-full min-h-0">
   {/* Left Section */}
-  <div className="flex flex-row items-center gap-1 sm:gap-2">
+  <div className="flex flex-row items-center gap-7 sm:gap-2">
  <Button
   variant="ghost"
   size="icon"
@@ -1778,9 +1778,36 @@ Provide a personalized, contextual response that acknowledges their history whil
                         <div className="w-20 h-20 relative">
                           <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
                         </div>
+                        {/* Basic Medical Questions Quick Start */}
+                        
                         <div>
                           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
                           <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation below or select a previous chat from history.</p>
+                        </div>
+                        <div className="w-full flex flex-col items-center mt-2">
+                          <div className="text-sm text-gray-600 dark:text-gray-300 mb-2 font-semibold">Quick Medical Questions</div>
+                          <div className="flex flex-wrap justify-center gap-2">
+                            {[
+                              
+                              "How much water should I drink daily?",
+                              "Tips for better sleep?",
+                              "What is a balanced diet?",
+                              "How to manage stress?",
+                              
+                            ].map((q) => (
+                              <button
+                                key={q}
+                                type="button"
+                                className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 px-3 py-1 rounded-full text-xs font-medium hover:bg-blue-200 dark:hover:bg-blue-800 transition border border-blue-200 dark:border-blue-700 focus:outline-none"
+                                onClick={() => {
+                                  setMessage(q);
+                                  setTimeout(() => handleSendMessage(), 0);
+                                }}
+                              >
+                                {q}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
