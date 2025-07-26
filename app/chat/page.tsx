@@ -2078,7 +2078,7 @@ Provide a personalized, contextual response that acknowledges their history whil
                               }
                               setHistoryDialogOpen(false);
                             }}
-                          >
+                          > 
                             <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
                             <p className="text-gray-500 dark:text-gray-400 text-xs font-mono select-all break-all mt-1">
                               ID: {session.id}
