@@ -1624,14 +1624,14 @@ Provide a personalized, contextual response that acknowledges their history whil
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="sticky top-0 z-20 flex flex-row items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm w-full">
+          <div className="sticky top-0 z-20 flex flex-row items-center justify-between gap-3 sm:gap-4 p-2 sm:p-3 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm w-full min-h-0">
   {/* Left Section */}
-  <div className="flex flex-row items-center gap-2 sm:gap-3">
+  <div className="flex flex-row items-center gap-1 sm:gap-2">
  <Button
   variant="ghost"
   size="icon"
   onClick={() => setSidebarOpen(true)}
-  className="sm:hidden text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-10 w-10 sm:h-11 sm:w-11"
+  className="sm:hidden text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-8 w-8 sm:h-9 sm:w-9"
   aria-label="Open sidebar"
 >
   {/* Optional: add icon like <MenuIcon /> */}
