@@ -70,7 +70,7 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 declare global {
   interface Window {
@@ -358,6 +358,7 @@ function ChatContent() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   // 🔥 ENHANCED SCROLL TO BOTTOM FUNCTION
   const scrollToBottom = (behavior: 'smooth' | 'instant' = 'smooth') => {
@@ -608,6 +609,8 @@ CONVERSATION PATTERNS:
       setFileName("");
       setMessageCount(0); // Reset message count for new session
       toast.success("New chat started!");
+      // Update URL with session id
+      router.replace(`/chat?session=${sessionId}`);
     } catch (error: any) {
       console.error("Error starting new chat:", error);
       toast.error("Failed to start new chat");
@@ -2066,15 +2069,20 @@ Provide a personalized, contextual response that acknowledges their history whil
                         <div className="flex items-start justify-between">
                           <div
                             className="flex-1"
-                            onClick={() => {
+                          onClick={() => {
                               setCurrentSession(normalizeSession(session));
                               if (session.id) {
                                 setLastSessionId(session.id);
+                                // Update URL with session id
+                                router.replace(`/chat?session=${session.id}`);
                               }
                               setHistoryDialogOpen(false);
                             }}
                           >
                             <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs font-mono select-all break-all mt-1">
+                              ID: {session.id}
+                            </p>
                             <p className="text-gray-500 dark:text-gray-400 text-sm">
                               {session.messages.length} messages • {formatISTDateTime(session.updatedAt)}
                             </p>
