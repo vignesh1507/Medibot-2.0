@@ -1460,16 +1460,32 @@ Provide a personalized, contextual response that acknowledges their history whil
               </Avatar>
             </div>
             {msg.response || isTyping[msg.id] ? (
-              <div className="flex items-start space-x-2 max-w-[70%]">
-                <div className="relative group">
-<div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed">
-                    {(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response)?.split("\n").map((line, i) => (
-                      <p key={i} className={line.startsWith("**") ? "font-semibold" : ""}>
-                        {line}
-                      </p>
-                    ))}
+              <div className="flex items-start w-full justify-start">
+                <div className="relative group w-full max-w-2xl mx-auto">
+                  <div
+                    className="rounded-xl p-4 dark:text-white text-sm leading-relaxed writing-anim-container"
+                    style={{
+                      minWidth: '60%',
+                      width: '100%',
+                      background: 'transparent',
+                      boxShadow: 'none',
+                      border: 'none',
+                      transition: 'width 0.4s cubic-bezier(0.4,0,0.2,1)',
+                    }}
+                  >
+                    <span
+                      className={`block whitespace-pre-line ${isTyping[msg.id] ? 'writing-animation' : ''}`}
+                      style={{
+                        display: 'inline-block',
+                        borderRight: isTyping[msg.id] ? '2px solid #888' : 'none',
+                        animation: isTyping[msg.id] ? 'typing 1.2s steps(30, end) infinite' : 'none',
+                        minHeight: '1.5em',
+                      }}
+                    >
+                      {(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response) || ""}
+                    </span>
                     {isTyping[msg.id] && (
-                      <div className="inline-block w-2 h-4 bg-gray-500 animate-pulse"></div>
+                      <span className="inline-block w-2 h-4 bg-gray-500 animate-pulse align-middle ml-1"></span>
                     )}
                   </div>
                   <div className="absolute -bottom-6 left-4 flex space-x-2 justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
@@ -1569,7 +1585,6 @@ Provide a personalized, contextual response that acknowledges their history whil
             max-height: 120px;
             overflow-y: auto;
           }
-          
           /* 🔥 ENHANCED SCROLL BUTTON ANIMATIONS */
           @keyframes fadeIn {
             from {
@@ -1581,7 +1596,6 @@ Provide a personalized, contextual response that acknowledges their history whil
               transform: translateY(0);
             }
           }
-          
           @keyframes pulse {
             0%, 100% {
               transform: scale(1);
@@ -1590,13 +1604,22 @@ Provide a personalized, contextual response that acknowledges their history whil
               transform: scale(1.05);
             }
           }
-          
           .scroll-button-enter {
             animation: fadeIn 0.3s ease-out;
           }
-          
           .scroll-button-pulse {
             animation: pulse 2s infinite;
+          }
+          /* Writing animation for AI responses */
+          @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+          }
+          .writing-animation {
+            overflow: hidden;
+            white-space: pre-line;
+            border-right: 2px solid #888;
+            animation: typing 1.2s steps(30, end) 1;
           }
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -1644,17 +1667,15 @@ Provide a personalized, contextual response that acknowledges their history whil
               <div className="text-xs text-gray-500 dark:text-gray-400">99₹/month</div>
             </div>
           </div>
-          {/* Removed green tick for premium plan */}
+          {selectedPlan === "premium" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
         </SelectItem>
 
         <SelectItem value="base">
   <div className="flex items-center gap-3">
     <Sparkles className="h-5 w-5 text-blue-500" />
-    <div className="flex flex-col">
+    <div>
       <span className="text-sm font-semibold">Base Plan</span>
-      <span className="text-xs text-gray-500 dark:text-gray-400">
-        Free access (Current plan)
-      </span>
+      <div className="text-xs text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
     </div>
   </div>
   {/* No SelectItemIndicator here */}
