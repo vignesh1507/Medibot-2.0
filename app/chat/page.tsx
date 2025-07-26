@@ -1644,19 +1644,22 @@ Provide a personalized, contextual response that acknowledges their history whil
               <div className="text-xs text-gray-500 dark:text-gray-400">99₹/month</div>
             </div>
           </div>
-          {selectedPlan === "premium" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+          {/* Removed green tick for premium plan */}
         </SelectItem>
 
-        <SelectItem value="base" className="flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
-            <div>
-              <span className="text-sm font-semibold">Base Plan</span>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
-            </div>
-          </div>
-          {selectedPlan === "base" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
-        </SelectItem>
+        <SelectItem value="base">
+  <div className="flex items-center gap-3">
+    <Sparkles className="h-5 w-5 text-blue-500" />
+    <div className="flex flex-col">
+      <span className="text-sm font-semibold">Base Plan</span>
+      <span className="text-xs text-gray-500 dark:text-gray-400">
+        Free access (Current plan)
+      </span>
+    </div>
+  </div>
+  {/* No SelectItemIndicator here */}
+</SelectItem>
+
       </SelectContent>
     </Select>
 
