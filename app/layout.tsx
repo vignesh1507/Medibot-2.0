@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL('https://medibot.vercel.app'),
   title: {
-    default: 'MediBot - AI-Powered Health Assistant & Medication Management',
+    default: 'MediBot',
     template: '%s | MediBot'
   },
   description: 'Transform your healthcare with MediBot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights. Join 23+ users trusting MediBot for better health outcomes.',
