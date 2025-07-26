@@ -158,7 +158,7 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>MediBot - AI-Powered Health Assistant & Medication Management</title>
+        <title>MediBot </title>
         <meta name="description" content="MediBot helps manage your prescriptions, schedule medications, and receive personalized AI-powered health insights anytime."/>
         <meta name="keywords" content="MediBot, AI health, prescription manager, health assistant, medication tracker"/>
         <meta name="author" content="Asvix - Sujay Babu Thota" />
