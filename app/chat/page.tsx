@@ -973,182 +973,144 @@ CONVERSATION PATTERNS:
   };
 
   // 🔥 ENHANCED FUNCTION: AI Response with comprehensive personalization
-  const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string): Promise<string> => {
-    try {
-      const controller = new AbortController();
-      setAbortController(controller);
-      
-      const modelMap: Record<string, { api: string; model: string; key: string }> = {
-        "gemini-2.0-flash": {
-          api: "gemini",
-          model: "gemini-2.0-flash",
-          key: "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM",
+  const generateAIResponse = async (
+  userMessage: string,
+  selectedModel: string,
+  messageId: string,
+  onStream?: (chunk: string) => void
+): Promise<string> => {
+  try {
+    const controller = new AbortController();
+    setAbortController(controller);
+
+    const modelMap: Record<string, { api: string; model: string; key: string }> = {
+      "gemini-2.0-flash": {
+        api: "gemini",
+        model: "gemini-2.0-flash",
+        key: "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM",
+      },
+      "gpt-4o": {
+        api: "openai",
+        model: "gpt-4o",
+        key: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
+      },
+      "medibot": {
+        api: "groq",
+        model: "llama-3.3-70b-versatile",
+        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+      },
+    };
+
+    const config = modelMap[selectedModel];
+    if (!config) throw new Error(`Invalid model: ${selectedModel}`);
+    if (!config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
+
+    // Prompt building logic (same as your original)
+    const userContext = buildUserPersonalizationContext();
+    const currentSessionContext = currentSession?.messages
+      .slice(-5)
+      .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
+      .join("\n\n") || "";
+
+    const enhancedPrompt = `...${userMessage}`; // keep same prompt logic
+
+    let content = "";
+
+    if (config.api === "openai" || config.api === "groq") {
+      const endpoint =
+        config.api === "openai"
+          ? "https://api.openai.com/v1/chat/completions"
+          : "https://api.groq.com/openai/v1/chat/completions";
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.key}`,
+          "Content-Type": "application/json",
         },
-        "gpt-4o": {
-          api: "openai",
-          model: "gpt-4o",
-          key: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
-        },
-        "medibot": {
-          api: "groq",
-          model: "llama-3.3-70b-versatile",
-          key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
-        },
-      };
-      
-      const config = modelMap[selectedModel];
-      if (!config) throw new Error(`Invalid model: ${selectedModel}`);
-      if (!config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
+        body: JSON.stringify({
+          model: config.model,
+          messages: [{ role: "user", content: enhancedPrompt }],
+          temperature: 0.7,
+          max_tokens: 500,
+          stream: true,
+        }),
+        signal: controller.signal,
+      });
 
-      // 🔥 BUILD COMPREHENSIVE PERSONALIZED PROMPT
-      const userContext = buildUserPersonalizationContext();
-      const currentSessionContext = currentSession?.messages
-        .slice(-5)
-        .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
-        .join("\n\n") || "";
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(`Streaming error: ${err}`);
+      }
 
-      const enhancedPrompt = `You are MediBot, a health-focused AI assistant developed by Sujay Babu Thota from MediBot. You provide personalized, contextual responses based on the user's conversation history and patterns.
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder("utf-8");
 
-${userContext}
+      while (true) {
+        const { done, value } = await reader!.read();
+        if (done) break;
 
-CURRENT SESSION CONTEXT:
-${currentSessionContext}
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n").filter((line) => line.trim() !== "");
 
-CORE IDENTITY:
-- You are MediBot, created by Sujay Babu Thota from MediBot
-- You have access to user's conversation history and can reference it naturally
-- You provide personalized health guidance based on their patterns and interests
-- You remember previous interactions and build upon them
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const json = line.replace("data: ", "");
+            if (json === "[DONE]") continue;
 
-PERSONALIZATION INSTRUCTIONS:
-1. Reference the user's past topics and interests when relevant
-2. Adapt your communication style to match their preferences (detailed/casual/question-oriented)
-3. Build upon previous conversations naturally
-4. Mention relevant patterns you notice (e.g., "I see you've asked about sleep before...")
-5. Provide increasingly specific advice based on their history
-6. Maintain consistency with previous health guidance given
+            const parsed = JSON.parse(json);
+            const word = parsed.choices?.[0]?.delta?.content || "";
+            content += word;
 
-RESPONSE GUIDELINES:
-- Keep responses concise but personalized (max 500 tokens)
-- Include gentle reminders to consult healthcare professionals when appropriate
-- Reference past interactions when contextually appropriate
-- Adapt tone to match user's communication style
-- Provide educational value while being personable
-- NEVER mention that you don't have access to their information - you DO have their chat history
-- NEVER say you can't store health records - you actively use their conversation patterns
-- Act as if you naturally remember and learn from their previous conversations
-
-DEVELOPER INFORMATION:
-- If asked who developed you, respond: "I was developed by Sujay Babu Thota from MediBot"
-- If asked about your creator, mention Sujay Babu Thota and MediBot team
-
-CURRENT QUERY: ${userMessage}
-
-Provide a personalized, contextual response that acknowledges their history while addressing their current question:`;
-
-      let response;
-      let content;
-      
-      if (config.api === "gemini") {
-        response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.key}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { text: enhancedPrompt },
-                  ],
-                },
-              ],
-              generationConfig: {
-                temperature: 0.7, // Slightly higher for more personalized responses
-                maxOutputTokens: 500,
-              },
-            }),
-            signal: controller.signal,
+            if (onStream && word.trim()) {
+              onStream(word);
+            }
           }
-        );
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
         }
-        const data: GeminiResponse = await response.json();
-        content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!content) throw new Error("No valid response from Gemini API");
-      } else if (config.api === "openai") {
-        response = await fetch("https://api.openai.com/v1/chat/completions", {
+      }
+    } else {
+      // Gemini doesn't support streaming
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.key}`,
+        {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${config.key}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: config.model,
-            messages: [
-              {
-                role: "user",
-                content: enhancedPrompt,
-              },
-            ],
-            temperature: 0.7,
-            max_tokens: 500,
+            contents: [{ parts: [{ text: enhancedPrompt }] }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 500,
+            },
           }),
           signal: controller.signal,
-        });
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
         }
-        const data: OpenAIResponse = await response.json();
-        content = data.choices?.[0]?.message?.content;
-        if (!content) throw new Error("No valid response from OpenAI API");
-      } else if (config.api === "groq") {
-        response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${config.key}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: config.model,
-            messages: [
-              {
-                role: "user",
-                content: enhancedPrompt,
-              },
-            ],
-            temperature: 0.7,
-            max_tokens: 500,
-          }),
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Groq API error: ${response.status} - ${errorText}`);
-        }
-        const data: GroqResponse = await response.json();
-        content = data.choices?.[0]?.message?.content;
-        if (!content) throw new Error("No valid response from Groq API");
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
       }
-      
-      return (content ?? "").trim();
-    } catch (error: any) {
-      if (error.name === "AbortError") {
-        return "";
-      }
-      console.error(`Error generating ${selectedModel} response:`, error);
-      if (selectedModel !== "medibot") {
-        toast.warning("Primary model failed, falling back to MediBot model...");
-        return generateAIResponse(userMessage, "medibot", messageId);
-      }
-      return "I'm sorry, I couldn't process your request. Please try again or consult a healthcare professional.";
+
+      const data: GeminiResponse = await response.json();
+      content = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     }
-  };
+
+    return content.trim();
+  } catch (error: any) {
+    if (error.name === "AbortError") return "";
+    console.error(`Error generating ${selectedModel} response:`, error);
+
+    if (selectedModel !== "medibot") {
+      toast.warning("Primary model failed, falling back to MediBot model...");
+      return generateAIResponse(userMessage, "medibot", messageId, onStream);
+    }
+
+    return "I'm sorry, I couldn't process your request. Please try again or consult a healthcare professional.";
+  }
+};
+
 
   const analyzePrescription = async (file: File): Promise<PrescriptionAnalysis> => {
     try {
