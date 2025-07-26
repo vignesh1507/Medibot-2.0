@@ -847,8 +847,8 @@ export default function HomePage() {
                 "Medical Summarizer",
                 "Enhanced Security",
               ],
-              cta: " Get started ",
-              link: "/chat",
+              cta: "Contact Sales",
+              link: "/contact",
               highlighted: true,
             },
             {
@@ -864,8 +864,8 @@ export default function HomePage() {
                 "Provider Monitoring",
                 "Lifetime Access",
               ],
-              cta: "Get started",
-              link: "/chat",
+              cta: "Contact Sales",
+              link: "/contact",
               highlighted: false,
             },
           ].map((plan, index) => (
