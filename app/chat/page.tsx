@@ -128,8 +128,10 @@ interface OpenAIResponse {
   }>;
 }
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
+
+
+// PhonePe PaymentForm (only for premium plan)
 const PaymentForm = ({
   plan,
   onSuccess,
@@ -139,72 +141,60 @@ const PaymentForm = ({
   onSuccess: () => void,
   onCancel: () => void
 }) => {
-  const stripe = useStripe();
-  const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!stripe || !elements) return;
+  // Only show payment for premium plan
+  if (plan !== "premium") {
+    return (
+      <div className="space-y-4 text-center">
+        <div className="text-green-600 font-semibold">Base plan is free and accessible!</div>
+        <Button type="button" onClick={onCancel} className="w-full" variant="outline">Continue with Base Plan</Button>
+      </div>
+    );
+  }
+
+  const handlePhonePePayment = async () => {
     setLoading(true);
     setError(null);
-
     try {
-      const response = await fetch('/api/create-payment-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Fetch PhonePe API details from .env.local
+      const phonePeApiUrl = process.env.NEXT_PUBLIC_PHONEPE_API_URL;
+      const phonePeMerchantId = process.env.NEXT_PUBLIC_PHONEPE_MERCHANT_ID;
+      const phonePeSaltKey = process.env.NEXT_PUBLIC_PHONEPE_SALT_KEY;
+      if (!phonePeApiUrl || !phonePeMerchantId || !phonePeSaltKey) {
+        setError("PhonePe payment configuration missing.");
+        setLoading(false);
+        // Immediately revert to base plan
+        onCancel();
+        return;
+      }
+
+      // Call your backend to create a PhonePe payment order
+      const response = await fetch("/api/create-phonepe-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan,
-          amount: plan === 'premium' ? 999 : 499,
-          currency: 'usd',
+          amount: 999, // INR paise for premium only
         }),
       });
-
-      if (!response.ok) throw new Error('Failed to create payment intent');
-      const { clientSecret } = await response.json();
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-        clientSecret,
-        {
-          payment_method: {
-            card: elements.getElement(CardElement)!,
-          },
-        }
-      );
-
-      if (stripeError) {
-        setError(stripeError.message || 'Payment failed');
-      } else if (paymentIntent.status === 'succeeded') {
-        onSuccess();
-      }
+      if (!response.ok) throw new Error("Failed to create PhonePe order");
+      const { redirectUrl } = await response.json();
+      if (!redirectUrl) throw new Error("No redirect URL from PhonePe");
+      // Redirect to PhonePe payment page
+      window.location.href = redirectUrl;
+      // onSuccess will be called after redirect/return from PhonePe
     } catch (err: any) {
-      setError('Payment processing failed. Please try again.');
-      console.error('Payment error:', err);
-    } finally {
+      setError(err.message || "PhonePe payment failed. Please try again.");
       setLoading(false);
+      // Immediately revert to base plan on payment failure
+      onCancel();
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <CardElement
-        options={{
-          style: {
-            base: {
-              fontSize: '16px',
-              color: '#424770',
-              '::placeholder': {
-                color: '#aab7c4',
-              },
-            },
-            invalid: {
-              color: '#9e2146',
-            },
-          },
-        }}
-      />
+    <div className="space-y-4">
       {error && <p className="text-red-500 text-sm">{error}</p>}
       <div className="flex space-x-3 pt-2">
         <Button
@@ -216,14 +206,15 @@ const PaymentForm = ({
           Cancel
         </Button>
         <Button
-          type="submit"
-          disabled={!stripe || loading}
+          type="button"
+          onClick={handlePhonePePayment}
+          disabled={loading}
           className="flex-1 bg-blue-600 hover:bg-blue-700"
         >
-          {loading ? 'Processing...' : `Pay $${plan === 'premium' ? '9.99' : '4.99'}`}
+          {loading ? "Processing..." : `Pay ₹9.99`}
         </Button>
       </div>
-    </form>
+    </div>
   );
 };
 
@@ -246,6 +237,13 @@ const PaymentDialog = ({
     }, 2000);
   };
 
+  // If base plan, don't show payment dialog, just close it and continue
+  if (plan !== "premium") {
+    // Immediately close dialog and continue with base plan
+    setTimeout(() => onOpenChange(false), 100);
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md p-6">
@@ -258,9 +256,9 @@ const PaymentDialog = ({
               </div>
             ) : (
               <>
-                Upgrade to <span className="text-blue-600">{plan === "premium" ? "Premium" : "Base"} Plan</span>
+                Upgrade to <span className="text-blue-600">Premium Plan</span>
                 <div className="text-sm font-normal text-gray-500">
-                  ${plan === "premium" ? "9.99/month" : "4.99/month"}
+                  ₹9.99/month
                 </div>
               </>
             )}
@@ -270,7 +268,7 @@ const PaymentDialog = ({
               "Your subscription is now active. Enjoy all the premium features."
             ) : (
               <>
-                Secured via <span className="font-medium text-blue-600">Stripe</span>. Your data is encrypted and protected.
+                Secured via <span className="font-medium text-blue-600">PhonePe</span>. Your data is encrypted and protected.
               </>
             )}
           </DialogDescription>
@@ -295,27 +293,25 @@ const PaymentDialog = ({
             </Button>
           </div>
         ) : (
-          <Elements stripe={stripePromise}>
-            <div className="space-y-6 pt-2">
-              <div className="rounded-lg bg-gray-50 p-4 shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600 dark:text-gray-300 font-medium">Plan</span>
-                  <span className="font-semibold">{plan === "premium" ? "Premium" : "Base"}</span>
-                </div>
-                <div className="flex justify-between items-center mt-3 text-sm">
-                  <span className="text-gray-600 dark:text-gray-300 font-medium">Price</span>
-                  <span className="font-semibold">
-                    ${plan === "premium" ? "9.99" : "4.99"} <span className="text-xs text-gray-400">/ month</span>
-                  </span>
-                </div>
+          <div className="space-y-6 pt-2">
+            <div className="rounded-lg bg-gray-50 p-4 shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600 dark:text-gray-300 font-medium">Plan</span>
+                <span className="font-semibold">Premium</span>
               </div>
-              <PaymentForm plan={plan} onSuccess={handleSuccess} onCancel={() => onOpenChange(false)} />
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <Lock className="h-4 w-4" />
-                <span>Payments are secure and end-to-end encrypted</span>
+              <div className="flex justify-between items-center mt-3 text-sm">
+                <span className="text-gray-600 dark:text-gray-300 font-medium">Price</span>
+                <span className="font-semibold">
+                  ₹9.99 <span className="text-xs text-gray-400">/ month</span>
+                </span>
               </div>
             </div>
-          </Elements>
+            <PaymentForm plan={plan} onSuccess={handleSuccess} onCancel={() => onOpenChange(false)} />
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Lock className="h-4 w-4" />
+              <span>Payments are secure and end-to-end encrypted</span>
+            </div>
+          </div>
         )}
       </DialogContent>
     </Dialog>
