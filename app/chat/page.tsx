@@ -467,7 +467,7 @@ function ChatContent() {
             .map(normalizeSession)
             .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
           setSessions(normalizedSessions);
-          const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
+          const sessionIdFromUrl = searchParams ? searchParams.get('session') : null;
           const lastSessionId = getLastSessionId();
           let selectedSession: ProcessedChatSession | undefined;
           if (sessionIdFromUrl) {
@@ -481,6 +481,8 @@ function ChatContent() {
             setCurrentSession(selectedSession);
             if (selectedSession.id) {
               setLastSessionId(selectedSession.id);
+              // Always update the URL to show the session id
+              router.replace(`/chat?session=${selectedSession.id}`);
             }
           } else {
             setCurrentSession(null);
@@ -610,7 +612,7 @@ CONVERSATION PATTERNS:
       setFileName("");
       setMessageCount(0); // Reset message count for new session
       toast.success("New chat started!");
-      // Update URL with session id
+      // Always update URL with session id
       router.replace(`/chat?session=${sessionId}`);
     } catch (error: any) {
       console.error("Error starting new chat:", error);
@@ -2137,14 +2139,14 @@ Provide a clear, helpful, and context-aware response that directly addresses the
                           <div
                             className="flex-1"
                           onClick={() => {
-                              setCurrentSession(normalizeSession(session));
-                              if (session.id) {
-                                setLastSessionId(session.id);
-                                // Update URL with session id
-                                router.replace(`/chat?session=${session.id}`);
-                              }
-                              setHistoryDialogOpen(false);
-                            }}
+                            setCurrentSession(normalizeSession(session));
+                            if (session.id) {
+                              setLastSessionId(session.id);
+                              // Always update URL with session id
+                              router.replace(`/chat?session=${session.id}`);
+                            }
+                            setHistoryDialogOpen(false);
+                          }}
                           > 
                             <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
                             <p className="text-gray-500 dark:text-gray-400 text-xs font-mono select-all break-all mt-1">
