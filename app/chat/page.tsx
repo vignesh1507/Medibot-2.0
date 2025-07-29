@@ -154,6 +154,7 @@ const PaymentForm = ({
     );
   }
 
+  const router = useRouter();
   const handlePhonePePayment = async () => {
     setLoading(true);
     setError(null);
@@ -180,11 +181,15 @@ const PaymentForm = ({
         }),
       });
       if (!response.ok) throw new Error("Failed to create PhonePe order");
-      const { redirectUrl } = await response.json();
-      if (!redirectUrl) throw new Error("No redirect URL from PhonePe");
-      // Redirect to PhonePe payment page
+      const { redirectUrl, orderId } = await response.json();
+      if (!redirectUrl || !orderId) throw new Error("No redirect URL or orderId from PhonePe");
+
+      // Open PhonePe payment in the same window to trigger app (especially on mobile)
       window.location.href = redirectUrl;
-      // onSuccess will be called after redirect/return from PhonePe
+
+      // Optionally, you can still poll for payment status in the background if needed
+      // But since the user leaves the page, polling here is not effective
+      // If you want to support web fallback, consider handling the callback/redirect from PhonePe to your site
     } catch (err: any) {
       setError(err.message || "PhonePe payment failed. Please try again.");
       setLoading(false);
@@ -211,7 +216,7 @@ const PaymentForm = ({
           disabled={loading}
           className="flex-1 bg-blue-600 hover:bg-blue-700"
         >
-          {loading ? "Processing..." : `Pay ₹9.99`}
+          {loading ? "Processing..." : `Pay ₹99`}
         </Button>
       </div>
     </div>
@@ -258,7 +263,7 @@ const PaymentDialog = ({
               <>
                 Upgrade to <span className="text-blue-600">Premium Plan</span>
                 <div className="text-sm font-normal text-gray-500">
-                  ₹9.99/month
+                  ₹99/month
                 </div>
               </>
             )}
@@ -1848,7 +1853,7 @@ Provide a clear, helpful, and context-aware response that directly addresses the
           </div>
           
           {user && (
-           <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-6 pt-4 sm:sticky md:sticky lg:sticky xl:sticky">
+           <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-3 pt-4 sm:sticky md:sticky lg:sticky xl:sticky">
   <div className="mx-auto max-w-3xl">
 <div className="flex flex-col gap-2 rounded-3xl bg-white dark:bg-gray-800 p-4 shadow-lg focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-gray-900 transition-all duration-300">
       <textarea
@@ -1941,7 +1946,11 @@ Provide a clear, helpful, and context-aware response that directly addresses the
       )}
     </div>
   </div>
+<p className="mt-2 text-center text-sm text-gray-500 font-sans">
+  MediBot can make mistakes. Check important info.
+</p>
 </div>
+
           )}
           
           {/* Additional dialogs and components remain the same */}
