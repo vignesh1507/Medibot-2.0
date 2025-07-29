@@ -648,7 +648,8 @@ export const updateHealthRecord = async (recordId: string, data: Partial<HealthR
         updateData[key] = value === null ? null : value;
       }
     }
-    await updateDoc(docRef, updateData);
+    // Use set with merge to allow upsert (create if not exists)
+    await setDoc(docRef, updateData, { merge: true });
   } catch (error) {
     console.error("Error updating health record:", error);
     throw new Error("Failed to update health record");

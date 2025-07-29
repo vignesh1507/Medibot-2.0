@@ -22,6 +22,8 @@ import {
 import { Menu, User, Palette, Bell, Shield, Database, Camera } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { updateUserProfile, type UserProfile as FirestoreUserProfile } from "@/lib/firestore";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 
 // 🔒 Type Definitions
@@ -180,15 +182,56 @@ export default function ProfilePage() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (file.size > MAX_FILE_SIZE) {
       toast.error("File size must be less than 2MB");
       return;
     }
-
     setSelectedImageFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setHasUnsavedChanges(true);
+  };
+
+  // 🗑️ Remove profile photo
+  const handleRemovePhoto = () => {
+    setSelectedImageFile(null);
+    setPreviewUrl(null);
+    setHasUnsavedChanges(true);
+  };
+
+  // 🔄 Reset form to last saved state
+  const handleResetForm = () => {
+    if (userProfile) {
+      setFormData({
+        displayName: userProfile.displayName || "",
+        email: userProfile.email || "",
+        dateOfBirth: userProfile.dateOfBirth || "",
+        gender: userProfile.gender || "",
+        phoneNumber: userProfile.phoneNumber || "",
+        emergencyContactName: userProfile.emergencyContact?.name || "",
+        emergencyContactPhone: userProfile.emergencyContact?.phone || "",
+        emergencyContactRelationship: userProfile.emergencyContact?.relationship || "",
+        allergies: userProfile.medicalInfo?.allergies?.join(", ") || "",
+        conditions: userProfile.medicalInfo?.conditions?.join(", ") || "",
+        bloodType: userProfile.medicalInfo?.bloodType || "",
+        preferences: {
+          theme: userProfile.preferences?.theme || "dark",
+          notifications: userProfile.preferences?.notifications ?? true,
+          emailNotifications: userProfile.preferences?.emailNotifications ?? true,
+          medicationReminders: userProfile.preferences?.medicationReminders ?? true,
+          appointmentReminders: userProfile.preferences?.appointmentReminders ?? true,
+          healthTips: userProfile.preferences?.healthTips ?? false,
+          pushNotifications: userProfile.preferences?.pushNotifications ?? true,
+          shareDataForResearch: userProfile.preferences?.shareDataForResearch ?? false,
+          analytics: userProfile.preferences?.analytics ?? true,
+          saveConversations: userProfile.preferences?.saveConversations ?? true,
+        },
+      });
+      setPreviewUrl(userProfile.photoURL || null);
+      setSelectedImageFile(null);
+      setErrors({});
+      setHasUnsavedChanges(false);
+      toast.success("Form reset to last saved state");
+    }
   };
 
   // 💾 Update profile in Firestore
@@ -242,7 +285,9 @@ export default function ProfilePage() {
         updateData.photoURL = data.secure_url;
       }
 
-      await updateUserProfile(user.uid, updateData);
+      // Use setDoc with merge to upsert the user profile
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(userRef, { ...updateData, updatedAt: new Date() }, { merge: true });
       setHasUnsavedChanges(false);
       setSelectedImageFile(null);
       toast.success("Profile updated successfully!");
@@ -325,27 +370,41 @@ export default function ProfilePage() {
                             {formData.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="bg-muted border-border text-foreground hover:bg-purple-600 hover:text-white"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={uploadingPhoto}
-                            aria-label="Change profile picture"
-                          >
-                            {uploadingPhoto ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin mr-2" />
-                                Uploading...
-                              </>
-                            ) : (
-                              <>
-                                <Camera className="mr-2 h-4 w-4" />
-                                Change Photo
-                              </>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="bg-muted border-border text-foreground hover:bg-purple-600 hover:text-white"
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={uploadingPhoto}
+                              aria-label="Change profile picture"
+                            >
+                              {uploadingPhoto ? (
+                                <>
+                                  <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin mr-2" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Camera className="mr-2 h-4 w-4" />
+                                  Change Photo
+                                </>
+                              )}
+                            </Button>
+                            {(previewUrl || userProfile?.photoURL) && (
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                className="bg-red-600 hover:bg-red-700 text-white"
+                                onClick={handleRemovePhoto}
+                                disabled={uploadingPhoto}
+                                aria-label="Remove profile picture"
+                              >
+                                Remove Photo
+                              </Button>
                             )}
-                          </Button>
+                          </div>
                           <input
                             ref={fileInputRef}
                             type="file"
@@ -572,14 +631,26 @@ export default function ProfilePage() {
                         </div>
                       </div>
 
-                      <Button
-                        type="submit"
-                        disabled={loading || Object.keys(errors).length > 0}
-                        className="bg-purple-600 hover:bg-purple-700 text-white font-semibold w-full"
-                        aria-label="Update profile"
-                      >
-                        {loading ? "Updating..." : "Update Profile"}
-                      </Button>
+                      <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                        <Button
+                          type="submit"
+                          disabled={loading || Object.keys(errors).length > 0}
+                          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold flex-1"
+                          aria-label="Update profile"
+                        >
+                          {loading ? "Updating..." : "Update Profile"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={handleResetForm}
+                          disabled={loading}
+                          aria-label="Reset form"
+                        >
+                          Reset
+                        </Button>
+                      </div>
                     </form>
                   </CardContent>
                 </Card>
