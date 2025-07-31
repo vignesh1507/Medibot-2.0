@@ -1409,15 +1409,16 @@ Provide a personalized, contextual response that acknowledges their history whil
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="sticky top-0 z-20 flex flex-row items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm w-full">
   {/* Left Section */}
-  <div className="flex flex-row items-center gap-2 sm:gap-3">
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setSidebarOpen(true)}
-      className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-10 w-10 sm:h-11 sm:w-11"
-      aria-label="Open sidebar"
-    >
-    </Button>
+    <div className="flex flex-row items-center gap-7 sm:gap-2">
+ <Button
+  variant="ghost"
+  size="icon"
+  onClick={() => setSidebarOpen(true)}
+  className="sm:hidden text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-8 w-8 sm:h-9 sm:w-9"
+  aria-label="Open sidebar"
+>
+  {/* Optional: add icon like <MenuIcon /> */}
+</Button>
 
     {/* Plan Select */}
     <Select
@@ -1435,7 +1436,7 @@ Provide a personalized, contextual response that acknowledges their history whil
           ) : (
             <>
               <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-              <span className="hidden sm:inline">Medibot</span>
+              <span className="hidden sm:inline">Premium</span>
             </>
           )}
         </div>
@@ -1681,10 +1682,14 @@ Provide a personalized, contextual response that acknowledges their history whil
           >
             <X className="h-4 w-4" />
           </Button>
+
         </div>
       )}
     </div>
   </div>
+  <p className="mt-2 text-center text-sm text-gray-500 font-sans">
+  MediBot can make mistakes. Check important info.
+</p>
 </div>
           )}
           

@@ -1407,17 +1407,18 @@ Provide a personalized, contextual response that acknowledges their history whil
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="sticky top-0 z-20 flex flex-row items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm w-full">
+          <div className="sticky top-0 z-20 flex flex-row items-center justify-between gap-2 sm:gap-3 p-2 sm:p-3 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm w-full">
   {/* Left Section */}
-  <div className="flex flex-row items-center gap-2 sm:gap-3">
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setSidebarOpen(true)}
-      className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-10 w-10 sm:h-11 sm:w-11"
-      aria-label="Open sidebar"
-    >
-    </Button>
+    <div className="flex flex-row items-center gap-3 sm:gap-1">
+ <Button
+  variant="ghost"
+  size="icon"
+  onClick={() => setSidebarOpen(true)}
+  className="sm:hidden text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-7 w-7 sm:h-8 sm:w-8"
+  aria-label="Open sidebar"
+>
+  {/* Optional: add icon like <MenuIcon /> */}
+</Button>
 
     {/* Plan Select */}
     <Select
@@ -1428,53 +1429,53 @@ Provide a personalized, contextual response that acknowledges their history whil
         setPaymentDialogOpen(true);
       }}
     >
-      <SelectTrigger className="h-10 bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100 rounded-full px-3 sm:px-4 hover:bg-gray-200/70 dark:hover:bg-gray-600/60 transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:outline-none w-auto">
-        <div className="flex items-center space-x-2">
+      <SelectTrigger className="h-8 bg-gray-100 dark:bg-gray-700 text-xs font-semibold text-gray-800 dark:text-gray-100 rounded-full px-2 sm:px-3 hover:bg-gray-200/70 dark:hover:bg-gray-600/60 transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:outline-none w-auto">
+        <div className="flex items-center space-x-1">
           {selectedPlan === "premium" ? (
-            <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
+            <Crown className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
           ) : (
             <>
-              <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-              <span className="hidden sm:inline">Medibot</span>
+              <Crown className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" />
+              <span className="hidden sm:inline text-xs">Medibot</span>
             </>
           )}
         </div>
       </SelectTrigger>
 
-      <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm rounded-xl shadow-xl p-1 space-y-1">
-        <SelectItem value="premium" className="flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-          <div className="flex items-center gap-3">
-            <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
+      <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs rounded-xl shadow-xl p-1 space-y-1">
+        <SelectItem value="premium" className="flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <div className="flex items-center gap-2">
+            <Crown className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
             <div>
-              <span className="text-sm font-semibold">Premium Plan</span>
-              <div className="text-xs text-gray-500 dark:text-gray-400">99₹/month</div>
+              <span className="text-xs font-semibold">Premium Plan</span>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">99₹/month</div>
             </div>
           </div>
-          {selectedPlan === "premium" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+          {selectedPlan === "premium" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
         </SelectItem>
 
-        <SelectItem value="base" className="flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+        <SelectItem value="base" className="flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
             <div>
-              <span className="text-sm font-semibold">Base Plan</span>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
+              <span className="text-xs font-semibold">Base Plan</span>
+              <div className="text-[10px] text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
             </div>
           </div>
-          {selectedPlan === "base" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+          {selectedPlan === "base" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
         </SelectItem>
       </SelectContent>
     </Select>
 
     {/* Brand Title - hidden on small screens */}
-    <h1 className="hidden sm:block text-lg sm:text-xl md:text-2xl font-bold text-gray-800 dark:text-white ml-1 sm:ml-3">
+    <h1 className="hidden sm:block text-base sm:text-lg md:text-xl font-bold text-gray-800 dark:text-white ml-1 sm:ml-2">
       <span className="bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">MediBot</span>
       <span className="text-gray-600 dark:text-gray-300"> – Your Health Assistant</span>
     </h1>
   </div>
 
   {/* Right Section - icons aligned in row */}
-  <div className="flex flex-row items-center gap-2 sm:gap-3">
+  <div className="flex flex-row items-center gap-1 sm:gap-2">
     {user ? (
       <>
         <PaymentDialog
@@ -1483,31 +1484,31 @@ Provide a personalized, contextual response that acknowledges their history whil
           plan={selectedPlanForPayment}
         />
 
-        <Button onClick={startNewChat} variant="ghost" size="icon" className="bg-purple-600/10 hover:bg-purple-600/20 dark:bg-purple-400/10 dark:hover:bg-purple-400/20 text-purple-600 dark:text-purple-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
-          <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
+        <Button onClick={startNewChat} variant="ghost" size="icon" className="bg-purple-600/10 hover:bg-purple-600/20 dark:bg-purple-400/10 dark:hover:bg-purple-400/20 text-purple-600 dark:text-purple-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
+          <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
 
-        <Button onClick={handlePrescriptionAnalysis} variant="ghost" size="icon" className="bg-blue-600/10 hover:bg-blue-600/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 text-blue-600 dark:text-blue-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
-          <Camera className="h-5 w-5 sm:h-6 sm:w-6" />
+        <Button onClick={handlePrescriptionAnalysis} variant="ghost" size="icon" className="bg-blue-600/10 hover:bg-blue-600/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 text-blue-600 dark:text-blue-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
+          <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
 
-        <Button onClick={handleHistoryDialog} variant="ghost" size="icon" className="bg-green-600/10 hover:bg-green-600/20 dark:bg-green-400/10 dark:hover:bg-green-400/20 text-green-600 dark:text-green-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
-          <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6" />
+        <Button onClick={handleHistoryDialog} variant="ghost" size="icon" className="bg-green-600/10 hover:bg-green-600/20 dark:bg-green-400/10 dark:hover:bg-green-400/20 text-green-600 dark:text-green-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
+          <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
 
-        <Button onClick={exportChat} variant="ghost" size="icon" className="bg-orange-600/10 hover:bg-orange-600/20 dark:bg-orange-400/10 dark:hover:bg-orange-400/20 text-orange-600 dark:text-orange-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
-          <Download className="h-5 w-5 sm:h-6 sm:w-6" />
+        <Button onClick={exportChat} variant="ghost" size="icon" className="bg-orange-600/10 hover:bg-orange-600/20 dark:bg-orange-400/10 dark:hover:bg-orange-400/20 text-orange-600 dark:text-orange-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
+          <Download className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
       </>
     ) : (
       <>
         <Link href="/auth/signin">
-          <Button variant="outline" className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-10 px-4 sm:h-11 sm:px-5 w-full sm:w-auto rounded-full">
+          <Button variant="outline" className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-8 px-3 sm:h-9 sm:px-4 w-full sm:w-auto rounded-full text-xs">
             Login
           </Button>
         </Link>
         <Link href="/auth/signup">
-          <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-10 px-4 sm:h-11 sm:px-5 w-full sm:w-auto rounded-full shadow-sm">
+          <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-8 px-3 sm:h-9 sm:px-4 w-full sm:w-auto rounded-full shadow-sm text-xs">
             Get Started
           </Button>
         </Link>
@@ -1552,8 +1553,8 @@ Provide a personalized, contextual response that acknowledges their history whil
                     </div>
                   </div>
                 ) : (!currentSession || currentSession.messages.length === 0) ? (
-                  <div className="min-h-full flex items-center justify-center">
-                    <div className="w-full max-w-md text-center space-y-8">
+                  <div className="flex flex-1 items-center justify-center min-h-[60vh]">
+                    <div className="w-full max-w-md mx-auto text-center space-y-8 flex flex-col items-center justify-center">
                       <div className="flex flex-col items-center space-y-6">
                         <div className="w-20 h-20 relative">
                           <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
@@ -1596,7 +1597,7 @@ Provide a personalized, contextual response that acknowledges their history whil
           </div>
           
           {user && (
-           <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-6 pt-4 sm:sticky md:sticky lg:sticky xl:sticky">
+<div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-5 pt-4">
   <div className="mx-auto max-w-3xl">
 <div className="flex flex-col gap-2 rounded-3xl bg-white dark:bg-gray-800 p-4 shadow-lg focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-gray-900 transition-all duration-300">
       <textarea
@@ -1689,6 +1690,9 @@ Provide a personalized, contextual response that acknowledges their history whil
       )}
     </div>
   </div>
+  <p className="mt-1 text-center text-sm text-gray-500 font-sans">
+  MediBot can make mistakes. Check important info.
+</p>
 </div>
           )}
           
