@@ -63,14 +63,8 @@ import {
 } from "@/lib/firestore";
 import { toast } from "sonner";
 import Link from "next/link";
-import { loadStripe } from '@stripe/stripe-js';
-import {
-  Elements,
-  CardElement,
-  useStripe,
-  useElements,
-} from '@stripe/react-stripe-js';
 import { useSearchParams, useRouter } from 'next/navigation';
+import PaymentDialog from "./PaymentDialog";
 
 declare global {
   interface Window {
@@ -132,196 +126,7 @@ interface OpenAIResponse {
 
 
 // PhonePe PaymentForm (only for premium plan)
-const PaymentForm = ({
-  plan,
-  onSuccess,
-  onCancel
-}: {
-  plan: string,
-  onSuccess: () => void,
-  onCancel: () => void
-}) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Only show payment for premium plan
-  if (plan !== "premium") {
-    return (
-      <div className="space-y-4 text-center">
-        <div className="text-green-600 font-semibold">Base plan is free and accessible!</div>
-        <Button type="button" onClick={onCancel} className="w-full" variant="outline">Continue with Base Plan</Button>
-      </div>
-    );
-  }
-
-  const router = useRouter();
-  const handlePhonePePayment = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Fetch PhonePe API details from .env.local
-      const phonePeApiUrl = process.env.NEXT_PUBLIC_PHONEPE_API_URL;
-      const phonePeMerchantId = process.env.NEXT_PUBLIC_PHONEPE_MERCHANT_ID;
-      const phonePeSaltKey = process.env.NEXT_PUBLIC_PHONEPE_SALT_KEY;
-      if (!phonePeApiUrl || !phonePeMerchantId || !phonePeSaltKey) {
-        setError("PhonePe payment configuration missing.");
-        setLoading(false);
-        // Immediately revert to base plan
-        onCancel();
-        return;
-      }
-
-      // Call your backend to create a PhonePe payment order
-      const response = await fetch("/api/create-phonepe-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan,
-          amount: 999, // INR paise for premium only
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to create PhonePe order");
-      const { redirectUrl, orderId } = await response.json();
-      if (!redirectUrl || !orderId) throw new Error("No redirect URL or orderId from PhonePe");
-
-      // Open PhonePe payment in the same window to trigger app (especially on mobile)
-      window.location.href = redirectUrl;
-
-      // Optionally, you can still poll for payment status in the background if needed
-      // But since the user leaves the page, polling here is not effective
-      // If you want to support web fallback, consider handling the callback/redirect from PhonePe to your site
-    } catch (err: any) {
-      setError(err.message || "PhonePe payment failed. Please try again.");
-      setLoading(false);
-      // Immediately revert to base plan on payment failure
-      onCancel();
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-      <div className="flex space-x-3 pt-2">
-        <Button
-          type="button"
-          onClick={onCancel}
-          variant="outline"
-          className="flex-1"
-        >
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          onClick={handlePhonePePayment}
-          disabled={loading}
-          className="flex-1 bg-blue-600 hover:bg-blue-700"
-        >
-          {loading ? "Processing..." : `Pay ₹99`}
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-const PaymentDialog = ({
-  open,
-  onOpenChange,
-  plan
-}: {
-  open: boolean,
-  onOpenChange: (open: boolean) => void,
-  plan: string
-}) => {
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-
-  const handleSuccess = () => {
-    setPaymentSuccess(true);
-    setTimeout(() => {
-      onOpenChange(false);
-      setPaymentSuccess(false);
-    }, 2000);
-  };
-
-  // If base plan, don't show payment dialog, just close it and continue
-  if (plan !== "premium") {
-    // Immediately close dialog and continue with base plan
-    setTimeout(() => onOpenChange(false), 100);
-    return null;
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-6">
-        <DialogHeader className="space-y-3 text-center">
-          <DialogTitle className="text-2xl font-bold">
-            {paymentSuccess ? (
-              <div className="flex flex-col items-center gap-3">
-                <CheckCircle className="h-7 w-7 text-green-500" />
-                <span>Payment Successful!</span>
-              </div>
-            ) : (
-              <>
-                Upgrade to <span className="text-blue-600">Premium Plan</span>
-                <div className="text-sm font-normal text-gray-500">
-                  ₹99/month
-                </div>
-              </>
-            )}
-          </DialogTitle>
-          <DialogDescription className="text-sm text-gray-500">
-            {paymentSuccess ? (
-              "Your subscription is now active. Enjoy all the premium features."
-            ) : (
-              <>
-                Secured via <span className="font-medium text-blue-600">PhonePe</span>. Your data is encrypted and protected.
-              </>
-            )}
-          </DialogDescription>
-        </DialogHeader>
-        {paymentSuccess ? (
-          <div className="flex flex-col items-center gap-6 py-6">
-            <svg viewBox="0 0 200 100" className="w-full max-w-[200px]">
-              <path
-                d="M20,50 Q50,20 80,50 T140,50"
-                fill="none"
-                stroke="#10B981"
-                strokeWidth="4"
-                strokeDasharray="0"
-                className="animate-drawLine"
-              />
-            </svg>
-            <Button
-              onClick={() => onOpenChange(false)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-md"
-            >
-              Continue to App
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-6 pt-2">
-            <div className="rounded-lg bg-gray-50 p-4 shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600 dark:text-gray-300 font-medium">Plan</span>
-                <span className="font-semibold">Premium</span>
-              </div>
-              <div className="flex justify-between items-center mt-3 text-sm">
-                <span className="text-gray-600 dark:text-gray-300 font-medium">Price</span>
-                <span className="font-semibold">
-                  ₹9.99 <span className="text-xs text-gray-400">/ month</span>
-                </span>
-              </div>
-            </div>
-            <PaymentForm plan={plan} onSuccess={handleSuccess} onCancel={() => onOpenChange(false)} />
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <Lock className="h-4 w-4" />
-              <span>Payments are secure and end-to-end encrypted</span>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-};
 
 function ChatContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -467,7 +272,7 @@ function ChatContent() {
             .map(normalizeSession)
             .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
           setSessions(normalizedSessions);
-          const sessionIdFromUrl = searchParams ? searchParams.get('session') : null;
+          const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
           const lastSessionId = getLastSessionId();
           let selectedSession: ProcessedChatSession | undefined;
           if (sessionIdFromUrl) {
@@ -481,8 +286,6 @@ function ChatContent() {
             setCurrentSession(selectedSession);
             if (selectedSession.id) {
               setLastSessionId(selectedSession.id);
-              // Always update the URL to show the session id
-              router.replace(`/chat?session=${selectedSession.id}`);
             }
           } else {
             setCurrentSession(null);
@@ -612,7 +415,7 @@ CONVERSATION PATTERNS:
       setFileName("");
       setMessageCount(0); // Reset message count for new session
       toast.success("New chat started!");
-      // Always update URL with session id
+      // Update URL with session id
       router.replace(`/chat?session=${sessionId}`);
     } catch (error: any) {
       console.error("Error starting new chat:", error);
@@ -1010,53 +813,44 @@ CONVERSATION PATTERNS:
         .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
         .join("\n\n") || "";
 
-      const enhancedPrompt = `You are MediBot, a health-focused AI assistant created by Sujay Babu Thota from MediBot.
+      const enhancedPrompt = `You are MediBot, a health-focused AI assistant developed by Sujay Babu Thota from MediBot. You provide personalized, contextual responses based on the user's conversation history and patterns.
 
-Your job is to offer helpful, focused health guidance based on the user’s current question. Only refer to the user's past conversation if it's clearly relevant to the current query. Avoid bringing up history unnecessarily.
-
-✅ RESPONSE RULES:
-- Respond directly to what the user asked.
-- If the question can be answered independently, avoid revisiting past conversations.
-- Refer to user history ONLY when clearly helpful or the user asks something that needs context (e.g., "What did I take last time?" or "How has my headache pattern changed?")
-- Never say you can't remember — assume you can recall relevant history when needed.
-- Always speak in a natural, helpful, and human tone.
-
-👤 USER CONTEXT:
 ${userContext}
 
-💬 CURRENT SESSION CONTEXT:
+CURRENT SESSION CONTEXT:
 ${currentSessionContext}
 
-📌 CURRENT USER MESSAGE:
-${userMessage}
+CORE IDENTITY:
+- You are MediBot, created by Sujay Babu Thota from MediBot
+- You have access to user's conversation history and can reference it naturally
+- You provide personalized health guidance based on their patterns and interests
+- You remember previous interactions and build upon them
 
-🎯 GOAL:
-Provide a clear, helpful, and context-aware response that directly addresses the user's message. Only refer to past interactions if it improves clarity or personalization.
+PERSONALIZATION INSTRUCTIONS:
+1. Reference the user's past topics and interests when relevant
+2. Adapt your communication style to match their preferences (detailed/casual/question-oriented)
+3. Build upon previous conversations naturally
+4. Mention relevant patterns you notice (e.g., "I see you've asked about sleep before...")
+5. Provide increasingly specific advice based on their history
+6. Maintain consistency with previous health guidance given
 
+RESPONSE GUIDELINES:
+- Keep responses concise but personalized (max 500 tokens)
+- Include gentle reminders to consult healthcare professionals when appropriate
+- Reference past interactions when contextually appropriate
+- Adapt tone to match user's communication style
+- Provide educational value while being personable
+- NEVER mention that you don't have access to their information - you DO have their chat history
+- NEVER say you can't store health records - you actively use their conversation patterns
+- Act as if you naturally remember and learn from their previous conversations
 
-Your job is to offer helpful, focused health guidance based on the user’s current question. Only refer to the user's past conversation if it's clearly relevant to the current query. Avoid bringing up history unnecessarily.
+DEVELOPER INFORMATION:
+- If asked who developed you, respond: "I was developed by Sujay Babu Thota from MediBot"
+- If asked about your creator, mention Sujay Babu Thota and MediBot team
 
-✅ RESPONSE RULES:
-- Do NOT greet the user unless the user greets you first or it's the first message in a session.
-- Avoid repeating the user’s name unless it's relevant.
-- Respond directly to what the user asked.
-- If the question can be answered independently, avoid revisiting past conversations.
-- Refer to user history ONLY when clearly helpful or when the user asks something that needs context (e.g., "What did I take last time?" or "How has my headache pattern changed?")
-- Never say you can't remember — assume you can recall relevant history when needed.
-- Always speak in a natural, helpful, and human tone.
+CURRENT QUERY: ${userMessage}
 
-👤 USER CONTEXT:
-${userContext}
-
-💬 CURRENT SESSION CONTEXT:
-${currentSessionContext}
-
-📌 CURRENT USER MESSAGE:
-${userMessage}
-
-🎯 GOAL:
-Provide a clear, helpful, and context-aware response that directly addresses the user's message. Only refer to past interactions if it improves clarity or personalization.
-`;
+Provide a personalized, contextual response that acknowledges their history while addressing their current question:`;
 
       let response;
       let content;
@@ -1472,32 +1266,16 @@ Provide a clear, helpful, and context-aware response that directly addresses the
               </Avatar>
             </div>
             {msg.response || isTyping[msg.id] ? (
-              <div className="flex items-start w-full justify-start">
-                <div className="relative group w-full max-w-2xl mx-auto">
-                  <div
-                    className="rounded-xl p-4 dark:text-white text-sm leading-relaxed writing-anim-container"
-                    style={{
-                      minWidth: '60%',
-                      width: '100%',
-                      background: 'transparent',
-                      boxShadow: 'none',
-                      border: 'none',
-                      transition: 'width 0.4s cubic-bezier(0.4,0,0.2,1)',
-                    }}
-                  >
-                    <span
-                      className={`block whitespace-pre-line ${isTyping[msg.id] ? 'writing-animation' : ''}`}
-                      style={{
-                        display: 'inline-block',
-                        borderRight: isTyping[msg.id] ? '2px solid #888' : 'none',
-                        animation: isTyping[msg.id] ? 'typing 1.2s steps(30, end) infinite' : 'none',
-                        minHeight: '1.5em',
-                      }}
-                    >
-                      {(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response) || ""}
-                    </span>
+              <div className="flex items-start space-x-2 max-w-[70%]">
+                <div className="relative group">
+<div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed">
+                    {(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response)?.split("\n").map((line, i) => (
+                      <p key={i} className={line.startsWith("**") ? "font-semibold" : ""}>
+                        {line}
+                      </p>
+                    ))}
                     {isTyping[msg.id] && (
-                      <span className="inline-block w-2 h-4 bg-gray-500 animate-pulse align-middle ml-1"></span>
+                      <div className="inline-block w-2 h-4 bg-gray-500 animate-pulse"></div>
                     )}
                   </div>
                   <div className="absolute -bottom-6 left-4 flex space-x-2 justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
@@ -1597,6 +1375,7 @@ Provide a clear, helpful, and context-aware response that directly addresses the
             max-height: 120px;
             overflow-y: auto;
           }
+          
           /* 🔥 ENHANCED SCROLL BUTTON ANIMATIONS */
           @keyframes fadeIn {
             from {
@@ -1608,6 +1387,7 @@ Provide a clear, helpful, and context-aware response that directly addresses the
               transform: translateY(0);
             }
           }
+          
           @keyframes pulse {
             0%, 100% {
               transform: scale(1);
@@ -1616,39 +1396,28 @@ Provide a clear, helpful, and context-aware response that directly addresses the
               transform: scale(1.05);
             }
           }
+          
           .scroll-button-enter {
             animation: fadeIn 0.3s ease-out;
           }
+          
           .scroll-button-pulse {
             animation: pulse 2s infinite;
-          }
-          /* Writing animation for AI responses */
-          @keyframes typing {
-            from { width: 0 }
-            to { width: 100% }
-          }
-          .writing-animation {
-            overflow: hidden;
-            white-space: pre-line;
-            border-right: 2px solid #888;
-            animation: typing 1.2s steps(30, end) 1;
           }
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="sticky top-0 z-20 flex flex-row items-center justify-between gap-3 sm:gap-4 p-2 sm:p-3 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm w-full min-h-0">
+          <div className="sticky top-0 z-20 flex flex-row items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm w-full">
   {/* Left Section */}
-  <div className="flex flex-row items-center gap-7 sm:gap-2">
- <Button
-  variant="ghost"
-  size="icon"
-  onClick={() => setSidebarOpen(true)}
-  className="sm:hidden text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-8 w-8 sm:h-9 sm:w-9"
-  aria-label="Open sidebar"
->
-  {/* Optional: add icon like <MenuIcon /> */}
-</Button>
-
+  <div className="flex flex-row items-center gap-2 sm:gap-3">
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setSidebarOpen(true)}
+      className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-10 w-10 sm:h-11 sm:w-11"
+      aria-label="Open sidebar"
+    >
+    </Button>
 
     {/* Plan Select */}
     <Select
@@ -1684,17 +1453,16 @@ Provide a clear, helpful, and context-aware response that directly addresses the
           {selectedPlan === "premium" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
         </SelectItem>
 
-        <SelectItem value="base">
-  <div className="flex items-center gap-3">
-    <Sparkles className="h-5 w-5 text-blue-500" />
-    <div>
-      <span className="text-sm font-semibold">Base Plan</span>
-      <div className="text-xs text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
-    </div>
-  </div>
-  {/* No SelectItemIndicator here */}
-</SelectItem>
-
+        <SelectItem value="base" className="flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <div className="flex items-center gap-3">
+            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+            <div>
+              <span className="text-sm font-semibold">Base Plan</span>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
+            </div>
+          </div>
+          {selectedPlan === "base" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+        </SelectItem>
       </SelectContent>
     </Select>
 
@@ -1790,36 +1558,9 @@ Provide a clear, helpful, and context-aware response that directly addresses the
                         <div className="w-20 h-20 relative">
                           <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
                         </div>
-                        {/* Basic Medical Questions Quick Start */}
-                        
                         <div>
                           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
                           <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation below or select a previous chat from history.</p>
-                        </div>
-                        <div className="w-full flex flex-col items-center mt-2">
-                          <div className="text-sm text-gray-600 dark:text-gray-300 mb-2 font-semibold">Quick Medical Questions</div>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {[
-                              
-                              "How much water should I drink daily?",
-                              "Tips for better sleep?",
-                              "What is a balanced diet?",
-                              "How to manage stress?",
-                              
-                            ].map((q) => (
-                              <button
-                                key={q}
-                                type="button"
-                                className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 px-3 py-1 rounded-full text-xs font-medium hover:bg-blue-200 dark:hover:bg-blue-800 transition border border-blue-200 dark:border-blue-700 focus:outline-none"
-                                onClick={() => {
-                                  setMessage(q);
-                                  setTimeout(() => handleSendMessage(), 0);
-                                }}
-                              >
-                                {q}
-                              </button>
-                            ))}
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -1855,7 +1596,7 @@ Provide a clear, helpful, and context-aware response that directly addresses the
           </div>
           
           {user && (
-           <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-3 pt-4 sm:sticky md:sticky lg:sticky xl:sticky">
+           <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-6 pt-4 sm:sticky md:sticky lg:sticky xl:sticky">
   <div className="mx-auto max-w-3xl">
 <div className="flex flex-col gap-2 rounded-3xl bg-white dark:bg-gray-800 p-4 shadow-lg focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-gray-900 transition-all duration-300">
       <textarea
@@ -1948,11 +1689,7 @@ Provide a clear, helpful, and context-aware response that directly addresses the
       )}
     </div>
   </div>
-<p className="mt-2 text-center text-sm text-gray-500 font-sans">
-  MediBot can make mistakes. Check important info.
-</p>
 </div>
-
           )}
           
           {/* Additional dialogs and components remain the same */}
@@ -2139,14 +1876,14 @@ Provide a clear, helpful, and context-aware response that directly addresses the
                           <div
                             className="flex-1"
                           onClick={() => {
-                            setCurrentSession(normalizeSession(session));
-                            if (session.id) {
-                              setLastSessionId(session.id);
-                              // Always update URL with session id
-                              router.replace(`/chat?session=${session.id}`);
-                            }
-                            setHistoryDialogOpen(false);
-                          }}
+                              setCurrentSession(normalizeSession(session));
+                              if (session.id) {
+                                setLastSessionId(session.id);
+                                // Update URL with session id
+                                router.replace(`/chat?session=${session.id}`);
+                              }
+                              setHistoryDialogOpen(false);
+                            }}
                           > 
                             <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
                             <p className="text-gray-500 dark:text-gray-400 text-xs font-mono select-all break-all mt-1">

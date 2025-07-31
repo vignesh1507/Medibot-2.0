@@ -49,6 +49,7 @@
     "cloudinary": "^2.7.0",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
+    "crypto-js": "^4.2.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "8.5.1",
     "firebase": "^11.10.0",
@@ -58,6 +59,7 @@
     "framer-motion": "^12.23.1",
     "googlemaps": "latest",
     "input-otp": "1.4.1",
+    "js-sha256": "^0.11.1",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.454.0",
     "motion": "^12.23.1",
@@ -65,6 +67,7 @@
     "next-pwa": "^5.6.0",
     "next-themes": "^0.4.6",
     "nodemailer": "^7.0.3",
+    "pg-sdk-node": "https://phonepe.mycloudrepo.io/public/repositories/phonepe-pg-sdk-node/releases/v2/phonepe-pg-sdk-node.tgz",
     "python-shell": "^5.0.0",
     "react": "^18.3.1",
     "react-day-picker": "8.10.1",
@@ -89,6 +92,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/googlemaps": "^3.43.3",
     "@types/lodash": "^4.17.20",
     "@types/node": "^22.15.33",
