@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from "react";
-import { useRouter } from 'next/navigation';
+import { useState, useCallback } from "react";
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,13 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { CheckCircle, Lock } from "lucide-react";
+import { HmacSHA256 } from 'crypto-js';
+
+// PhonePe Configuration
+const PHONEPE_API_URL = "https://api.phonepe.com/apis/hermes/pg/v1/pay"; // Production URL; use sandbox for testing
+const MERCHANT_ID = "M23R8YJO33CEU";
+const SALT_KEY = "1cedc54d-5c48-4cc5-a60c-a8ecd88c1b11";
+const SALT_INDEX = "1";
 
 const PaymentForm = ({
   plan,
@@ -24,6 +31,35 @@ const PaymentForm = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Handle PhonePe callback verification
+  const verifyPaymentCallback = useCallback(async () => {
+    const response = searchParams ? searchParams.get('response') : null;
+    if (response) {
+      try {
+        const decodedResponse = JSON.parse(atob(response)); // Decode base64
+        const xVerify = decodedResponse.checksum;
+        
+        // Verify checksum
+        const dataToVerify = `${decodedResponse.data}${SALT_KEY}${SALT_INDEX}`;
+        const generatedChecksum = HmacSHA256(dataToVerify, SALT_KEY).toString();
+        
+        if (xVerify === generatedChecksum && decodedResponse.code === 'PAYMENT_SUCCESS') {
+          onSuccess();
+        } else {
+          setError('Payment verification failed');
+        }
+      } catch (err) {
+        setError('Error processing payment callback');
+      }
+    }
+  }, [searchParams, onSuccess]);
+
+  // Run verification if callback is present
+  if (searchParams && searchParams.get('response')) {
+    verifyPaymentCallback();
+  }
 
   if (plan !== "premium") {
     return (
@@ -36,37 +72,65 @@ const PaymentForm = ({
     );
   }
 
-const handlePhonePePayment = async () => {
-  setLoading(true);
-  setError(null);
+  const handlePhonePePayment = async () => {
+    setLoading(true);
+    setError(null);
 
-  try {
-    const response = await fetch("/api/create-phonepe-order", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ plan, amount: 9900 }), // ₹99.00 in paise
-    });
+    try {
+      const merchantTransactionId = `MT${Date.now()}`;
+      const userId = `MU${Date.now()}`; // Replace with actual user ID
+      const amount = 9900; // ₹99.00 in paise
 
-    if (!response.ok) {
-      throw new Error("Failed to create PhonePe order");
+      const payload = {
+        merchantId: MERCHANT_ID,
+        merchantTransactionId,
+        merchantUserId: userId,
+        amount,
+        redirectUrl: `${window.location.origin}/payment?response={response}`,
+        redirectMode: "REDIRECT",
+        callbackUrl: `${window.location.origin}/payment`,
+        mobileNumber: "9999999999", // Replace with actual user mobile if available
+        paymentInstrument: {
+          type: "PAY_PAGE"
+        }
+      };
+
+      const payloadBase64 = btoa(JSON.stringify(payload));
+      const dataToHash = `${payloadBase64}/pg/v1/pay${SALT_KEY}`;
+      const checksum = HmacSHA256(dataToHash, SALT_KEY).toString() + `###${SALT_INDEX}`;
+
+      // Optional: Try another CORS proxy for testing (NOT FOR PRODUCTION)
+      // const proxyUrl = `https://proxy.cors.sh/${PHONEPE_API_URL}`;
+      const response = await fetch(PHONEPE_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-VERIFY": checksum,
+          "Accept": "application/json"
+          // For cors.sh proxy, add: "x-cors-api-key": "your-cors-sh-api-key"
+        },
+        body: JSON.stringify({
+          request: payloadBase64
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create PhonePe order: ${response.statusText}`);
+      }
+
+      const { data } = await response.json();
+      const redirectUrl = data?.instrumentResponse?.redirectInfo?.url;
+
+      if (!redirectUrl) {
+        throw new Error("PhonePe did not return a redirect URL");
+      }
+
+      window.location.href = redirectUrl;
+    } catch (err: any) {
+      setError(err.message || "Something went wrong. Note: Direct client-side calls to PhonePe are blocked by CORS due to the 'x-verify' header. For a secure and functional integration, use a server-side Next.js API route (e.g., /api/phonepe/create-order).");
+      setLoading(false);
     }
-
-    const { redirectUrl } = await response.json();
-
-    if (!redirectUrl) {
-      throw new Error("PhonePe did not return a redirect URL");
-    }
-
-    window.location.href = redirectUrl;
-  } catch (err: any) {
-    setError(err.message || "Something went wrong.");
-    setLoading(false);
-  }
-};
-
-
+  };
 
   return (
     <div className="space-y-4">
