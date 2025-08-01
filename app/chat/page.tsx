@@ -1536,8 +1536,8 @@ Provide a personalized, contextual response that acknowledges their history whil
                       <div className="flex items-center gap-2">
                         <Crown className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
                         <div>
-                          <span className="text-m font-semibold">Premium Plan</span>
-                          <div className="text-[13px] text-gray-500 dark:text-gray-400">99₹/month</div>
+                          <span className="text-xs font-semibold">Premium Plan</span>
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400">99₹/month</div>
                         </div>
                       </div>
                       {selectedPlan === "premium" && <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500 dark:text-green-400" />}
@@ -1546,8 +1546,8 @@ Provide a personalized, contextual response that acknowledges their history whil
                       <div className="flex items-center gap-2">
                         <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
                         <div>
-                          <span className="text-m font-semibold">Base Plan</span>
-                          <div className="text-[13px] text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
+                          <span className="text-xs font-semibold">Base Plan</span>
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
                         </div>
                       </div>
                       {selectedPlan === "base" && <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500 dark:text-green-400" />}
@@ -1641,17 +1641,54 @@ Provide a personalized, contextual response that acknowledges their history whil
             </div>
           </div>
 
-          <div className="relative flex-1 min-h-0 overflow-hidden pb-[120px]"> {/* Ensure flex-1 and min-h-0 for full height */}
-            <ScrollArea className="flex-1 h-full min-h-0 p-6" ref={scrollAreaRef}>
-              <div className="max-w-3xl mx-auto flex flex-col space-y-4 h-full min-h-0">
-                {/* ...existing code for welcome, empty, and message states... */}
+          <div className="relative flex-1 overflow-hidden">
+            <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
+              <div className="max-w-3xl mx-auto space-y-4">
                 {!user ? (
-                  <div className="flex-1 flex items-center justify-center min-h-0">
-                    {/* ...existing code... */}
+                  <div className="min-h-full flex items-center justify-center">
+                    <div className="w-full max-w-md text-center space-y-8">
+                      <div className="flex flex-col items-center space-y-6">
+                        <div className="w-20 h-20 relative">
+                          <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
+                        </div>
+                        <div>
+                          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">Please log in or sign up to start chatting.</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <Link href="/auth/signin">
+                          <Button
+                            variant="outline"
+                            className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                          >
+                            Login
+                          </Button>
+                        </Link>
+                        <Link href="/auth/signup">
+                          <Button
+                            variant="outline"
+                            className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                          >
+                            Signup
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
                   </div>
                 ) : (!currentSession || currentSession.messages.length === 0) ? (
-                  <div className="flex-1 flex items-center justify-center min-h-0">
-                    {/* ...existing code... */}
+                  <div className="flex flex-1 items-center justify-center min-h-[60vh]">
+                    <div className="w-full max-w-md mx-auto text-center space-y-8 flex flex-col items-center justify-center">
+                      <div className="flex flex-col items-center space-y-6">
+                        <div className="w-20 h-20 relative">
+                          <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
+                        </div>
+                        <div>
+                          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation below or select a previous chat from history.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   renderMessages
@@ -1659,6 +1696,7 @@ Provide a personalized, contextual response that acknowledges their history whil
               </div>
               <div ref={messagesEndRef} />
             </ScrollArea>
+            
             {/* 🔥 ENHANCED SCROLL-TO-LATEST BUTTON */}
             {showScrollButton && (
               <button
@@ -1681,115 +1719,113 @@ Provide a personalized, contextual response that acknowledges their history whil
               </button>
             )}
           </div>
-
-          {/* Sticky chat input at the bottom, always visible */}
+          
           {user && (
-            <div className="sticky bottom-0 left-0 right-0 z-30 w-full bg-gray-50 dark:bg-gray-900 px-5 pt-4 pb-2 border-t border-gray-200/80 dark:border-gray-700/50">
-              <div className="mx-auto max-w-3xl">
-                <div className="flex flex-col gap-2 rounded-3xl bg-white dark:bg-gray-800 p-4 shadow-lg focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-gray-900 transition-all duration-300">
-                  <textarea
-                    ref={textareaRef}
-                    value={message}
-                    onChange={(e) => {
-                      setMessage(e.target.value);
-                      if (textareaRef.current) {
-                        textareaRef.current.style.height = 'auto';
-                        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-                      }
-                    }}
-                    onKeyDown={handleKeyPress}
-                    placeholder="Ask a health question or upload a file..."
-                    className="w-full resize-none bg-transparent text-sm placeholder-gray-500 dark:placeholder-gray-400 dark:text-white outline-none"
-                    rows={1}
-                    maxLength={1000}
-                    disabled={loading}
-                    aria-label="Message input"
-                  />
-                  <div className="flex justify-between items-center pt-2">
-                    <div className="flex items-center gap-2">
-                      <Select value={selectedModel} onValueChange={setSelectedModel}>
-                        <SelectTrigger className="h-8 text-sm dark:text-white bg-transparent border-none shadow-none focus:ring-0 focus:outline-none">
-                          <SelectValue placeholder="Model" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-gray-100 dark:bg-gray-800 dark:text-white text-sm border-gray-200 dark:border-gray-700">
-                          <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
-                          <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                          <SelectItem value="medibot">MediBot</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        onClick={handleFileUpload}
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
-                        title="Upload File"
-                      >
-                         <Plus className="h-6 w-6" strokeWidth={2.5} />
+<div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-5 pt-4">
+  <div className="mx-auto max-w-3xl">
+<div className="flex flex-col gap-2 rounded-3xl bg-white dark:bg-gray-800 p-4 shadow-lg focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-gray-900 transition-all duration-300">
+      <textarea
+        ref={textareaRef}
+        value={message}
+        onChange={(e) => {
+          setMessage(e.target.value);
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+          }
+        }}
+        onKeyDown={handleKeyPress}
+        placeholder="Ask a health question or upload a file..."
+        className="w-full resize-none bg-transparent text-sm placeholder-gray-500 dark:placeholder-gray-400 dark:text-white outline-none"
+        rows={1}
+        maxLength={1000}
+        disabled={loading}
+        aria-label="Message input"
+      />
+      <div className="flex justify-between items-center pt-2">
+        <div className="flex items-center gap-2">
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger className="h-8 text-sm dark:text-white bg-transparent border-none shadow-none focus:ring-0 focus:outline-none">
+              <SelectValue placeholder="Model" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-100 dark:bg-gray-800 dark:text-white text-sm border-gray-200 dark:border-gray-700">
+              <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
+              <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+              <SelectItem value="medibot">MediBot</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={handleFileUpload}
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+            title="Upload File"
+          >
+            <Upload className="h-4 w-4" />
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,application/pdf"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          {/* Voice input button */}
+          <VoiceInputButton
+            onResult={(text) => {
+              setMessage(text);
+              setTimeout(() => handleSendMessage(), 100);
+            }}
+            disabled={loading}
+          />
+        </div>
+       <button
+  onClick={handleSendMessage}
+  disabled={loading || (!message.trim() && !selectedFile)}
+  data-testid="send-button"
+  className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border dark:border-zinc-600"
+  aria-label="Send Message"
+>
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 16 16"
+    fill="none"
+    style={{ color: "currentcolor" }}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      fill="currentColor"
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M8.70711 1.39644C8.31659 1.00592 7.68342 1.00592 7.2929 1.39644L2.21968 6.46966L1.68935 6.99999L2.75001 8.06065L3.28034 7.53032L7.25001 3.56065V14.25V15H8.75001V14.25V3.56065L12.7197 7.53032L13.25 8.06065L14.3107 6.99999L13.7803 6.46966L8.70711 1.39644Z"
+    />
+  </svg>
+</button>
 
-
-                      </Button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*,application/pdf"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
-                      {/* Voice input button */}
-                      <VoiceInputButton
-                        onResult={(text) => {
-                          setMessage(text);
-                          setTimeout(() => handleSendMessage(), 100);
-                        }}
-                        disabled={loading}
-                      />
-                    </div>
-                    <button
-                      onClick={handleSendMessage}
-                      disabled={loading || (!message.trim() && !selectedFile)}
-                      data-testid="send-button"
-                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border dark:border-zinc-600"
-                      aria-label="Send Message"
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        style={{ color: "currentcolor" }}
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fill="currentColor"
-                          fillRule="evenodd"
-                          clipRule="evenodd"
-                          d="M8.70711 1.39644C8.31659 1.00592 7.68342 1.00592 7.2929 1.39644L2.21968 6.46966L1.68935 6.99999L2.75001 8.06065L3.28034 7.53032L7.25001 3.56065V14.25V15H8.75001V14.25V3.56065L12.7197 7.53032L13.25 8.06065L14.3107 6.99999L13.7803 6.46966L8.70711 1.39644Z"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                  {fileName && (
-                    <div className="flex items-center gap-2 pt-1">
-                      <Badge className="bg-gray-100 dark:bg-gray-700 dark:text-white text-sm truncate max-w-[300px]">
-                        {fileName}
-                      </Badge>
-                      <Button
-                        onClick={removeFile}
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-red-500 hover:text-red-600"
-                        title="Remove File"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <p className="mt-1 text-center text-sm text-gray-500 font-sans">
-                MediBot can make mistakes. Check important info.
-              </p>
-            </div>
+      </div>
+      {fileName && (
+        <div className="flex items-center gap-2 pt-1">
+          <Badge className="bg-gray-100 dark:bg-gray-700 dark:text-white text-sm truncate max-w-[300px]">
+            {fileName}
+          </Badge>
+          <Button
+            onClick={removeFile}
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-red-500 hover:text-red-600"
+            title="Remove File"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+    </div>
+  </div>
+  <p className="mt-1 text-center text-sm text-gray-500 font-sans">
+  MediBot can make mistakes. Check important info.
+</p>
+</div>
           )}
           
           {/* Additional dialogs and components remain the same */}
