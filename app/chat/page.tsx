@@ -1536,8 +1536,8 @@ Provide a personalized, contextual response that acknowledges their history whil
                       <div className="flex items-center gap-2">
                         <Crown className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
                         <div>
-                          <span className="text-xs font-semibold">Premium Plan</span>
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400">99₹/month</div>
+                          <span className="text-m font-semibold">Premium Plan</span>
+                          <div className="text-[13px] text-gray-500 dark:text-gray-400">99₹/month</div>
                         </div>
                       </div>
                       {selectedPlan === "premium" && <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500 dark:text-green-400" />}
@@ -1546,8 +1546,8 @@ Provide a personalized, contextual response that acknowledges their history whil
                       <div className="flex items-center gap-2">
                         <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
                         <div>
-                          <span className="text-xs font-semibold">Base Plan</span>
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
+                          <span className="text-m font-semibold">Base Plan</span>
+                          <div className="text-[13px] text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
                         </div>
                       </div>
                       {selectedPlan === "base" && <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500 dark:text-green-400" />}
@@ -1641,16 +1641,16 @@ Provide a personalized, contextual response that acknowledges their history whil
             </div>
           </div>
 
-          <div className="relative flex-1 overflow-hidden pb-[120px]"> {/* Add bottom padding for input */}
-            <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
-              <div className="max-w-3xl mx-auto space-y-4">
+          <div className="relative flex-1 min-h-0 overflow-hidden pb-[120px]"> {/* Ensure flex-1 and min-h-0 for full height */}
+            <ScrollArea className="flex-1 h-full min-h-0 p-6" ref={scrollAreaRef}>
+              <div className="max-w-3xl mx-auto flex flex-col space-y-4 h-full min-h-0">
                 {/* ...existing code for welcome, empty, and message states... */}
                 {!user ? (
-                  <div className="min-h-full flex items-center justify-center">
+                  <div className="flex-1 flex items-center justify-center min-h-0">
                     {/* ...existing code... */}
                   </div>
                 ) : (!currentSession || currentSession.messages.length === 0) ? (
-                  <div className="flex flex-1 items-center justify-center min-h-[60vh]">
+                  <div className="flex-1 flex items-center justify-center min-h-0">
                     {/* ...existing code... */}
                   </div>
                 ) : (
