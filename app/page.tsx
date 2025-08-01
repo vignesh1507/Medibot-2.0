@@ -919,6 +919,94 @@ export default function HomePage() {
         </div>
       </motion.section>
 
+      {/* Collaboration Section */}
+      <section className="w-full max-w-7xl mx-auto px-6 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <span
+            className={`inline-block px-4 py-2 bg-[#e8f5e9] text-[#2e7d32] rounded-full text-sm font-medium mb-4`}
+          >
+            Partnerships
+          </span>
+          <h2 className="text-4xl md:text-5xl font-bold text-[#263238]">
+            Trusted{" "}
+            <span className="bg-gradient-to-r from-[#4caf50] to-[#00acc1] bg-clip-text text-transparent">
+              Collaborations
+            </span>
+          </h2>
+          <p className="mt-4 text-lg text-[#546e7a] max-w-2xl mx-auto">
+            We partner with leading healthcare organizations, technology companies, and research institutions to advance digital health innovation.
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          {[
+            {
+              icon: <Stethoscope className="h-8 w-8 text-[#4caf50]" />,
+              title: "Healthcare Providers",
+              description: "Partnering with hospitals, clinics, and medical practices to integrate MediBot into patient care workflows.",
+              count: "50+"
+            },
+            {
+              icon: <Shield className="h-8 w-8 text-[#00acc1]" />,
+              title: "Technology Partners",
+              description: "Collaborating with leading tech companies to enhance our AI capabilities and security infrastructure.",
+              count: "15+"
+            },
+            {
+              icon: <Activity className="h-8 w-8 text-[#42a5f5]" />,
+              title: "Research Institutions",
+              description: "Working with universities and research centers to advance healthcare AI and improve patient outcomes.",
+              count: "25+"
+            }
+          ].map((collab, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -5 }}
+            >
+              <Card className="bg-white rounded-xl border border-gray-200 shadow-lg shadow-[#b2ebf2]/30 hover:shadow-[#b2ebf2]/50 transition-all h-full p-6 text-center">
+                <div className={`inline-flex p-4 bg-[#e8f5e9] rounded-full mb-4`}>
+                  {collab.icon}
+                </div>
+                <div className="text-3xl font-bold bg-gradient-to-r from-[#4caf50] to-[#00acc1] bg-clip-text text-transparent mb-2">
+                  {collab.count}
+                </div>
+                <h3 className="text-xl font-semibold text-[#263238] mb-3">
+                  {collab.title}
+                </h3>
+                <p className="text-[#546e7a] text-base">
+                  {collab.description}
+                </p>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          viewport={{ once: true }}
+          className="text-center"
+        >
+          <Link href="/collaborations">
+            <Button className={`${accentButtonClasses} px-8 py-4 text-lg`}>
+              View All Collaborations
+              <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
+        </motion.div>
+      </section>
+
       {/* FAQ Section */}
       <section className="w-full max-w-4xl mx-auto px-6 py-20">
         <div className="text-center mb-16">
