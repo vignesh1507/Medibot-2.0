@@ -940,7 +940,7 @@ export default function HomePage() {
             </span>
           </h2>
           <p className="mt-4 text-lg text-[#546e7a] max-w-2xl mx-auto">
-            We partner with leading healthcare organizations, technology companies, and research institutions to advance digital health innovation.
+            We collaborate with distinguished healthcare professionals and researchers like Dr. Saikat Gochhait to advance evidence-based digital health innovation.
           </p>
         </motion.div>
 
@@ -948,21 +948,21 @@ export default function HomePage() {
           {[
             {
               icon: <Stethoscope className="h-8 w-8 text-[#4caf50]" />,
-              title: "Healthcare Providers",
-              description: "Partnering with hospitals, clinics, and medical practices to integrate MediBot into patient care workflows.",
-              count: "50+"
+              title: "Healthcare Experts",
+              description: "Collaborating with distinguished healthcare professionals like Dr. Saikat Gochhait (Honoris Causa) to integrate evidence-based practices.",
+              count: "1"
             },
             {
               icon: <Shield className="h-8 w-8 text-[#00acc1]" />,
-              title: "Technology Partners",
-              description: "Collaborating with leading tech companies to enhance our AI capabilities and security infrastructure.",
-              count: "15+"
+              title: "Active Partnerships",
+              description: "Strategic collaborations focused on clinical decision support and AI-powered health management systems.",
+              count: "1"
             },
             {
               icon: <Activity className="h-8 w-8 text-[#42a5f5]" />,
-              title: "Research Institutions",
-              description: "Working with universities and research centers to advance healthcare AI and improve patient outcomes.",
-              count: "25+"
+              title: "Patients Reached",
+              description: "Healthcare professionals and patients benefiting from our collaborative research and development initiatives.",
+              count: isLoading ? "Loading..." : `${userCount.toLocaleString()}+`
             }
           ].map((collab, index) => (
             <motion.div
