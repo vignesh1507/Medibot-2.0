@@ -338,7 +338,7 @@ export default function CollaborationsPage() {
                   </div>
                 </div>
                 
-                <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 text-white text-sm">
+                <div className="absolute top-0 right-2 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 text-white text-sm">
                   Collaboration Video
                 </div>
               </div>
