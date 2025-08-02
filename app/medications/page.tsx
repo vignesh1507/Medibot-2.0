@@ -93,41 +93,19 @@ export default function MedicationsPage() {
 
   const sendEmailNotification = async (email: string, subject: string, body: string) => {
     try {
-      console.log("Sending email to:", email);
-      console.log("Email subject:", subject);
-      console.log("Email body:", body);
-      
-      if (!email || !email.includes('@')) {
-        throw new Error("Invalid email address provided");
-      }
-      
       const response = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to: email, subject, message: body }),
       });
 
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
-      
       const result = await response.json();
-      console.log("Email API response:", result);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${result.message || "Failed to send email"}`);
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Failed to send email");
       }
-      
-      if (!result.success) {
-        throw new Error(result.message || "Email sending was not successful");
-      }
-      
-      console.log("Email sent successfully to:", email);
-      return result;
     } catch (error) {
       console.error("Error sending email notification:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      toast.error(`Failed to send email notification: ${errorMessage}`);
-      throw error; // Re-throw to let calling function handle it
+      toast.error("Failed to send email notification");
     }
   };
 
@@ -335,15 +313,10 @@ export default function MedicationsPage() {
         toast.error("User not authenticated");
         return;
       }
-      
-      // Debug logs to check user email
-      console.log("Current user:", user);
-      console.log("User email:", user.email);
-      
-      const message = `🧪 This is a medication reminder for your medication ${medication.name} (${medication.dosage}). 💊`;
+      const message = `🧪 This is a  reminder for your medication ${medication.name} (${medication.dosage}). 💊`;
       const notifications = [
-        sendMobileNotification(user.uid, "Medication Reminder", message),
-        user.email ? sendEmailNotification(user.email, "Medication Reminder", message) : Promise.resolve(),
+        sendMobileNotification(user.uid, " Reminder", message),
+        user.email ? sendEmailNotification(user.email, " Reminder", message) : Promise.resolve(),
       ];
       await Promise.all(notifications);
       toast.success("Notifications sent successfully! 📱📧");

@@ -63,8 +63,14 @@ import {
 } from "@/lib/firestore";
 import { toast } from "sonner";
 import Link from "next/link";
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
 import { useSearchParams, useRouter } from 'next/navigation';
-import PaymentDialog from "./PaymentDialog";
 
 declare global {
   interface Window {
@@ -122,11 +128,199 @@ interface OpenAIResponse {
   }>;
 }
 
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
+const PaymentForm = ({
+  plan,
+  onSuccess,
+  onCancel
+}: {
+  plan: string,
+  onSuccess: () => void,
+  onCancel: () => void
+}) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!stripe || !elements) return;
+    setLoading(true);
+    setError(null);
 
-// PhonePe PaymentForm (only for premium plan)
+    try {
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plan,
+          amount: plan === 'premium' ? 999 : 499,
+          currency: 'usd',
+        }),
+      });
 
+      if (!response.ok) throw new Error('Failed to create payment intent');
+      const { clientSecret } = await response.json();
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
+        clientSecret,
+        {
+          payment_method: {
+            card: elements.getElement(CardElement)!,
+          },
+        }
+      );
+
+      if (stripeError) {
+        setError(stripeError.message || 'Payment failed');
+      } else if (paymentIntent.status === 'succeeded') {
+        onSuccess();
+      }
+    } catch (err: any) {
+      setError('Payment processing failed. Please try again.');
+      console.error('Payment error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <CardElement
+        options={{
+          style: {
+            base: {
+              fontSize: '16px',
+              color: '#424770',
+              '::placeholder': {
+                color: '#aab7c4',
+              },
+            },
+            invalid: {
+              color: '#9e2146',
+            },
+          },
+        }}
+      />
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+      <div className="flex space-x-3 pt-2">
+        <Button
+          type="button"
+          onClick={onCancel}
+          variant="outline"
+          className="flex-1"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={!stripe || loading}
+          className="flex-1 bg-blue-600 hover:bg-blue-700"
+        >
+          {loading ? 'Processing...' : `Pay $${plan === 'premium' ? '9.99' : '4.99'}`}
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+const PaymentDialog = ({
+  open,
+  onOpenChange,
+  plan
+}: {
+  open: boolean,
+  onOpenChange: (open: boolean) => void,
+  plan: string
+}) => {
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+  const handleSuccess = () => {
+    setPaymentSuccess(true);
+    setTimeout(() => {
+      onOpenChange(false);
+      setPaymentSuccess(false);
+    }, 2000);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md p-6">
+        <DialogHeader className="space-y-3 text-center">
+          <DialogTitle className="text-2xl font-bold">
+            {paymentSuccess ? (
+              <div className="flex flex-col items-center gap-3">
+                <CheckCircle className="h-7 w-7 text-green-500" />
+                <span>Payment Successful!</span>
+              </div>
+            ) : (
+              <>
+                Upgrade to <span className="text-blue-600">{plan === "premium" ? "Premium" : "Base"} Plan</span>
+                <div className="text-sm font-normal text-gray-500">
+                  ${plan === "premium" ? "9.99/month" : "4.99/month"}
+                </div>
+              </>
+            )}
+          </DialogTitle>
+          <DialogDescription className="text-sm text-gray-500">
+            {paymentSuccess ? (
+              "Your subscription is now active. Enjoy all the premium features."
+            ) : (
+              <>
+                Secured via <span className="font-medium text-blue-600">Stripe</span>. Your data is encrypted and protected.
+              </>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        {paymentSuccess ? (
+          <div className="flex flex-col items-center gap-6 py-6">
+            <svg viewBox="0 0 200 100" className="w-full max-w-[200px]">
+              <path
+                d="M20,50 Q50,20 80,50 T140,50"
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="4"
+                strokeDasharray="0"
+                className="animate-drawLine"
+              />
+            </svg>
+            <Button
+              onClick={() => onOpenChange(false)}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 rounded-md"
+            >
+              Continue to App
+            </Button>
+          </div>
+        ) : (
+          <Elements stripe={stripePromise}>
+            <div className="space-y-6 pt-2">
+              <div className="rounded-lg bg-gray-50 p-4 shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">Plan</span>
+                  <span className="font-semibold">{plan === "premium" ? "Premium" : "Base"}</span>
+                </div>
+                <div className="flex justify-between items-center mt-3 text-sm">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">Price</span>
+                  <span className="font-semibold">
+                    ${plan === "premium" ? "9.99" : "4.99"} <span className="text-xs text-gray-400">/ month</span>
+                  </span>
+                </div>
+              </div>
+              <PaymentForm plan={plan} onSuccess={handleSuccess} onCancel={() => onOpenChange(false)} />
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Lock className="h-4 w-4" />
+                <span>Payments are secure and end-to-end encrypted</span>
+              </div>
+            </div>
+          </Elements>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 function ChatContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -165,113 +359,7 @@ function ChatContent() {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
-const VoiceInputButton = ({ onResult, disabled }: { onResult: (text: string) => void; disabled?: boolean }) => {
-  const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const resultTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    // Cleanup on unmount
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.onresult = null;
-        recognitionRef.current.onerror = null;
-        recognitionRef.current.onend = null;
-        recognitionRef.current.stop();
-        recognitionRef.current = null;
-      }
-      if (resultTimeout.current) clearTimeout(resultTimeout.current);
-    };
-  }, []);
-
-  const startListening = () => {
-    setError(null);
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      setError('Speech recognition is not supported in this browser.');
-      alert('Speech recognition is not supported in this browser.');
-      return;
-    }
-    try {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognitionRef.current = recognition;
-      recognition.lang = 'en-US';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-      let gotResult = false;
-      recognition.onstart = () => setListening(true);
-      recognition.onresult = (event: any) => {
-        gotResult = true;
-        setListening(false);
-        const transcript = event.results && event.results[0] && event.results[0][0] && event.results[0][0].transcript;
-        if (transcript && transcript.trim()) {
-          onResult(transcript.trim());
-        } else {
-          setError('Could not recognize speech. Please try again.');
-        }
-        recognition.stop();
-      };
-      recognition.onerror = (event: any) => {
-        setListening(false);
-        setError('Speech recognition error: ' + event.error);
-        if (event.error !== 'no-speech') alert('Speech recognition error: ' + event.error);
-        recognition.stop();
-      };
-      recognition.onend = () => {
-        setListening(false);
-        if (!gotResult) {
-          setError('No speech detected. Please try again.');
-        }
-      };
-      recognition.start();
-      // Fallback: If onresult doesn't fire, force stop after 10s
-      if (resultTimeout.current) clearTimeout(resultTimeout.current);
-      resultTimeout.current = setTimeout(() => {
-        if (recognitionRef.current && listening) {
-          recognitionRef.current.stop();
-          setListening(false);
-          setError('No speech detected (timeout). Please try again.');
-        }
-      }, 10000);
-    } catch (err: any) {
-      setError('Speech recognition failed to start.');
-      alert('Speech recognition failed to start.');
-    }
-  };
-
-  const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setListening(false);
-    }
-    if (resultTimeout.current) clearTimeout(resultTimeout.current);
-  };
-
-  return (
-    <div className="relative inline-block">
-      <button
-        type="button"
-        onClick={listening ? stopListening : startListening}
-        disabled={disabled}
-        aria-label={listening ? 'Stop voice input' : 'Start voice input'}
-        className={`h-8 w-8 flex items-center justify-center rounded-full border-none bg-transparent text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition ${listening ? 'animate-pulse bg-blue-200 dark:bg-blue-900/40' : ''}`}
-        style={{ outline: 'none' }}
-      >
-        {listening ? (
-          <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" className="opacity-30"/><rect x="8.5" y="5" width="3" height="7" rx="1.5"/><rect x="8.5" y="13" width="3" height="2" rx="1"/></svg>
-        ) : (
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18v2m0 0c-3.314 0-6-2.239-6-5m6 5c3.314 0 6-2.239 6-5m-6 5v-2m0-2a4 4 0 004-4V7a4 4 0 10-8 0v4a4 4 0 004 4z"/></svg>
-        )}
-      </button>
-      {error && (
-        <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-red-100 text-red-700 text-xs rounded shadow p-2 z-50">
-          {error}
-        </div>
-      )}
-    </div>
-  );
-};
   // 🔥 ENHANCED SCROLL TO BOTTOM FUNCTION
   const scrollToBottom = (behavior: 'smooth' | 'instant' = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
@@ -1481,165 +1569,146 @@ Provide a personalized, contextual response that acknowledges their history whil
             max-height: 120px;
             overflow-y: auto;
           }
+          
+          /* 🔥 ENHANCED SCROLL BUTTON ANIMATIONS */
           @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
           }
+          
           @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            0%, 100% {
+              transform: scale(1);
+            }
+            50% {
+              transform: scale(1.05);
+            }
           }
-          .scroll-button-enter { animation: fadeIn 0.3s ease-out; }
-          .scroll-button-pulse { animation: pulse 2s infinite; }
+          
+          .scroll-button-enter {
+            animation: fadeIn 0.3s ease-out;
+          }
+          
+          .scroll-button-pulse {
+            animation: pulse 2s infinite;
+          }
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Transparent header, plan selector inline after MediBot name on md+ screens */}
-          <div className="sticky top-0 z-20 flex flex-row items-center justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-transparent shadow-none w-full min-h-[44px] sm:min-h-[56px] md:min-h-[64px]">
-            {/* Left: Brand/Sidebar + Plan Selector (on md+ screens) */}
-            <div className="flex flex-row items-center gap-2 min-w-[120px]">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(true)}
-                className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-7 w-7 sm:h-8 sm:w-8"
-                aria-label="Open sidebar"
-              >
-                {/* Optional: add icon like <MenuIcon /> */}
-              </Button>
-             
-              {/* Plan Selector: visible on left for md+ screens only */}
-              <div className="ml-2 hidden md:block">
-                <Select
-                  value={selectedPlan}
-                  onValueChange={(value) => {
-                    setSelectedPlan(value);
-                    setSelectedPlanForPayment(value);
-                    setPaymentDialogOpen(true);
-                  }}
-                >
-                  <SelectTrigger className="h-8 md:h-9 text-xs font-semibold text-gray-800 dark:text-gray-100 rounded-full px-2 md:px-4 bg-transparent border-none shadow-none hover:bg-transparent focus:bg-transparent focus:ring-0 focus:outline-none w-auto" style={{border: 'none'}}>
-                    <div className="flex items-center space-x-1 md:space-x-2">
-                      {selectedPlan === "premium" ? (
-                        <Crown className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
-                      ) : (
-                        <>
-                          <Crown className="h-5 w-5 md:h-6 md:w-6 text-gray-400" />
-                          <span className="hidden sm:inline text-base">Medibot</span>
+          <div className="sticky top-0 z-20 flex flex-row items-center justify-between gap-4 sm:gap-6 p-4 sm:p-6 border-b border-gray-200/80 dark:border-gray-700/50 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm w-full">
+  {/* Left Section */}
+  <div className="flex flex-row items-center gap-2 sm:gap-3">
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setSidebarOpen(true)}
+      className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-10 w-10 sm:h-11 sm:w-11"
+      aria-label="Open sidebar"
+    >
+    </Button>
 
-                        </>
-                      )}
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs rounded-xl shadow-xl p-1 space-y-1">
-                    <SelectItem value="premium" className="flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                      <div className="flex items-center gap-2">
-                        <Crown className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
-                        <div>
-                          <span className="text-xs font-semibold">Premium Plan</span>
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400">99₹/month</div>
-                        </div>
-                      </div>
-                      {selectedPlan === "premium" && <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500 dark:text-green-400" />}
-                    </SelectItem>
-                    <SelectItem value="base" className="flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
-                        <div>
-                          <span className="text-xs font-semibold">Base Plan</span>
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
-                        </div>
-                      </div>
-                      {selectedPlan === "base" && <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500 dark:text-green-400" />}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {/* Center: Plan Selector for small screens */}
-            <div className="flex flex-row items-center justify-center flex-1 md:hidden">
-              <Select
-                value={selectedPlan}
-                onValueChange={(value) => {
-                  setSelectedPlan(value);
-                  setSelectedPlanForPayment(value);
-                  setPaymentDialogOpen(true);
-                }}
-              >
-                <SelectTrigger className="h-8 text-xs font-semibold text-gray-800 dark:text-gray-100 rounded-full px-2 bg-transparent border-none shadow-none hover:bg-transparent focus:bg-transparent focus:ring-0 focus:outline-none w-auto" style={{border: 'none'}}>
-                  <div className="flex items-center space-x-1">
-                    {selectedPlan === "premium" ? (
-                      <Crown className="h-4 w-4 text-yellow-500" />
-                    ) : (
-                      <>
-                        <Crown className="h-4 w-4 text-gray-400" />
-                        <span className="text-xs">Medibot</span>
-                      </>
-                    )}
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs rounded-xl shadow-xl p-1 space-y-1">
-                  <SelectItem value="premium" className="flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                    <div className="flex items-center gap-2">
-                      <Crown className="h-3 w-3 text-yellow-500" />
-                      <div>
-                        <span className="text-xs font-semibold">Premium Plan</span>
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400">99₹/month</div>
-                      </div>
-                    </div>
-                    {selectedPlan === "premium" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
-                  </SelectItem>
-                  <SelectItem value="base" className="flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-3 w-3 text-blue-500" />
-                      <div>
-                        <span className="text-xs font-semibold">Base Plan</span>
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
-                      </div>
-                    </div>
-                    {selectedPlan === "base" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Right: Icons/User Actions */}
-            <div className="flex flex-row items-center gap-1 sm:gap-2 min-w-[120px] justify-end">
-              {user ? (
-                <>
-                  <PaymentDialog
-                    open={paymentDialogOpen}
-                    onOpenChange={setPaymentDialogOpen}
-                    plan={selectedPlanForPayment}
-                  />
-                  <Button onClick={startNewChat} variant="ghost" size="icon" className="bg-purple-600/10 hover:bg-purple-600/20 dark:bg-purple-400/10 dark:hover:bg-purple-400/20 text-purple-600 dark:text-purple-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
-                    <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </Button>
-                  <Button onClick={handlePrescriptionAnalysis} variant="ghost" size="icon" className="bg-blue-600/10 hover:bg-blue-600/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 text-blue-600 dark:text-blue-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
-                    <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </Button>
-                  <Button onClick={handleHistoryDialog} variant="ghost" size="icon" className="bg-green-600/10 hover:bg-green-600/20 dark:bg-green-400/10 dark:hover:bg-green-400/20 text-green-600 dark:text-green-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
-                    <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </Button>
-                  <Button onClick={exportChat} variant="ghost" size="icon" className="bg-orange-600/10 hover:bg-orange-600/20 dark:bg-orange-400/10 dark:hover:bg-orange-400/20 text-orange-600 dark:text-orange-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
-                    <Download className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Link href="/auth/signin">
-                    <Button variant="outline" className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-8 px-3 sm:h-9 sm:px-4 w-full sm:w-auto rounded-full text-xs">
-                      Login
-                    </Button>
-                  </Link>
-                  <Link href="/auth/signup">
-                    <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-8 px-3 sm:h-9 sm:px-4 w-full sm:w-auto rounded-full shadow-sm text-xs">
-                      Get Started
-                    </Button>
-                  </Link>
-                </>
-              )}
+    {/* Plan Select */}
+    <Select
+      value={selectedPlan}
+      onValueChange={(value) => {
+        setSelectedPlan(value);
+        setSelectedPlanForPayment(value);
+        setPaymentDialogOpen(true);
+      }}
+    >
+      <SelectTrigger className="h-10 bg-gray-100 dark:bg-gray-700 text-sm font-semibold text-gray-800 dark:text-gray-100 rounded-full px-3 sm:px-4 hover:bg-gray-200/70 dark:hover:bg-gray-600/60 transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:outline-none w-auto">
+        <div className="flex items-center space-x-2">
+          {selectedPlan === "premium" ? (
+            <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
+          ) : (
+            <>
+              <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+              <span className="hidden sm:inline">Medibot</span>
+            </>
+          )}
+        </div>
+      </SelectTrigger>
+
+      <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm rounded-xl shadow-xl p-1 space-y-1">
+        <SelectItem value="premium" className="flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <div className="flex items-center gap-3">
+            <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
+            <div>
+              <span className="text-sm font-semibold">Premium Plan</span>
+              <div className="text-xs text-gray-500 dark:text-gray-400">99₹/month</div>
             </div>
           </div>
+          {selectedPlan === "premium" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+        </SelectItem>
+
+        <SelectItem value="base" className="flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <div className="flex items-center gap-3">
+            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+            <div>
+              <span className="text-sm font-semibold">Base Plan</span>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
+            </div>
+          </div>
+          {selectedPlan === "base" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+        </SelectItem>
+      </SelectContent>
+    </Select>
+
+    {/* Brand Title - hidden on small screens */}
+    <h1 className="hidden sm:block text-lg sm:text-xl md:text-2xl font-bold text-gray-800 dark:text-white ml-1 sm:ml-3">
+      <span className="bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">MediBot</span>
+      <span className="text-gray-600 dark:text-gray-300"> – Your Health Assistant</span>
+    </h1>
+  </div>
+
+  {/* Right Section - icons aligned in row */}
+  <div className="flex flex-row items-center gap-2 sm:gap-3">
+    {user ? (
+      <>
+        <PaymentDialog
+          open={paymentDialogOpen}
+          onOpenChange={setPaymentDialogOpen}
+          plan={selectedPlanForPayment}
+        />
+
+        <Button onClick={startNewChat} variant="ghost" size="icon" className="bg-purple-600/10 hover:bg-purple-600/20 dark:bg-purple-400/10 dark:hover:bg-purple-400/20 text-purple-600 dark:text-purple-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
+          <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
+        </Button>
+
+        <Button onClick={handlePrescriptionAnalysis} variant="ghost" size="icon" className="bg-blue-600/10 hover:bg-blue-600/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 text-blue-600 dark:text-blue-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
+          <Camera className="h-5 w-5 sm:h-6 sm:w-6" />
+        </Button>
+
+        <Button onClick={handleHistoryDialog} variant="ghost" size="icon" className="bg-green-600/10 hover:bg-green-600/20 dark:bg-green-400/10 dark:hover:bg-green-400/20 text-green-600 dark:text-green-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
+          <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6" />
+        </Button>
+
+        <Button onClick={exportChat} variant="ghost" size="icon" className="bg-orange-600/10 hover:bg-orange-600/20 dark:bg-orange-400/10 dark:hover:bg-orange-400/20 text-orange-600 dark:text-orange-400 rounded-full h-10 w-10 sm:h-11 sm:w-11">
+          <Download className="h-5 w-5 sm:h-6 sm:w-6" />
+        </Button>
+      </>
+    ) : (
+      <>
+        <Link href="/auth/signin">
+          <Button variant="outline" className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-10 px-4 sm:h-11 sm:px-5 w-full sm:w-auto rounded-full">
+            Login
+          </Button>
+        </Link>
+        <Link href="/auth/signup">
+          <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-10 px-4 sm:h-11 sm:px-5 w-full sm:w-auto rounded-full shadow-sm">
+            Get Started
+          </Button>
+        </Link>
+      </>
+    )}
+  </div>
+</div>
 
           <div className="relative flex-1 overflow-hidden">
             <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
@@ -1677,8 +1746,8 @@ Provide a personalized, contextual response that acknowledges their history whil
                     </div>
                   </div>
                 ) : (!currentSession || currentSession.messages.length === 0) ? (
-                  <div className="flex flex-1 items-center justify-center min-h-[60vh]">
-                    <div className="w-full max-w-md mx-auto text-center space-y-8 flex flex-col items-center justify-center">
+                  <div className="min-h-full flex items-center justify-center">
+                    <div className="w-full max-w-md text-center space-y-8">
                       <div className="flex flex-col items-center space-y-6">
                         <div className="w-20 h-20 relative">
                           <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
@@ -1721,7 +1790,7 @@ Provide a personalized, contextual response that acknowledges their history whil
           </div>
           
           {user && (
-<div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-5 pt-4">
+           <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-4 pb-6 pt-4 sm:sticky md:sticky lg:sticky xl:sticky">
   <div className="mx-auto max-w-3xl">
 <div className="flex flex-col gap-2 rounded-3xl bg-white dark:bg-gray-800 p-4 shadow-lg focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-gray-900 transition-all duration-300">
       <textarea
@@ -1745,7 +1814,7 @@ Provide a personalized, contextual response that acknowledges their history whil
       <div className="flex justify-between items-center pt-2">
         <div className="flex items-center gap-2">
           <Select value={selectedModel} onValueChange={setSelectedModel}>
-            <SelectTrigger className="h-8 text-sm dark:text-white bg-transparent border-none shadow-none focus:ring-0 focus:outline-none">
+            <SelectTrigger className="h-8 bg-gray-100 dark:bg-gray-700 dark:text-white text-sm border-none focus:ring-1 focus:ring-blue-500">
               <SelectValue placeholder="Model" />
             </SelectTrigger>
             <SelectContent className="bg-gray-100 dark:bg-gray-800 dark:text-white text-sm border-gray-200 dark:border-gray-700">
@@ -1769,14 +1838,6 @@ Provide a personalized, contextual response that acknowledges their history whil
             accept="image/*,application/pdf"
             onChange={handleFileChange}
             className="hidden"
-          />
-          {/* Voice input button */}
-          <VoiceInputButton
-            onResult={(text) => {
-              setMessage(text);
-              setTimeout(() => handleSendMessage(), 100);
-            }}
-            disabled={loading}
           />
         </div>
        <button
@@ -1822,9 +1883,6 @@ Provide a personalized, contextual response that acknowledges their history whil
       )}
     </div>
   </div>
-  <p className="mt-1 text-center text-sm text-gray-500 font-sans">
-  MediBot can make mistakes. Check important info.
-</p>
 </div>
           )}
           
