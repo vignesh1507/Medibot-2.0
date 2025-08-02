@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MediBot Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f3f3;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h2 {
+      text-align: center;
+      padding: 10px;
+      background: #004d7a;
+      color: white;
+      margin: 0;
+    }
+
+    #chat {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background: white;
+      border-top: 1px solid #ccc;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .message {
+      margin-bottom: 10px;
+    }
+
+    .user {
+      text-align: right;
+      color: #007bff;
+    }
+
+    .bot {
+      text-align: left;
+      color: #28a745;
+    }
+
+    #input-area {
+      display: flex;
+      padding: 10px;
+      background: #f9f9f9;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px;
+      background: #004d7a;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #006fa1;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>MediBot</h2>
+
+  <div id="chat"></div>
+
+  <div id="input-area">
+    <input type="text" id="userInput" placeholder="Type your message..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const userInput = document.getElementById('userInput');
+
+    function appendMessage(message, className) {
+      const msg = document.createElement('div');
+      msg.className = 'message ' + className;
+      msg.innerText = message;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const message = userInput.value.trim();
+      if (!message) return;
+
+      appendMessage("You: " + message, 'user');
+      userInput.value = '';
+
+      try {
+        const response = await fetch("https://medibot-backend-1-suex.onrender.com/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ message })
+        });
+
+        const data = await response.json();
+        const reply = data.response || "No response received";
+        appendMessage("Bot: " + reply, 'bot');
+      } catch (error) {
+        appendMessage("Bot: Failed to connect to server.", 'bot');
+        console.error(error);
+      }
+    }
+
+    userInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
+
+</body>
+</html>
