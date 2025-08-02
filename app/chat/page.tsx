@@ -885,7 +885,7 @@ CONVERSATION PATTERNS:
   };
 
   // 🔥 ENHANCED FUNCTION: AI Response with comprehensive personalization
- const isGreeting = (input: string): boolean => {
+const isGreeting = (input: string): boolean => {
   const greetings = ["hi", "hello", "hey", "hola", "yo", "hii", "helloo", "heyy"];
   return greetings.includes(input.trim().toLowerCase());
 };
@@ -893,11 +893,19 @@ CONVERSATION PATTERNS:
 const isNameAndAgeQuery = (input: string): boolean => {
   const lower = input.toLowerCase();
   return (
-    lower.includes("what's my name and age") ||
-    lower.includes("what is my name and age") ||
-    lower.includes("name and age") ||
-    lower.includes("my age and name")
+    lower.includes("what's my name") || lower.includes("what is my name") ||
+    lower.includes("my name and age") || lower.includes("what's my age") ||
+    lower.includes("what is my age")
   );
+};
+
+// Example user profile (replace with actual fetch)
+const getUserProfile = async (): Promise<{ name: string; age: number }> => {
+  // Simulate a backend call or memory load
+  return {
+    name: "Sujay",
+    age: 22,
+  };
 };
 
 const generateAIResponse = async (
@@ -931,33 +939,39 @@ const generateAIResponse = async (
     if (!config) throw new Error(`Invalid model: ${selectedModel}`);
     if (!config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
 
-    // 🧠 BUILD SYSTEM & USER PROMPT
-    let systemPrompt = "";
-    let messages: { role: "system" | "user"; content: string }[];
+    const { name, age } = await getUserProfile();
 
-    if (isNameAndAgeQuery(userMessage)) {
-      systemPrompt = `You are MediBot, developed by Sujay Babu Thota from MediBot.
+    let finalPrompt: string;
 
-Respond directly to the user's question.
+    // Greeting check
+    if (isGreeting(userMessage)) {
+      finalPrompt = `You are MediBot, developed by Sujay Babu Thota from MediBot.
 
-RULE:
-- If user asks for their name and age, respond clearly: "Your name is Sujay and your age is 28."
-- Do NOT explain or discuss. Just give the answer.`;
+When the user says hi or similar, respond briefly and warmly, like "Hello! How can I help you today?"
 
-      messages = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ];
-    } else if (isGreeting(userMessage)) {
-      systemPrompt = `You are MediBot, a friendly AI developed by Sujay Babu Thota from MediBot.
+Do not reference any user details or past context for greetings.
 
-When the user greets you (hi, hello, hey), just reply with a short, friendly greeting. Do not reference previous chats or user details.`;
+User: ${userMessage}
+AI:`;
+    }
 
-      messages = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ];
-    } else {
+    // Name and age query check
+    else if (isNameAndAgeQuery(userMessage)) {
+      finalPrompt = `You are MediBot, developed by Sujay Babu Thota from MediBot.
+
+When asked "What's my name and age?" or similar, respond clearly and directly without overexplaining.
+
+Your answer should be:
+"Your name is ${name} and your age is ${age}."
+
+Do NOT speculate, infer, or add extra commentary. Only return the answer above.
+
+User: ${userMessage}
+AI:`;
+    }
+
+    // General case (health advice, contextual chat)
+    else {
       const userContext = buildUserPersonalizationContext();
       const currentSessionContext =
         currentSession?.messages
@@ -965,47 +979,37 @@ When the user greets you (hi, hello, hey), just reply with a short, friendly gre
           .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
           .join("\n\n") || "";
 
-      systemPrompt = `You are MediBot, a health-focused AI assistant developed by Sujay Babu Thota from MediBot.
+      finalPrompt = `You are MediBot, a health-focused AI assistant developed by Sujay Babu Thota from MediBot.
 
-You provide personalized, contextual responses using the user's previous interactions.
+Use the user's history to personalize your response when relevant. When asked who created you, say "I was developed by Sujay Babu Thota from MediBot."
 
-USER PROFILE:
-${userContext}
+User profile:
+- Name: ${name}
+- Age: ${age}
 
-RECENT HISTORY:
+Conversation history (if useful):
 ${currentSessionContext}
 
-RULES:
-- If user asks who developed you: say "I was developed by Sujay Babu Thota from MediBot"
-- When user says "hi", just reply briefly
-- If user asks "what's my name and age", respond: "Your name is Sujay and your age is 28."
-- Only mention history when it adds real value
-- Don't deflect or add filler
+Instructions:
+- Be clear, helpful, and concise
+- If a question relates to something discussed earlier, you may mention it naturally
+- Avoid repeating their name and age unless asked
 
-Respond to the user's query below with helpful, clear, personalized advice.`;
-
-      messages = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ];
+Current query: ${userMessage}`;
     }
 
+    // 🔁 API call
     let response;
     let content;
 
     if (config.api === "gemini") {
-      const promptText = `${systemPrompt}\n\nUser: ${userMessage}\nAI:`;
       response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.key}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [
-              {
-                parts: [{ text: promptText }],
-              },
-            ],
+            contents: [{ parts: [{ text: finalPrompt }] }],
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 500,
@@ -1014,13 +1018,8 @@ Respond to the user's query below with helpful, clear, personalized advice.`;
           signal: controller.signal,
         }
       );
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
-      }
       const data: GeminiResponse = await response.json();
       content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!content) throw new Error("No valid response from Gemini API");
     } else {
       const apiUrl =
         config.api === "openai"
@@ -1035,21 +1034,21 @@ Respond to the user's query below with helpful, clear, personalized advice.`;
         },
         body: JSON.stringify({
           model: config.model,
-          messages: messages,
+          messages: [
+            { role: "user", content: finalPrompt },
+          ],
           temperature: 0.7,
           max_tokens: 500,
         }),
         signal: controller.signal,
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`${config.api.toUpperCase()} API error: ${response.status} - ${errorText}`);
-      }
-
       const data: OpenAIResponse | GroqResponse = await response.json();
       content = data.choices?.[0]?.message?.content;
-      if (!content) throw new Error("No valid response from AI API");
+    }
+
+    if (!response?.ok) {
+      const errorText = await response.text();
+      throw new Error(`${config.api.toUpperCase()} API error: ${response.status} - ${errorText}`);
     }
 
     return (content ?? "").trim();
