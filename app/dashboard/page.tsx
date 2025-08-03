@@ -9,6 +9,7 @@ import { Menu, Activity, Pill, MessageSquare, TrendingUp, Plus, ArrowRight, Chev
 import { useAuth } from "@/hooks/useAuth"
 import {
   getUserHealthRecords,
+  getUserMedications,
   subscribeToUserChatSessions,
   type ChatSession,
   type Medication,
@@ -64,9 +65,18 @@ export default function DashboardPage() {
       setLoading(false)
     })
 
-    setMedications([])
-    const unsubscribeMedications = () => {};
+    // Fetch medications from Firestore
+    const loadMedications = async () => {
+      try {
+        const meds = await getUserMedications(user.uid)
+        setMedications(meds)
+      } catch (error) {
+        console.error("Error loading medications:", error)
+        setMedications([])
+      }
+    }
 
+    // Fetch health records from Firestore
     const loadHealthRecords = async () => {
       try {
         const records = await getUserHealthRecords(user.uid)
@@ -77,11 +87,11 @@ export default function DashboardPage() {
       }
     }
 
+    loadMedications()
     loadHealthRecords()
 
     return () => {
       unsubscribeChats()
-      unsubscribeMedications()
     }
   }, [user])
 
@@ -211,10 +221,12 @@ export default function DashboardPage() {
     </CardHeader>
     <CardContent className="p-4 pt-0">
       <div className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">
-        {activeMedications}
+        {medications.length}
       </div>
       <p className="text-xs text-muted-foreground mt-1 group-hover:text-foreground/80 transition-colors">
-        {activeMedications > 0 ? "Currently taking" : "No medications"}
+        {medications.length > 0
+          ? `${medications.length} total medications`
+          : "No medications"}
       </p>
     </CardContent>
   </Card>
@@ -222,7 +234,7 @@ export default function DashboardPage() {
   <Card className="hover:shadow-md transition-all duration-300 hover:border-primary/30 hover:scale-[1.02] group">
     <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
       <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-        Health Score
+WellBeing Meter
       </CardTitle>
       <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
         <Activity className="h-4 w-4 text-primary" />
