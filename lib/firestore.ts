@@ -356,7 +356,7 @@ export const subscribeToUserChatSessions = (
 ) => {
   try {
     const chatsRef = collection(db, "chatSessions");
-    const q = query(chatsRef, where("userId", "==", userId), limit(50));
+    const q = query(chatsRef, where("userId", "==", userId));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const sessions = snapshot.docs

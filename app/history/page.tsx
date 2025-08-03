@@ -362,19 +362,7 @@ export default function HistoryPage() {
                           </Button>
                         </div>
                       </div>
-                      <div className="mt-2 flex justify-end">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-500 dark:text-red-600 text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteSession(session.id!);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" /> Delete
-                        </Button>
-                      </div>
+                      {/* ...existing code... */}
                     </CardContent>
                   </Card>
                 ))}
