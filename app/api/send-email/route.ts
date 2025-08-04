@@ -85,7 +85,7 @@ export async function POST(req: Request) {
             <td align="center" valign="middle">
               <div class="email-container">
                 <div class="header">
-                  <img src="/Asvix.jpg" alt="MediBot Logo" />
+                  <img src="/logo.png" alt="MediBot Logo" />
                 </div>
                 <div class="icon">🔒</div>
                 <h1>Hi ${to?.split("@")[0] || "User"},</h1>
