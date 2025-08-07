@@ -31,7 +31,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   Copy,
-  Edit,
+  Pencil,
   Lock,
   Sparkles,
   Check,
@@ -1446,7 +1446,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                     variant="ghost"
                     size="icon"
                     onClick={() => handleCopyText(msg.message)}
-                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 rounded-full transition-colors duration-200"
                     title="Copy Message"
                   >
                     <Copy className="h-4 w-4" />
@@ -1455,10 +1455,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                     variant="ghost"
                     size="icon"
                     onClick={() => handleEditMessage(msg.id, msg.message)}
-                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+                    className="text-gray-500 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 h-6 w-6 rounded-full transition-colors duration-200"
                     title="Edit Message"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Pencil className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
