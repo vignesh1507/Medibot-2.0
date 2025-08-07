@@ -69,8 +69,11 @@ import PaymentDialog from "./PaymentDialog";
 declare global {
   interface Window {
     SpeechSynthesisUtterance: any;
+    puter?: any;
   }
 }
+
+declare const puter: any;
 
 interface PrescriptionAnalysis {
   medications: string[];
@@ -885,16 +888,59 @@ CONVERSATION PATTERNS:
   };
 
   // 🔥 ENHANCED FUNCTION: AI Response with comprehensive personalization
-  const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string): Promise<string> => {
+
+const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string): Promise<string> => {
+    // Handle "what's my age" and similar questions
+    const ageQuestions = [
+      "what's my age", "whats my age", "what is my age", "do you know my age", "tell me my age", "how old am i"
+    ];
+    if (ageQuestions.some(q => userMessage.toLowerCase().includes(q))) {
+      // Try to infer the most recent age from all chat sessions
+      let userAge = "";
+      let latestTimestamp = 0;
+      if (sessions?.length) {
+        const ageRegexes = [
+          /i['’`]?m (\d{1,3})/i,
+          /i am (\d{1,3})/i,
+          /i['’`]?m (\d{1,3}) years old/i,
+          /i am (\d{1,3}) years old/i,
+          /my age is (\d{1,3})/i,
+          /age: (\d{1,3})/i
+        ];
+        for (let s = 0; s < sessions.length; s++) {
+          const msgs = sessions[s].messages || [];
+          for (let i = 0; i < msgs.length; i++) {
+            const msg = msgs[i];
+            if (typeof msg.message === 'string') {
+              for (const regex of ageRegexes) {
+                const match = msg.message.match(regex);
+                if (match && match[1]) {
+                  const ts = msg.timestamp instanceof Date ? msg.timestamp.getTime() : new Date(msg.timestamp).getTime();
+                  if (ts > latestTimestamp) {
+                    userAge = match[1].trim();
+                    latestTimestamp = ts;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      if (userAge) {
+        return `You are ${userAge} years old.`;
+      } else {
+        return "I don't have your age yet. You can tell me by saying 'I'm 22' or 'I am 22 years old'.";
+      }
+    }
   try {
     const controller = new AbortController();
     setAbortController(controller);
 
     const modelMap: Record<string, { api: string; model: string; key: string }> = {
       "gemini-2.0-flash": {
-        api: "gemini",
-        model: "gemini-2.0-flash",
-        key: "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM",
+        api: "puter",
+        model: "google/gemini-2.5-pro-exp-03-25:free",
+        key: "", // Not needed for Puter
       },
       "gpt-4o": {
         api: "openai",
@@ -910,13 +956,13 @@ CONVERSATION PATTERNS:
 
     const config = modelMap[selectedModel];
     if (!config) throw new Error(`Invalid model: ${selectedModel}`);
-    if (!config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
+    if (config.api !== "puter" && !config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
 
-    // Short replies
     const greetings = ["hi", "hello", "hey", "hola", "yo"];
     if (greetings.includes(userMessage.trim().toLowerCase())) {
-      return "Hi there!";
+      return "Hi there! How can I assist you today?";
     }
+
 
     const identityQuestions = [
       "who created you", "who made you", "who developed you", "who's your creator",
@@ -926,52 +972,78 @@ CONVERSATION PATTERNS:
       return "I was developed by Sujay Babu Thota from MediBot.";
     }
 
-    // Session context
-    const currentSessionContext = currentSession?.messages
-      .slice(-5)
-      .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
-      .join("\n\n") || "";
+    // Handle "what's my name" and similar questions
+    const nameQuestions = [
+      "what's my name", "whats my name", "what is my name", "do you know my name", "tell me my name", "who am i"
+    ];
+    if (nameQuestions.some(q => userMessage.toLowerCase().includes(q))) {
+      // Try to infer name from userProfile, user, or all chat sessions
+      let userName = "";
+      if (userProfile?.displayName) userName = userProfile.displayName;
+      else if (user?.displayName) userName = user.displayName;
+      else if (user?.email) userName = user.email.split("@")[0];
+      // Try to extract from all chat sessions if not found
+      if (!userName && sessions?.length) {
+        const nameRegex = /my name is ([A-Za-z ]+)/i;
+        outer: for (let s = sessions.length - 1; s >= 0; s--) {
+          const msgs = sessions[s].messages || [];
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            const msgText = msgs[i].message;
+            if (typeof msgText === 'string') {
+              const match = msgText.match(nameRegex);
+              if (match && match[1]) {
+                userName = match[1].trim();
+                break outer;
+              }
+            }
+          }
+        }
+      }
+      if (userName) {
+        return `Your name is ${userName}.`;
+      } else {
+        return "I don't have your name yet. You can tell me by saying 'My name is ...'";
+      }
+    }
 
-    const prompt = `Use the conversation context below to answer the user's current question briefly.
+    // Always use the full current session message history as context for every new message
+    let currentSessionContext = "";
+    if (currentSession?.messages?.length) {
+      currentSessionContext = currentSession.messages
+        .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
+        .join("\n\n");
+    }
 
-CONVERSATION HISTORY:
-${currentSessionContext}
+    // New prompt: Only use side headings for in-depth/important questions, otherwise use bullets for key points
+    const prompt = currentSessionContext
+      ? `You are MediBot, a helpful health assistant.\n\nFirst, greet the user and thank them for their question, mentioning their question.\nIf the user's question is general or only needs a brief answer, provide a concise response using bullet points for key facts or steps.\nIf the user asks for more depth, details, or the topic is important/complex, organize your answer under clear side headings (e.g., 'Summary', 'Details', 'Recommendations', etc.).\n\nCONVERSATION HISTORY:\n${currentSessionContext}\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: (thank user, echo question)\n\n- For general/brief answers: use bullet points for key points.\n- For in-depth/important questions: use side headings and sections.\n\nIf user asks about your developer, say \"I was developed by Sujay Babu Thota from MediBot\". Use context to infer their name or age if asked.`
+      : `You are MediBot, a helpful health assistant.\n\nFirst, greet the user and thank them for their question, mentioning their question.\nIf the user's question is general or only needs a brief answer, provide a concise response using bullet points for key facts or steps.\nIf the user asks for more depth, details, or the topic is important/complex, organize your answer under clear side headings (e.g., 'Summary', 'Details', 'Recommendations', etc.).\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: (thank user, echo question)\n\n- For general/brief answers: use bullet points for key points.\n- For in-depth/important questions: use side headings and sections.\n\nIf user asks about your developer, say \"I was developed by Sujay Babu Thota from MediBot\". Use context to infer their name or age if asked.`;
 
-USER QUESTION:
-${userMessage}
+    let content: string | undefined;
 
-Respond concisely. If user asks about your developer, say "Sujay Babu Thota from MediBot". Use context to infer their name or age if asked.`;
+    // ✅ Puter Gemini Integration
+    if (config.api === "puter") {
+      if (typeof window === "undefined" || typeof puter === "undefined") {
+        throw new Error("Puter can only be used in the browser.");
+      }
 
-    let response;
-    let content;
+      const response = await puter.ai.chat(prompt, {
+        model: config.model,
+      });
 
-    const headers = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${config.key}`,
-    };
+      content = response?.message?.content;
+    }
 
-    const body = {
-      model: config.model,
-      messages: config.api === "gemini" ? undefined : [
-        {
-          role: "system",
-          content: "You are a helpful health assistant named MediBot created by Sujay Babu Thota from MediBot.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
-    };
-
-    if (config.api === "gemini") {
-      response = await fetch(
+    // ✅ Gemini (via API)
+    else if (config.api === "gemini") {
+      const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.key}`,
         {
           method: "POST",
-          headers,
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${config.key}`,
+          },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: { temperature: 0.7, maxOutputTokens: 500 },
@@ -979,17 +1051,38 @@ Respond concisely. If user asks about your developer, say "Sujay Babu Thota from
           signal: controller.signal,
         }
       );
+
       const data: GeminiResponse = await response.json();
       content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    } else {
+    }
+
+    // ✅ OpenAI / Groq
+    else {
       const url = config.api === "groq"
         ? "https://api.groq.com/openai/v1/chat/completions"
         : "https://api.openai.com/v1/chat/completions";
 
-      response = await fetch(url, {
+      const response = await fetch(url, {
         method: "POST",
-        headers,
-        body: JSON.stringify(body),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${config.key}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful health assistant named MediBot created by Sujay Babu Thota from MediBot.",
+            },
+            {
+              role: "user",
+              content: prompt,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 500,
+        }),
         signal: controller.signal,
       });
 
@@ -997,8 +1090,9 @@ Respond concisely. If user asks about your developer, say "Sujay Babu Thota from
       content = data.choices?.[0]?.message?.content;
     }
 
-    if (!response.ok || !content) throw new Error("No valid response");
+    if (!content) throw new Error("No valid response");
     return content.trim();
+
   } catch (error: any) {
     if (error.name === "AbortError") return "";
     console.error(`Error generating ${selectedModel} response:`, error);
@@ -1011,6 +1105,7 @@ Respond concisely. If user asks about your developer, say "Sujay Babu Thota from
     return "Sorry, something went wrong. Try again.";
   }
 };
+
 
 
 
@@ -1184,6 +1279,59 @@ Respond concisely. If user asks about your developer, say "Sujay Babu Thota from
       const messageDate = msg.timestamp.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
       const showDateDivider = messageDate !== lastDate;
       lastDate = messageDate;
+      // Helper to render response: bullets for lists, headings only if present
+      const renderResponse = (response: string) => {
+        const lines = response.split("\n");
+        // Detect if there are any headings (lines starting with #)
+        const hasHeadings = lines.some(line => /^#\s+/.test(line));
+        if (hasHeadings) {
+          // Render as sections with headings
+          type Section = { heading: string | null; content: string[] };
+          const sections: Section[] = [];
+          let current: Section = { heading: null, content: [] };
+          for (let line of lines) {
+            const headingMatch = line.match(/^#\s*(.+)/);
+            if (headingMatch) {
+              if (current.heading || current.content.length) sections.push(current);
+              current = { heading: headingMatch[1].trim(), content: [] };
+            } else {
+              current.content.push(line);
+            }
+          }
+          if (current.heading || current.content.length) sections.push(current);
+          return (
+            <div>
+              {sections.map((sec, idx) =>
+                sec.heading ? (
+                  <div key={idx} className="mb-3">
+                    <h3 className="font-semibold text-base mb-1">{sec.heading}</h3>
+                    {sec.content.map((line, i) => line.trim() && <p key={i} className="mb-1">{line.replace(/\*\*|\*/g, "")}</p>)}
+                  </div>
+                ) : (
+                  <div key={idx} className="mb-2 italic">{sec.content.join(" ").replace(/\*\*|\*/g, "")}</div>
+                )
+              )}
+            </div>
+          );
+        } else {
+          // Render greeting (first non-empty line), then bullets for points
+          const nonEmptyLines = lines.filter(l => l.trim().length > 0);
+          const greeting = nonEmptyLines.length > 0 ? nonEmptyLines[0] : "";
+          const bulletLines = nonEmptyLines.slice(1);
+          return (
+            <div>
+              {greeting && <div className="mb-2 italic">{greeting.replace(/\*\*|\*/g, "")}</div>}
+              {bulletLines.length > 0 && (
+                <ul className="list-disc pl-5">
+                  {bulletLines.map((line, i) => (
+                    <li key={i}>{line.replace(/\*\*|\*/g, "")}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        }
+      };
       return (
         <div key={msg.id}>
           {showDateDivider && (
@@ -1326,12 +1474,8 @@ Respond concisely. If user asks about your developer, say "Sujay Babu Thota from
             {msg.response || isTyping[msg.id] ? (
               <div className="flex items-start space-x-2 max-w-[70%]">
                 <div className="relative group">
-<div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed">
-                    {(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response)?.split("\n").map((line, i) => (
-                      <p key={i} className={line.startsWith("**") ? "font-semibold" : ""}>
-                        {line}
-                      </p>
-                    ))}
+                  <div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed">
+                    {renderResponse(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response)}
                     {isTyping[msg.id] && (
                       <div className="inline-block w-2 h-4 bg-gray-500 animate-pulse"></div>
                     )}
@@ -1408,7 +1552,6 @@ Respond concisely. If user asks about your developer, say "Sujay Babu Thota from
             ) : (
               loading && (
                 <div className="flex items-start space-x-2 w-full">
-
                   <div className="p-4">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
