@@ -153,6 +153,7 @@ function ChatContent() {
   const [selectedPlan, setSelectedPlan] = useState<string>("base");
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<string>("base");
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [copiedMessageIds, setCopiedMessageIds] = useState<Set<string>>(new Set());
   
   // 🔥 ENHANCED SCROLL-TO-LATEST FUNCTIONALITY
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -523,7 +524,6 @@ CONVERSATION PATTERNS:
       setSelectedFile(null);
       setFileName("");
       setMessageCount(0); // Reset message count for new session
-      toast.success("New chat started!");
       // Update URL with session id
       router.replace(`/chat?session=${sessionId}`);
     } catch (error: any) {
@@ -803,9 +803,18 @@ CONVERSATION PATTERNS:
     }
   };
 
-  const handleCopyText = (text: string) => {
+  const handleCopyText = (text: string, messageId?: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard!");
+    if (messageId) {
+      setCopiedMessageIds(prev => new Set(prev).add(messageId));
+      setTimeout(() => {
+        setCopiedMessageIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(messageId);
+          return newSet;
+        });
+      }, 3000); // Show checkmark for 3 seconds
+    }
   };
 
   const handleSpeakResponse = (text: string) => {
@@ -829,7 +838,7 @@ CONVERSATION PATTERNS:
       utteranceRef.current = null;
     };
     utterance.onerror = () => {
-      toast.error("Speech stopped");
+      
       setIsSpeaking(false);
       utteranceRef.current = null;
     };
@@ -1445,11 +1454,15 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleCopyText(msg.message)}
+                    onClick={() => handleCopyText(msg.message, `user-${msg.id}`)}
                     className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 rounded-full transition-colors duration-200"
                     title="Copy Message"
                   >
-                    <Copy className="h-4 w-4" />
+                    {copiedMessageIds.has(`user-${msg.id}`) ? (
+                      <Check className="h-4 w-4 text-black dark:text-white" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
@@ -1484,17 +1497,21 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleCopyText(msg.response)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6"
+                      onClick={() => handleCopyText(msg.response, `ai-${msg.id}`)}
+                      className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 rounded-full transition-colors duration-200"
                       title="Copy Response"
                     >
-                      <Copy className="h-4 w-4" />
+                      {copiedMessageIds.has(`ai-${msg.id}`) ? (
+                        <Check className="h-4 w-4 text-black dark:text-white" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => handleSpeakResponse(msg.response)}
-                      className={`text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 ${isSpeaking ? "animate-pulse bg-gray-500/20" : ""}`}
+                      className={`text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 rounded-full transition-colors duration-200 ${isSpeaking ? "animate-pulse bg-gray-500/20" : ""}`}
                       title={isSpeaking ? "Stop Speaking" : "Speak Response"}
                     >
                       <Volume2 className="h-4 w-4" />
@@ -1503,7 +1520,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       variant="ghost"
                       size="icon"
                       onClick={() => handleFeedback(msg.id, true)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-green-500 h-6 w-6"
+                      className="text-gray-500 dark:text-gray-300 hover:text-green-500 h-6 w-6 rounded-full transition-colors duration-200"
                       title="Thumbs Up"
                     >
                       <ThumbsUp className="h-4 w-4" />
@@ -1512,7 +1529,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       variant="ghost"
                       size="icon"
                       onClick={() => handleFeedback(msg.id, false)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6"
+                      className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6 rounded-full transition-colors duration-200"
                       title="Thumbs Down"
                     >
                       <ThumbsDown className="h-4 w-4" />
@@ -1521,7 +1538,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       variant="ghost"
                       size="icon"
                       onClick={() => handleRetryResponse(msg.id, msg.message)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
+                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6 rounded-full transition-colors duration-200"
                       title="Retry Response"
                     >
                       <RefreshCw className="h-4 w-4" />
@@ -1531,7 +1548,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                         variant="ghost"
                         size="icon"
                         onClick={() => handleStopResponse(msg.id)}
-                        className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6"
+                        className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6 rounded-full transition-colors duration-200"
                         title="Stop Response"
                       >
                         <StopCircle className="h-4 w-4" />
@@ -1541,7 +1558,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       variant="ghost"
                       size="icon"
                       onClick={() => window.open(`https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(msg.message)}`, "_blank")}
-                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6"
+                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6 rounded-full transition-colors duration-200"
                       title="Search PubMed"
                     >
                       <Search className="h-4 w-4" />
@@ -1566,7 +1583,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         </div>
       );
     });
-  }, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, displayedResponse, isTyping]);
+  }, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, displayedResponse, isTyping, copiedMessageIds]);
 
   return (
     <AuthGuard>

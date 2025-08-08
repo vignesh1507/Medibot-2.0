@@ -91,14 +91,17 @@ export default function HistoryPage() {
 
     let unsubscribe: () => void;
 
+
     const fetchAndSubscribe = async () => {
       try {
         console.log("Fetching initial chat sessions for user:", user.uid);
         const initialSessions = await getUserChatSessions(user.uid);
         console.log("Initial sessions fetched:", initialSessions);
 
+        // Only include sessions with at least one message
         const normalizedSessions = initialSessions
           .map(normalizeSession)
+          .filter(session => session.messages && session.messages.length > 0)
           .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
         setChatSessions(normalizedSessions);
         setFilteredSessions(normalizedSessions);
@@ -108,6 +111,7 @@ export default function HistoryPage() {
           console.log("Real-time sessions received:", sessions);
           const sortedSessions = sessions
             .map(normalizeSession)
+            .filter(session => session.messages && session.messages.length > 0)
             .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
           setChatSessions(sortedSessions);
           setFilteredSessions(sortedSessions);
