@@ -1399,87 +1399,135 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   ) : msg.image !== null ? (
                     <p className="text-xs text-red-400 mb-2">Invalid or missing file</p>
                   ) : null}
-                  {editingMessageId === msg.id ? (
-                    <div className="flex flex-col w-full">
-                      <div className="w-full flex justify-center">
-                        <div style={{ width: '600px', maxWidth: '100%' }}>
-                          <textarea
-                            value={editedMessage}
-                            onChange={e => {
-                              // Limit to 60 characters per line
-                              const lines = e.target.value.split("\n").map(line => line.length > 60 ? line.match(/.{1,60}/g)?.join("\n") : line);
-                              setEditedMessage(lines.join("\n"));
-                              // Auto expand textarea height
-                              const ta = e.target as HTMLTextAreaElement;
-                              ta.style.height = 'auto';
-                              ta.style.height = Math.min(ta.scrollHeight, 300) + 'px';
-                            }}
-                            onKeyDown={handleKeyPress}
-                            maxLength={500}
-                            rows={4}
-                            style={{
-                              resize: "none",
-                              minHeight: 60,
-                              maxHeight: 300,
-                              width: '100%',
-                              fontFamily: 'inherit',
-                              fontSize: '1rem',
-                              lineHeight: 1.5,
-                              letterSpacing: '0.01em',
-                              background: 'linear-gradient(90deg, #f8fafc 0%, #e0e7ef 100%)',
-                              color: '#222',
-                              border: '1.5px solid #a5b4fc',
-                              boxShadow: '0 2px 8px 0 rgba(80, 80, 200, 0.07)',
-                              borderRadius: 12,
-                              padding: '10px 14px',
-                              outline: 'none',
-                              transition: 'border 0.2s, box-shadow 0.2s',
-                              overflowY: 'auto',
-                              scrollbarWidth: 'none', // Firefox
-                              msOverflowStyle: 'none', // IE/Edge
-                            }}
-                            className="hide-scrollbar dark:bg-white dark:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
-                            aria-label="Edit message"
-                            placeholder="Edit your message (max 60 chars/line, 500 total)"
-                            autoFocus
-                          />
-                        </div>
-                      </div>
-                      <div className="flex flex-row justify-end gap-2 mt-2">
-                        <button
-                          onClick={() => {
-                            setEditingMessageId(null);
-                            setEditedMessage("");
-                          }}
-                          className="px-4 py-1 rounded-full border border-gray-300 dark:border-gray-400 bg-gray-100 dark:bg-gray-200 text-gray-700 dark:text-gray-800 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-300 transition"
-                          aria-label="Cancel Edit"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => handleEditMessage(msg.id, msg.message)}
-                          disabled={loading || editedMessage.trim() === msg.message.trim() || !editedMessage.trim()}
-                          data-testid="send-button"
-                          className={`px-4 py-1 rounded-full border border-blue-400 bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${loading || editedMessage.trim() === msg.message.trim() || !editedMessage.trim() ? '' : 'hover:bg-blue-600'}`}
-                          aria-label="Send Edited Message"
-                          title="Save Edit"
-                        >
-                          Send
-                        </button>
-                      </div>
-                      <style jsx>{`
-                        .hide-scrollbar::-webkit-scrollbar {
-                          display: none;
-                        }
-                        .hide-scrollbar {
-                          -ms-overflow-style: none;
-                          scrollbar-width: none;
-                        }
-                      `}</style>
-                    </div>
-                  ) : (
-                    <p>{msg.message}</p>
-                  )}
+                 {editingMessageId === msg.id ? (
+  <div className="flex flex-col w-full items-center">
+    <div className="w-full flex justify-center">
+      <div className="relative" style={{ width: '600px', maxWidth: '100%' }}>
+        <textarea
+          value={editedMessage}
+          onChange={(e) => {
+            const lines = e.target.value
+              .split("\n")
+              .map(line =>
+                line.length > 60
+                  ? line.match(/.{1,60}/g)?.join("\n")
+                  : line
+              );
+            setEditedMessage(lines.join("\n"));
+
+            // Auto-expand height
+            const ta = e.target as HTMLTextAreaElement;
+            ta.style.height = 'auto';
+            ta.style.height = Math.min(ta.scrollHeight, 300) + 'px';
+          }}
+          onKeyDown={handleKeyPress}
+          maxLength={500}
+          rows={1}
+          className="chatgpt-textarea pr-28" /* add padding-right for buttons */
+          aria-label="Edit message"
+          placeholder="Edit your message..."
+          autoFocus
+        />
+
+        {/* Buttons inside the same box */}
+        <div className="absolute bottom-2 right-2 flex gap-2">
+          <button
+            onClick={() => {
+              setEditingMessageId(null);
+              setEditedMessage("");
+            }}
+            className="rounded-xl px-5 py-2 font-semibold bg-black text-white transition-all duration-200 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black/40 focus:ring-offset-2 shadow-sm border border-black/80"
+            style={{ minWidth: 60, borderRadius: 16, fontSize: 15, letterSpacing: 0.5 }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => handleEditMessage(msg.id, msg.message)}
+            disabled={
+              loading ||
+              editedMessage.trim() === msg.message.trim() ||
+              !editedMessage.trim()
+            }
+            className="rounded-xl px-5 py-2 font-semibold bg-white text-black transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black/40 focus:ring-offset-2 shadow-sm border border-black/80 disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ minWidth: 80, borderRadius: 16, fontSize: 15, letterSpacing: 0.5 }}
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <style jsx>{`
+      .chatgpt-textarea {
+        resize: none;
+        min-height: 44px;
+        max-height: 300px;
+        width: 100%;
+        font-family: inherit;
+        font-size: 1rem;
+        line-height: 1.5;
+        padding: 12px 16px;
+        background-color: var(--input-bg);
+        color: var(--input-text);
+        border: 1px solid var(--input-border);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        outline: none;
+        transition: border 0.2s, box-shadow 0.2s;
+        overflow-y: auto;
+        scrollbar-width: none;
+      }
+      .chatgpt-textarea:focus {
+        border-color: #4f9cff;
+        box-shadow: 0 0 0 2px rgba(79,156,255,0.2);
+      }
+      .chatgpt-textarea::-webkit-scrollbar {
+        display: none;
+      }
+      :root {
+        --input-bg: #ffffff;
+        --input-text: #000000;
+        --input-border: #d1d5db;
+      }
+      .dark {
+        --input-bg: #40414f;
+        --input-text: #ececec;
+        --input-border: #565869;
+      }
+      .cancel-btn {
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: #f3f4f6;
+        border: 1px solid #d1d5db;
+        color: #374151;
+        font-size: 0.75rem;
+        transition: background 0.2s;
+      }
+      .cancel-btn:hover {
+        background: #e5e7eb;
+      }
+      .send-btn {
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: #4f9cff;
+        border: none;
+        color: #fff;
+        font-size: 0.75rem;
+        transition: background 0.2s;
+      }
+      .send-btn:hover {
+        background: #3f89e6;
+      }
+      .send-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    `}</style>
+  </div>
+) : (
+  <p>{msg.message}</p>
+)}
+
                 </div>
                 <div className="absolute -bottom-6 right-4 flex space-x-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                   <Button
@@ -1502,7 +1550,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                     className="text-gray-500 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 h-6 w-6 rounded-full transition-colors duration-200"
                     title="Edit Message"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <span className="relative h-4 w-4 inline-block">
+                      <img src="/pencil.png" alt="Edit" className="h-4 w-4 block dark:hidden" />
+                      <img src="/pencildark.png" alt="Edit" className="h-4 w-4 hidden dark:block" />
+                    </span>
                   </Button>
                 </div>
               </div>
@@ -1634,6 +1685,35 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           }
           .scroll-button-enter { animation: fadeIn 0.3s ease-out; }
           .scroll-button-pulse { animation: pulse 2s infinite; }
+          .cancel-btn, .send-btn {
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            min-width: 56px;
+            letter-spacing: 0.2px;
+            transition: all 0.2s;
+          }
+          .cancel-btn {
+            background: #000;
+            color: #fff;
+            border: 1.5px solid #000;
+          }
+          .cancel-btn:hover, .cancel-btn:focus {
+            background: #222;
+          }
+          .send-btn {
+            background: #fff;
+            color: #000;
+            border: 1.5px solid #000;
+          }
+          .send-btn:hover, .send-btn:focus {
+            background: #f3f3f3;
+          }
+          .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col overflow-hidden">
