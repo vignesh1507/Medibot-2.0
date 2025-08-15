@@ -10,6 +10,7 @@ import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import TextType from "@/components/TextType";
 import {
   Dialog,
   DialogContent,
@@ -151,6 +152,8 @@ function ChatContent() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [displayedResponse, setDisplayedResponse] = useState<{ [messageId: string]: string }>({});
   const [isTyping, setIsTyping] = useState<{ [messageId: string]: boolean }>({});
+  const [typewriterResponses, setTypewriterResponses] = useState<{ [messageId: string]: string[] }>({});
+  const [isTypewriterActive, setIsTypewriterActive] = useState<{ [messageId: string]: boolean }>({});
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>("base");
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<string>("base");
@@ -671,16 +674,14 @@ CONVERSATION PATTERNS:
         const analysisText = `**Prescription Analysis**:\n- **Medications**: ${analysis.medications.join(", ")}\n- **Dosages**: ${analysis.dosages.join(", ")}\n- **Instructions**: ${analysis.instructions}${analysis.warnings.length ? "\n- **Warnings**: " + analysis.warnings.join(", ") : ""}`;
         botResponse = botResponse ? `${botResponse}\n\n${analysisText}` : analysisText;
       }
+
+      // Split response into logical sentences for TextType effect
+      const sentences = botResponse.split(/(?<=[.!?])\s+/).filter(sentence => sentence.trim().length > 0);
+      
+      setTypewriterResponses((prev) => ({ ...prev, [messageId]: sentences }));
+      setIsTypewriterActive((prev) => ({ ...prev, [messageId]: true }));
       setIsTyping((prev) => ({ ...prev, [messageId]: true }));
-      setDisplayedResponse((prev) => ({ ...prev, [messageId]: "" }));
-      let currentText = "";
-      for (let i = 0; i < botResponse.length; i++) {
-        if (!isTyping[messageId]) break;
-        await new Promise((resolve) => setTimeout(resolve, 20));
-        currentText += botResponse[i];
-        setDisplayedResponse((prev) => ({ ...prev, [messageId]: currentText }));
-      }
-      setIsTyping((prev) => ({ ...prev, [messageId]: false }));
+
       const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
       setCurrentSession((prev) => {
         if (!prev) return prev;
@@ -747,10 +748,16 @@ CONVERSATION PATTERNS:
     }
   };
 
+  const handleTextTypeComplete = (messageId: string) => {
+    setIsTypewriterActive((prev) => ({ ...prev, [messageId]: false }));
+    setIsTyping((prev) => ({ ...prev, [messageId]: false }));
+  };
+
   const handleStopResponse = (messageId: string) => {
     if (abortController) {
       abortController.abort();
       setIsTyping((prev) => ({ ...prev, [messageId]: false }));
+      setIsTypewriterActive((prev) => ({ ...prev, [messageId]: false }));
       setAbortController(null);
       toast.info("Response generation stopped");
     }
@@ -766,6 +773,13 @@ CONVERSATION PATTERNS:
       const botResponse = await generateAIResponse(userMessage, selectedModel, messageId);
       const sessionId = currentSession?.id;
       if (sessionId) {
+        // Split response into sentences for TextType effect
+        const sentences = botResponse.split(/(?<=[.!?])\s+/).filter(sentence => sentence.trim().length > 0);
+        
+        setTypewriterResponses((prev) => ({ ...prev, [messageId]: sentences }));
+        setIsTypewriterActive((prev) => ({ ...prev, [messageId]: true }));
+        setIsTyping((prev) => ({ ...prev, [messageId]: true }));
+
         const existingMessage = currentSession!.messages.find((msg) => msg.id === messageId);
         const updatedMessages = currentSession!.messages.map((msg) =>
           msg.id === messageId ? { ...msg, response: botResponse } : msg
@@ -798,6 +812,13 @@ CONVERSATION PATTERNS:
         const botResponse = await generateAIResponse(editedMessage, selectedModel, messageId);
         const sessionId = currentSession?.id;
         if (sessionId) {
+          // Split response into sentences for TextType effect
+          const sentences = botResponse.split(/(?<=[.!?])\s+/).filter(sentence => sentence.trim().length > 0);
+          
+          setTypewriterResponses((prev) => ({ ...prev, [messageId]: sentences }));
+          setIsTypewriterActive((prev) => ({ ...prev, [messageId]: true }));
+          setIsTyping((prev) => ({ ...prev, [messageId]: true }));
+
           const existingMessage = currentSession!.messages.find((msg) => msg.id === messageId);
           const updatedMessages = currentSession!.messages.map((msg) =>
             msg.id === messageId ? { ...msg, message: editedMessage, response: botResponse } : msg
@@ -1570,9 +1591,18 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             <div className="flex items-start space-x-2" style={{ maxWidth: '100%' }}>
                 <div className="relative group">
                   <div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed">
-                    {renderResponse(isTyping[msg.id] ? displayedResponse[msg.id] : msg.response)}
-                    {isTyping[msg.id] && (
-                      <div className="inline-block w-2 h-4 bg-gray-500 animate-pulse"></div>
+                    {isTypewriterActive[msg.id] && typewriterResponses[msg.id] ? (
+                      <TextType 
+                        text={typewriterResponses[msg.id]}
+                        typingSpeed={50}
+                        pauseDuration={800}
+                        showCursor={true}
+                        cursorCharacter="|"
+                        onComplete={() => handleTextTypeComplete(msg.id)}
+                        className="text-sm leading-relaxed"
+                      />
+                    ) : (
+                      renderResponse(msg.response)
                     )}
                   </div>
                   <div className="absolute -bottom-6 left-4 flex space-x-2 justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
@@ -1665,7 +1695,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         </div>
       );
     });
-  }, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, displayedResponse, isTyping, copiedMessageIds]);
+  }, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, displayedResponse, isTyping, copiedMessageIds, typewriterResponses, isTypewriterActive]);
 
   return (
     <AuthGuard>

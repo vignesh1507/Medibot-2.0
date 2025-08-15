@@ -105,8 +105,18 @@ export default function SignInPage() {
 
   return (
     <AuthGuard requireAuth={false}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-sm rounded-2xl border border-slate-800/50 shadow-xl shadow-slate-950/50 p-8 sm:p-10">
+      <div 
+        className="min-h-screen flex items-center justify-center p-4 relative"
+        style={{
+          backgroundImage: 'url(/loginbg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
+      >
+        {/* Dark overlay for better readability */}
+        <div className="absolute inset-0 bg-black/50"></div>
+        <div className="w-full max-w-md bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800/50 shadow-xl shadow-slate-950/50 p-8 sm:p-10 relative z-10">
           {/* Header */}
           <div className="flex items-center mb-8">
             <Link href="/">
@@ -115,10 +125,11 @@ export default function SignInPage() {
                 size="icon" 
                 className="text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all"
               >
-                <ArrowLeft className="h-5 w-5" />
+                 <ArrowLeft className="h-5 w-5" />
+                                <p>Back</p>
               </Button>
             </Link>
-            <span className="text-white font-medium text-sm">Back to home</span>
+           
           </div>
 
           {/* Logo and Title */}
