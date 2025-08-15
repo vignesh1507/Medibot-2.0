@@ -150,10 +150,7 @@ function ChatContent() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [displayedResponse, setDisplayedResponse] = useState<{ [messageId: string]: string }>({});
   const [isTyping, setIsTyping] = useState<{ [messageId: string]: boolean }>({});
-  const [typewriterResponses, setTypewriterResponses] = useState<{ [messageId: string]: string[] }>({});
-  const [isTypewriterActive, setIsTypewriterActive] = useState<{ [messageId: string]: boolean }>({});
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>("base");
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<string>("base");
@@ -674,14 +671,26 @@ CONVERSATION PATTERNS:
         const analysisText = `**Prescription Analysis**:\n- **Medications**: ${analysis.medications.join(", ")}\n- **Dosages**: ${analysis.dosages.join(", ")}\n- **Instructions**: ${analysis.instructions}${analysis.warnings.length ? "\n- **Warnings**: " + analysis.warnings.join(", ") : ""}`;
         botResponse = botResponse ? `${botResponse}\n\n${analysisText}` : analysisText;
       }
-
-      // Split response into logical sentences for TextType effect
-      const sentences = botResponse.split(/(?<=[.!?])\s+/).filter(sentence => sentence.trim().length > 0);
       
-      setTypewriterResponses((prev) => ({ ...prev, [messageId]: sentences }));
-      setIsTypewriterActive((prev) => ({ ...prev, [messageId]: true }));
+      // Update the message with the full response and set typing to true
+      // The TextType component will handle the typing animation
+      setCurrentSession((prev) => {
+        if (!prev) return prev;
+        const updatedMessages = prev.messages.map((msg) =>
+          msg.id === messageId
+            ? { ...msg, response: botResponse }
+            : msg
+        );
+        return {
+          ...prev,
+          messages: updatedMessages,
+          updatedAt: new Date(),
+          title: smartTitle,
+        };
+      });
+      
       setIsTyping((prev) => ({ ...prev, [messageId]: true }));
-
+      
       const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
       setCurrentSession((prev) => {
         if (!prev) return prev;
@@ -748,16 +757,10 @@ CONVERSATION PATTERNS:
     }
   };
 
-  const handleTextTypeComplete = (messageId: string) => {
-    setIsTypewriterActive((prev) => ({ ...prev, [messageId]: false }));
-    setIsTyping((prev) => ({ ...prev, [messageId]: false }));
-  };
-
   const handleStopResponse = (messageId: string) => {
     if (abortController) {
       abortController.abort();
       setIsTyping((prev) => ({ ...prev, [messageId]: false }));
-      setIsTypewriterActive((prev) => ({ ...prev, [messageId]: false }));
       setAbortController(null);
       toast.info("Response generation stopped");
     }
@@ -769,17 +772,11 @@ CONVERSATION PATTERNS:
       return;
     }
     setLoading(true);
+    setIsTyping((prev) => ({ ...prev, [messageId]: true }));
     try {
       const botResponse = await generateAIResponse(userMessage, selectedModel, messageId);
       const sessionId = currentSession?.id;
       if (sessionId) {
-        // Split response into sentences for TextType effect
-        const sentences = botResponse.split(/(?<=[.!?])\s+/).filter(sentence => sentence.trim().length > 0);
-        
-        setTypewriterResponses((prev) => ({ ...prev, [messageId]: sentences }));
-        setIsTypewriterActive((prev) => ({ ...prev, [messageId]: true }));
-        setIsTyping((prev) => ({ ...prev, [messageId]: true }));
-
         const existingMessage = currentSession!.messages.find((msg) => msg.id === messageId);
         const updatedMessages = currentSession!.messages.map((msg) =>
           msg.id === messageId ? { ...msg, response: botResponse } : msg
@@ -791,6 +788,7 @@ CONVERSATION PATTERNS:
     } catch (error: any) {
       console.error("Error retrying response:", error);
       toast.error("Failed to regenerate response");
+      setIsTyping((prev) => ({ ...prev, [messageId]: false }));
     } finally {
       setLoading(false);
       setAbortController(null);
@@ -809,16 +807,10 @@ CONVERSATION PATTERNS:
       }
       try {
         setLoading(true);
+        setIsTyping((prev) => ({ ...prev, [messageId]: true }));
         const botResponse = await generateAIResponse(editedMessage, selectedModel, messageId);
         const sessionId = currentSession?.id;
         if (sessionId) {
-          // Split response into sentences for TextType effect
-          const sentences = botResponse.split(/(?<=[.!?])\s+/).filter(sentence => sentence.trim().length > 0);
-          
-          setTypewriterResponses((prev) => ({ ...prev, [messageId]: sentences }));
-          setIsTypewriterActive((prev) => ({ ...prev, [messageId]: true }));
-          setIsTyping((prev) => ({ ...prev, [messageId]: true }));
-
           const existingMessage = currentSession!.messages.find((msg) => msg.id === messageId);
           const updatedMessages = currentSession!.messages.map((msg) =>
             msg.id === messageId ? { ...msg, message: editedMessage, response: botResponse } : msg
@@ -830,6 +822,7 @@ CONVERSATION PATTERNS:
       } catch (error: any) {
         console.error("Error editing message:", error);
         toast.error("Failed to edit message");
+        setIsTyping((prev) => ({ ...prev, [messageId]: false }));
       } finally {
         setEditingMessageId(null);
         setEditedMessage("");
@@ -1591,14 +1584,17 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             <div className="flex items-start space-x-2" style={{ maxWidth: '100%' }}>
                 <div className="relative group">
                   <div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed">
-                    {isTypewriterActive[msg.id] && typewriterResponses[msg.id] ? (
+                    {isTyping[msg.id] ? (
                       <TextType 
-                        text={typewriterResponses[msg.id]}
-                        typingSpeed={50}
-                        pauseDuration={800}
+                        text={msg.response || "Generating response..."}
+                        typingSpeed={25}
+                        pauseDuration={0}
                         showCursor={true}
                         cursorCharacter="|"
-                        onComplete={() => handleTextTypeComplete(msg.id)}
+                        renderAsMarkdown={true}
+                        onComplete={() => {
+                          setIsTyping((prev) => ({ ...prev, [msg.id]: false }));
+                        }}
                         className="text-sm leading-relaxed"
                       />
                     ) : (
@@ -1695,7 +1691,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         </div>
       );
     });
-  }, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, displayedResponse, isTyping, copiedMessageIds, typewriterResponses, isTypewriterActive]);
+  }, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, isTyping, copiedMessageIds]);
 
   return (
     <AuthGuard>
