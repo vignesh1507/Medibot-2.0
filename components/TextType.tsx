@@ -15,7 +15,7 @@ interface TextTypeProps {
 
 const TextType: React.FC<TextTypeProps> = ({
   text,
-  typingSpeed = 75,
+  typingSpeed = 15, // Faster default typing speed for reduced latency
   pauseDuration = 1500,
   showCursor = true,
   cursorCharacter = "|",
@@ -40,16 +40,20 @@ const TextType: React.FC<TextTypeProps> = ({
 
   useEffect(() => {
     if (currentIndex < fullText.length && isTyping) {
+      // Add slight randomness to typing speed for more natural feel (±5ms)
+      const randomDelay = typingSpeed + (Math.random() * 10 - 5);
+      const actualDelay = Math.max(5, Math.round(randomDelay)); // Minimum 5ms delay
+      
       const timer = setTimeout(() => {
         setDisplayText(fullText.slice(0, currentIndex + 1));
         setCurrentIndex(currentIndex + 1);
-      }, typingSpeed);
+      }, actualDelay);
 
       return () => clearTimeout(timer);
     } else if (currentIndex >= fullText.length) {
       setIsTyping(false);
       if (onComplete) {
-        setTimeout(() => onComplete(), 100);
+        setTimeout(() => onComplete(), 50); // Reduced delay for faster completion
       }
     }
   }, [currentIndex, fullText, typingSpeed, onComplete, isTyping]);
@@ -59,7 +63,7 @@ const TextType: React.FC<TextTypeProps> = ({
     if (showCursor && isTyping) {
       const cursorTimer = setInterval(() => {
         setShowCursorState(prev => !prev);
-      }, 500);
+      }, 400); // Faster cursor blinking for more responsiveness
 
       return () => clearInterval(cursorTimer);
     } else {
@@ -91,17 +95,17 @@ const TextType: React.FC<TextTypeProps> = ({
       if (current.heading || current.content.length) sections.push(current);
       
       return (
-        <div>
+        <div className="space-y-4">
           {sections.map((sec, idx) =>
             sec.heading ? (
-              <div key={idx} className="mb-3">
-                <h3 className="font-semibold text-base mb-1">{sec.heading}</h3>
+              <div key={idx} className="mb-5">
+                <h3 className="font-semibold text-base mb-3">{sec.heading}</h3>
                 {sec.content.map((line, i) => line.trim() && (
-                  <p key={i} className="mb-1">{line.replace(/\*\*|\*/g, "")}</p>
+                  <p key={i} className="mb-3 leading-relaxed">{line.replace(/\*\*|\*/g, "")}</p>
                 ))}
               </div>
             ) : (
-              <div key={idx} className="mb-2 italic">
+              <div key={idx} className="mb-4 italic leading-relaxed">
                 {sec.content.join(" ").replace(/\*\*|\*/g, "")}
               </div>
             )
@@ -115,14 +119,14 @@ const TextType: React.FC<TextTypeProps> = ({
       const bulletLines = nonEmptyLines.slice(1);
       
       return (
-        <div>
+        <div className="space-y-3">
           {greeting && (
-            <div className="mb-2 italic">{greeting.replace(/\*\*|\*/g, "")}</div>
+            <div className="mb-4 italic leading-relaxed">{greeting.replace(/\*\*|\*/g, "")}</div>
           )}
           {bulletLines.length > 0 && (
-            <ul className="list-disc pl-5">
+            <ul className="list-disc pl-5 space-y-2">
               {bulletLines.map((line, i) => (
-                <li key={i}>{line.replace(/\*\*|\*/g, "")}</li>
+                <li key={i} className="leading-relaxed">{line.replace(/\*\*|\*/g, "")}</li>
               ))}
             </ul>
           )}
@@ -132,11 +136,14 @@ const TextType: React.FC<TextTypeProps> = ({
   };
 
   return (
-    <span className={className}>
+    <span className={`${className} leading-relaxed`}>
       {renderAsMarkdown ? (
         renderResponse(displayText)
       ) : (
-        <span dangerouslySetInnerHTML={{ __html: displayText.replace(/\n/g, '<br>') }} />
+        <span 
+          className="leading-relaxed" 
+          dangerouslySetInnerHTML={{ __html: displayText.replace(/\n/g, '<br class="mb-2">') }} 
+        />
       )}
       {showCursor && (
         <span 

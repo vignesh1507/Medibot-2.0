@@ -1354,15 +1354,15 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           }
           if (current.heading || current.content.length) sections.push(current);
           return (
-            <div>
+            <div className="space-y-4">
               {sections.map((sec, idx) =>
                 sec.heading ? (
-                  <div key={idx} className="mb-3">
-                    <h3 className="font-semibold text-base mb-1">{sec.heading}</h3>
-                    {sec.content.map((line, i) => line.trim() && <p key={i} className="mb-1">{line.replace(/\*\*|\*/g, "")}</p>)}
+                  <div key={idx} className="mb-5">
+                    <h3 className="font-semibold text-base mb-3">{sec.heading}</h3>
+                    {sec.content.map((line, i) => line.trim() && <p key={i} className="mb-3 leading-relaxed">{line.replace(/\*\*|\*/g, "")}</p>)}
                   </div>
                 ) : (
-                  <div key={idx} className="mb-2 italic">{sec.content.join(" ").replace(/\*\*|\*/g, "")}</div>
+                  <div key={idx} className="mb-4 italic leading-relaxed">{sec.content.join(" ").replace(/\*\*|\*/g, "")}</div>
                 )
               )}
             </div>
@@ -1373,12 +1373,12 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           const greeting = nonEmptyLines.length > 0 ? nonEmptyLines[0] : "";
           const bulletLines = nonEmptyLines.slice(1);
           return (
-            <div>
-              {greeting && <div className="mb-2 italic">{greeting.replace(/\*\*|\*/g, "")}</div>}
+            <div className="space-y-3">
+              {greeting && <div className="mb-4 italic leading-relaxed">{greeting.replace(/\*\*|\*/g, "")}</div>}
               {bulletLines.length > 0 && (
-                <ul className="list-disc pl-5">
+                <ul className="list-disc pl-5 space-y-2">
                   {bulletLines.map((line, i) => (
-                    <li key={i}>{line.replace(/\*\*|\*/g, "")}</li>
+                    <li key={i} className="leading-relaxed">{line.replace(/\*\*|\*/g, "")}</li>
                   ))}
                 </ul>
               )}
@@ -1583,11 +1583,11 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             {msg.response || isTyping[msg.id] ? (
             <div className="flex items-start space-x-2" style={{ maxWidth: '100%' }}>
                 <div className="relative group">
-                  <div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed">
+                  <div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed space-y-2">
                     {isTyping[msg.id] ? (
                       <TextType 
                         text={msg.response || "Generating response..."}
-                        typingSpeed={25}
+                        typingSpeed={15}
                         pauseDuration={0}
                         showCursor={true}
                         cursorCharacter="|"
