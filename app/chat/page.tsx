@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TextType from "@/components/TextType";
+import AISuggestions from "@/components/AISuggestions";
 import {
   Dialog,
   DialogContent,
@@ -156,6 +157,7 @@ function ChatContent() {
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<string>("base");
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [copiedMessageIds, setCopiedMessageIds] = useState<Set<string>>(new Set());
+  const [isGenerationStopped, setIsGenerationStopped] = useState(false);
   
   // 🔥 ENHANCED SCROLL-TO-LATEST FUNCTIONALITY
   // Voice recording animation state
@@ -296,7 +298,10 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
         {listening ? (
           <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" className="opacity-30"/><rect x="8.5" y="5" width="3" height="7" rx="1.5"/><rect x="8.5" y="13" width="3" height="2" rx="1"/></svg>
         ) : (
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18v2m0 0c-3.314 0-6-2.239-6-5m6 5c3.314 0 6-2.239 6-5m-6 5v-2m0-2a4 4 0 004-4V7a4 4 0 10-8 0v4a4 4 0 004 4z"/></svg>
+          <>
+            <img src="/microphone.png" alt="Microphone" className="h-5 w-5 block dark:hidden object-contain" />
+            <img src="/microphone1.png" alt="Microphone" className="h-5 w-5 hidden dark:block object-contain" />
+          </>
         )}
       </button>
       {error && (
@@ -608,6 +613,10 @@ CONVERSATION PATTERNS:
       toast.error("Please enter a message or upload a file");
       return;
     }
+    
+    // Reset generation stopped state when starting new message
+    setIsGenerationStopped(false);
+    
     const userMessage = message.trim() || "File uploaded";
     const messageId = uuidv4();
     setLoading(true);
@@ -757,6 +766,29 @@ CONVERSATION PATTERNS:
     }
   };
 
+  // Global stop generation function
+  const handleStopGeneration = () => {
+    console.log("Stop generation clicked"); // Debug log
+    setIsGenerationStopped(true);
+    
+    if (abortController) {
+      console.log("Aborting controller"); // Debug log
+      abortController.abort();
+      setAbortController(null);
+    }
+    
+    // Stop all typing animations immediately
+    setIsTyping({});
+    setLoading(false);
+    
+    // Reset stop state after a short delay
+    setTimeout(() => {
+      setIsGenerationStopped(false);
+    }, 100);
+    
+    toast.info("Response generation stopped");
+  };
+
   const handleStopResponse = (messageId: string) => {
     if (abortController) {
       abortController.abort();
@@ -771,24 +803,54 @@ CONVERSATION PATTERNS:
       toast.error("Please log in to retry responses");
       return;
     }
+    
     setLoading(true);
-    setIsTyping((prev) => ({ ...prev, [messageId]: true }));
+    setIsGenerationStopped(false);
+    
     try {
-      const botResponse = await generateAIResponse(userMessage, selectedModel, messageId);
+      // Generate a new, optimized response with enhanced prompt for retry
+      const optimizedPrompt = userMessage.includes("(Please provide an improved") 
+        ? userMessage 
+        : `${userMessage} (Please provide an improved, more detailed and comprehensive response than your previous answer)`;
+      const newMessageId = uuidv4();
+      
+      setIsTyping((prev) => ({ ...prev, [newMessageId]: true }));
+      
+      const botResponse = await generateAIResponse(optimizedPrompt, selectedModel, newMessageId);
       const sessionId = currentSession?.id;
+      
       if (sessionId) {
-        const existingMessage = currentSession!.messages.find((msg) => msg.id === messageId);
-        const updatedMessages = currentSession!.messages.map((msg) =>
-          msg.id === messageId ? { ...msg, response: botResponse } : msg
-        );
-        await addMessageToSession(sessionId, user.uid, userMessage, botResponse, "chat", existingMessage?.image ?? null);
-        setCurrentSession((prev) => (prev ? { ...prev, messages: updatedMessages } : prev));
-        toast.success("Response regenerated!");
+        // Add as a new message instead of replacing the existing one
+        const newMessage = await addMessageToSession(sessionId, user.uid, userMessage, botResponse, "chat", null);
+        
+        // Update the current session with the new message
+        setCurrentSession((prev) => {
+          if (!prev) return prev;
+          
+          // Convert the new message to match the expected format
+          const formattedMessage = {
+            ...newMessage,
+            id: newMessage.id || uuidv4(),
+            timestamp: newMessage.timestamp instanceof Date
+              ? newMessage.timestamp
+              : (newMessage.timestamp as any).toDate(),
+          };
+          
+          return {
+            ...prev,
+            messages: [...prev.messages, formattedMessage],
+            updatedAt: new Date(),
+          };
+        });
+        
+        toast.success("Generated improved response!");
+        
+        // Scroll to bottom to show the new message
+        setTimeout(() => scrollToBottom(), 100);
       }
     } catch (error: any) {
-      console.error("Error retrying response:", error);
-      toast.error("Failed to regenerate response");
-      setIsTyping((prev) => ({ ...prev, [messageId]: false }));
+      console.error("Error generating optimized response:", error);
+      toast.error("Failed to generate improved response");
     } finally {
       setLoading(false);
       setAbortController(null);
@@ -1012,7 +1074,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     if (!config) throw new Error(`Invalid model: ${selectedModel}`);
     if (config.api !== "puter" && !config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
 
-    const greetings = ["hi", "hello", "hey", "hola", "yo"];
+    const greetings = ["hi", "hello", "hey", "hola", "yo","hii","hi there","hlo","helloo"];
     if (greetings.includes(userMessage.trim().toLowerCase())) {
       return "Hi there! How can I assist you today?";
     }
@@ -1068,10 +1130,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         .join("\n\n");
     }
 
-    // New prompt: ChatGPT-style paragraph responses with intelligent bullet point usage
+    // Enhanced prompt: ChatGPT-style paragraph responses with emojis and intelligent bullet point usage
     const prompt = currentSessionContext
-      ? `You are MediBot, a helpful health assistant.\n\nFirst, greet the user and thank them for their question, mentioning their question.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Only use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing specific items (like medications, symptoms, or instructions)\n- The information is naturally suited for a list format (like step-by-step procedures)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in natural paragraphs with smooth transitions between ideas.\n\nCONVERSATION HISTORY:\n${currentSessionContext}\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: (thank user, echo question)\n\nMain response in conversational paragraphs. Use bullet points only when specifically needed or requested.\n\nIf user asks about your developer, say \"I was developed by Sujay Babu Thota from MediBot\". Use context to infer their name or age if asked.`
-      : `You are MediBot, a helpful health assistant.\n\nFirst, greet the user and thank them for their question, mentioning their question.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Only use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing specific items (like medications, symptoms, or instructions)\n- The information is naturally suited for a list format (like step-by-step procedures)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in natural paragraphs with smooth transitions between ideas.\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: (thank user, echo question)\n\nMain response in conversational paragraphs. Use bullet points only when specifically needed or requested.\n\nIf user asks about your developer, say \"I was developed by Sujay Babu Thota from MediBot\". Use context to infer their name or age if asked.`;
+  ? `You are MediBot, a helpful health assistant. 🏥✨\n\nAlways begin your response with a friendly greeting that includes the user’s question and 1–2 modern emojis placed at the very beginning of the message. End your response with another 1–2 emojis for warmth, encouragement, or emphasis.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Use relevant emojis naturally throughout your response to make it more engaging and visual, but keep it subtle and professional.\n\nEmoji Guidelines:\n- Health-related emojis: 🏥 💊 🩺 🌡️ ❤️ 🧠 💚 🔬 ⚕️ 🫀 🫁 🦠 🧬\n- General emphasis emojis: ✅ ⚠️ 💡 🔍 📋 📝 🎯 ⭐ ✨ 📌 🔔 📊 👍\n- Emotional emojis: 😊 😌 🤗 💪 🙏 🤝 🌸 🌟 🤍 👍\n- Use 2–4 emojis total per response (placed at start, end, or key points).\n\nOnly use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing medications, symptoms, or instructions\n- The content is naturally suited for steps (like “what to do next”)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in smooth, natural paragraphs with light emoji use.\n\nCONVERSATION HISTORY:\n${currentSessionContext}\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: Start with emojis + thank the user + echo their question 🎉\n\nMain Body: Detailed, conversational paragraphs with smooth flow 🩺\n\nClosing: End with 1–2 supportive emojis (like 😊💪, ❤️✨, or 👍😊)\n\nIf user asks about your developer, say: "I was developed by Sujay Babu Thota from MediBot 👨‍💻". Use context to infer their name or age if asked.`
+  : `You are MediBot, a helpful health assistant. 🏥✨\n\nAlways begin your response with a friendly greeting that includes the user’s question and 1–2 modern emojis placed at the very beginning of the message. End your response with another 1–2 emojis for warmth, encouragement, or emphasis.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Use relevant emojis naturally throughout your response to make it more engaging and visual, but keep it subtle and professional.\n\nEmoji Guidelines:\n- Health-related emojis: 🏥 💊 🩺 🌡️ ❤️ 🧠 💚 🔬 ⚕️ 🫀 🫁 🦠 🧬\n- General emphasis emojis: ✅ ⚠️ 💡 🔍 📋 📝 🎯 ⭐ ✨ 📌 🔔 📊 👍\n- Emotional emojis: 😊 😌 🤗 💪 🙏 🤝 🌸 🌟 🤍 👍\n- Use 2–4 emojis total per response (placed at start, end, or key points).\n\nOnly use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing medications, symptoms, or instructions\n- The content is naturally suited for steps (like “what to do next”)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in smooth, natural paragraphs with light emoji use.\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: Start with emojis + thank the user + echo their question 🎉\n\nMain Body: Detailed, conversational paragraphs with smooth flow 🩺\n\nClosing: End with 1–2 supportive emojis (like 😊💪, ❤️✨, or 👍😊)\n\nIf user asks about your developer, say: "I was developed by Sujay Babu Thota from MediBot 👨‍💻". Use context to infer their name or age if asked.`;
 
     let content: string | undefined;
 
@@ -1135,7 +1197,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             },
           ],
           temperature: 0.7,
-          max_tokens: 500,
+          max_tokens: 1500,
         }),
         signal: controller.signal,
       });
@@ -1587,11 +1649,13 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                     {isTyping[msg.id] ? (
                       <TextType 
                         text={msg.response || "Generating response..."}
-                        typingSpeed={15}
+                        typingSpeed={80}
                         pauseDuration={0}
                         showCursor={true}
                         cursorCharacter="|"
                         renderAsMarkdown={true}
+                        showStopButton={false}
+                        isStopRequested={isGenerationStopped}
                         onComplete={() => {
                           setIsTyping((prev) => ({ ...prev, [msg.id]: false }));
                         }}
@@ -1647,7 +1711,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       size="icon"
                       onClick={() => handleRetryResponse(msg.id, msg.message)}
                       className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6 rounded-full transition-colors duration-200"
-                      title="Retry Response"
+                      title="Generate Improved Response ✨"
                     >
                       <RefreshCw className="h-4 w-4" />
                     </Button>
@@ -1926,17 +1990,28 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                     </div>
                   </div>
                 ) : (!currentSession || currentSession.messages.length === 0) ? (
-                  <div className="flex flex-1 items-center justify-center min-h-[60vh]">
-                    <div className="w-full max-w-md mx-auto text-center space-y-8 flex flex-col items-center justify-center">
-                      <div className="flex flex-col items-center space-y-6">
-                        <div className="w-20 h-20 relative">
-                          <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
-                        </div>
-                        <div>
-                          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
-                          <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation below or select a previous chat from history.</p>
+                  <div className="flex flex-1 flex-col min-h-[60vh]">
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="w-full max-w-md mx-auto text-center space-y-8 flex flex-col items-center justify-center">
+                        <div className="flex flex-col items-center space-y-6">
+                          <div className="w-20 h-20 relative">
+                            <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
+                          </div>
+                          <div>
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation below or try these suggestions:</p>
+                          </div>
                         </div>
                       </div>
+                    </div>
+                    <div className="pb-4">
+                      <AISuggestions 
+                        onSuggestionClick={(suggestion) => {
+                          setMessage(suggestion);
+                          setTimeout(() => handleSendMessage(), 100);
+                        }}
+                        disabled={loading}
+                      />
                     </div>
                   </div>
                 ) : (
@@ -2054,27 +2129,35 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           </div>
 
           <button
-            onClick={handleSendMessage}
-            disabled={loading || (!message.trim() && !selectedFile)}
-            data-testid="send-button"
+            onClick={loading ? handleStopGeneration : handleSendMessage}
+            disabled={!loading && (!message.trim() && !selectedFile)}
+            data-testid={loading ? "stop-button" : "send-button"}
             className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border dark:border-zinc-600"
-            aria-label="Send Message"
+            aria-label={loading ? "Stop Generation" : "Send Message"}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="none"
-              style={{ color: "currentcolor" }}
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fill="currentColor"
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M8.70711 1.39644C8.31659 1.00592 7.68342 1.00592 7.2929 1.39644L2.21968 6.46966L1.68935 6.99999L2.75001 8.06065L3.28034 7.53032L7.25001 3.56065V14.25V15H8.75001V14.25V3.56065L12.7197 7.53032L13.25 8.06065L14.3107 6.99999L13.7803 6.46966L8.70711 1.39644Z"
+            {loading ? (
+              <StopCircle
+                width="14"
+                height="14"
+                style={{ color: "currentcolor" }}
               />
-            </svg>
+            ) : (
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                style={{ color: "currentcolor" }}
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fill="currentColor"
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M8.70711 1.39644C8.31659 1.00592 7.68342 1.00592 7.2929 1.39644L2.21968 6.46966L1.68935 6.99999L2.75001 8.06065L3.28034 7.53032L7.25001 3.56065V14.25V15H8.75001V14.25V3.56065L12.7197 7.53032L13.25 8.06065L14.3107 6.99999L13.7803 6.46966L8.70711 1.39644Z"
+                />
+              </svg>
+            )}
           </button>
         </div>
 

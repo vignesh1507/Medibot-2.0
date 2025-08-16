@@ -11,52 +11,78 @@ interface TextTypeProps {
   onComplete?: () => void;
   className?: string;
   renderAsMarkdown?: boolean;
+  showStopButton?: boolean;
+  onStop?: () => void;
+  isStopRequested?: boolean;
 }
 
 const TextType: React.FC<TextTypeProps> = ({
   text,
-  typingSpeed = 15, // Faster default typing speed for reduced latency
+  typingSpeed = 80, // Slower speed for more ChatGPT-like experience (80ms per word)
   pauseDuration = 1500,
   showCursor = true,
   cursorCharacter = "|",
   onComplete,
   className = "",
-  renderAsMarkdown = false
+  renderAsMarkdown = false,
+  showStopButton = false,
+  onStop,
+  isStopRequested = false
 }) => {
   const [displayText, setDisplayText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
   const [showCursorState, setShowCursorState] = useState(true);
+  const [isStopped, setIsStopped] = useState(false);
 
-  // Convert text to string if it's an array
+  // Convert text to string if it's an array and split into words
   const fullText = Array.isArray(text) ? text.join(" ") : text || "";
+  const words = fullText.split(/(\s+)/); // Split by spaces but keep the spaces
+
+  // Handle external stop requests
+  useEffect(() => {
+    if (isStopRequested && !isStopped) {
+      handleStop();
+    }
+  }, [isStopRequested]);
+
+  // Function to stop typing - preserve what's already displayed
+  const handleStop = () => {
+    setIsStopped(true);
+    setIsTyping(false);
+    // Don't show full text immediately - keep what's already displayed
+    if (onStop) {
+      onStop();
+    }
+  };
 
   useEffect(() => {
     // Reset when text changes
     setDisplayText("");
-    setCurrentIndex(0);
+    setCurrentWordIndex(0);
     setIsTyping(true);
+    setIsStopped(false);
   }, [fullText]);
 
   useEffect(() => {
-    if (currentIndex < fullText.length && isTyping) {
-      // Add slight randomness to typing speed for more natural feel (±5ms)
-      const randomDelay = typingSpeed + (Math.random() * 10 - 5);
-      const actualDelay = Math.max(5, Math.round(randomDelay)); // Minimum 5ms delay
+    if (currentWordIndex < words.length && isTyping && !isStopped) {
+      // Add slight randomness to typing speed for more natural feel (±30ms)
+      const randomDelay = typingSpeed + (Math.random() * 60 - 30);
+      const actualDelay = Math.max(40, Math.round(randomDelay)); // Minimum 40ms delay
       
       const timer = setTimeout(() => {
-        setDisplayText(fullText.slice(0, currentIndex + 1));
-        setCurrentIndex(currentIndex + 1);
+        setDisplayText(words.slice(0, currentWordIndex + 1).join(''));
+        setCurrentWordIndex(currentWordIndex + 1);
       }, actualDelay);
 
       return () => clearTimeout(timer);
-    } else if (currentIndex >= fullText.length) {
+    } else if (currentWordIndex >= words.length || isStopped) {
       setIsTyping(false);
-      if (onComplete) {
-        setTimeout(() => onComplete(), 50); // Reduced delay for faster completion
+      if (onComplete && !isStopped) {
+        setTimeout(() => onComplete(), 50);
       }
     }
-  }, [currentIndex, fullText, typingSpeed, onComplete, isTyping]);
+  }, [currentWordIndex, words, typingSpeed, onComplete, isTyping, isStopped]);
 
   // Cursor blinking effect
   useEffect(() => {
@@ -136,23 +162,44 @@ const TextType: React.FC<TextTypeProps> = ({
   };
 
   return (
-    <span className={`${className} leading-relaxed`}>
-      {renderAsMarkdown ? (
-        renderResponse(displayText)
-      ) : (
-        <span 
-          className="leading-relaxed" 
-          dangerouslySetInnerHTML={{ __html: displayText.replace(/\n/g, '<br class="mb-2">') }} 
-        />
-      )}
-      {showCursor && (
-        <span 
-          className={`${showCursorState ? 'opacity-100' : 'opacity-0'} transition-opacity duration-100 ml-1`}
+    <div className="relative">
+      <span className={`${className} leading-relaxed`}>
+        {renderAsMarkdown ? (
+          // For markdown, render as simple text during typing, then format when complete
+          isTyping ? (
+            <span 
+              className="leading-relaxed" 
+              dangerouslySetInnerHTML={{ __html: displayText.replace(/\n/g, '<br class="mb-2">') }} 
+            />
+          ) : (
+            renderResponse(displayText)
+          )
+        ) : (
+          <span 
+            className="leading-relaxed" 
+            dangerouslySetInnerHTML={{ __html: displayText.replace(/\n/g, '<br class="mb-2">') }} 
+          />
+        )}
+        {showCursor && (
+          <span 
+            className={`${showCursorState ? 'opacity-100' : 'opacity-0'} transition-opacity duration-100 ml-1`}
+          >
+            {cursorCharacter}
+          </span>
+        )}
+      </span>
+      
+      {/* Stop button - only show when typing and showStopButton is true */}
+      {showStopButton && isTyping && !isStopped && (
+        <button
+          onClick={handleStop}
+          className="ml-3 px-3 py-1 text-xs bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md transition-colors duration-200 border border-gray-300 dark:border-gray-600"
+          type="button"
         >
-          {cursorCharacter}
-        </span>
+          Stop generating
+        </button>
       )}
-    </span>
+    </div>
   );
 };
 
