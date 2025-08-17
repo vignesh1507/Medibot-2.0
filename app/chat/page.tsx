@@ -108,7 +108,14 @@ interface GroqResponse {
     message: {
       content: string;
     };
+    finish_reason?: string;
+    index?: number;
   }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
 }
 
 interface GeminiResponse {
@@ -118,6 +125,11 @@ interface GeminiResponse {
         text: string;
       }>;
     };
+    finishReason?: string;
+    safetyRatings?: Array<{
+      category: string;
+      probability: string;
+    }>;
   }>;
 }
 
@@ -126,7 +138,14 @@ interface OpenAIResponse {
     message: {
       content: string;
     };
+    finish_reason?: string;
+    index?: number;
   }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
 }
 
 
@@ -455,6 +474,21 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [message]);
+
+  // 🔥 Helper function to create a concise prompt that prevents cutoffs
+  const createOptimizedPrompt = (userMessage: string, contextMessages?: string) => {
+    const baseInstruction = "You are MediBot, a helpful health assistant. Respond with emoji greeting 🩺, write in clear separate paragraphs with blank lines between them, use health emojis (🏥💊🌡️❤️), and end with emoji 😊. Always complete your full response and separate paragraphs with double line breaks for better readability.";
+    
+    if (contextMessages && contextMessages.length > 500) {
+      // If context is too long, use only the essential parts
+      const contextSummary = contextMessages.slice(-300) + "...";
+      return `${baseInstruction}\n\nRecent context: ${contextSummary}\n\nUser: ${userMessage}\n\nComplete response with proper paragraph spacing:`;
+    }
+    
+    return contextMessages 
+      ? `${baseInstruction}\n\nContext: ${contextMessages}\n\nUser: ${userMessage}\n\nComplete response with proper paragraph spacing:`
+      : `${baseInstruction}\n\nUser: ${userMessage}\n\nComplete response with proper paragraph spacing:`;
+  };
 
   // 🔥 ENHANCED FUNCTION: Build comprehensive user context for personalization
   const buildUserPersonalizationContext = () => {
@@ -1054,9 +1088,9 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
 
     const modelMap: Record<string, { api: string; model: string; key: string }> = {
       "gemini-2.0-flash": {
-        api: "puter",
-        model: "google/gemini-2.5-pro-exp-03-25:free",
-        key: "", // Not needed for Puter
+        api: "gemini",
+        model: "gemini-2.0-flash-exp",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM",
       },
       "gpt-4o": {
         api: "openai",
@@ -1072,7 +1106,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
 
     const config = modelMap[selectedModel];
     if (!config) throw new Error(`Invalid model: ${selectedModel}`);
-    if (config.api !== "puter" && !config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
+    if (!config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
 
     const greetings = ["hi", "hello", "hey", "hola", "yo","hii","hi there","hlo","helloo"];
     if (greetings.includes(userMessage.trim().toLowerCase())) {
@@ -1125,51 +1159,61 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     // Always use the full current session message history as context for every new message
     let currentSessionContext = "";
     if (currentSession?.messages?.length) {
-      currentSessionContext = currentSession.messages
+      // Limit context to last 5 messages to prevent token overflow
+      const recentMessages = currentSession.messages.slice(-5);
+      currentSessionContext = recentMessages
         .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
         .join("\n\n");
     }
 
-    // Enhanced prompt: ChatGPT-style paragraph responses with emojis and intelligent bullet point usage
+    // Use optimized prompt to prevent cutoffs
+    const optimizedPrompt = createOptimizedPrompt(userMessage, currentSessionContext);
+    
+    // Alternative: Simple fallback prompt if needed
+    const simplePrompt = `You are MediBot. Answer this health question with emoji 🩺 and complete response: ${userMessage}`;
     const prompt = currentSessionContext
   ? `You are MediBot, a helpful health assistant. 🏥✨\n\nAlways begin your response with a friendly greeting that includes the user’s question and 1–2 modern emojis placed at the very beginning of the message. End your response with another 1–2 emojis for warmth, encouragement, or emphasis.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Use relevant emojis naturally throughout your response to make it more engaging and visual, but keep it subtle and professional.\n\nEmoji Guidelines:\n- Health-related emojis: 🏥 💊 🩺 🌡️ ❤️ 🧠 💚 🔬 ⚕️ 🫀 🫁 🦠 🧬\n- General emphasis emojis: ✅ ⚠️ 💡 🔍 📋 📝 🎯 ⭐ ✨ 📌 🔔 📊 👍\n- Emotional emojis: 😊 😌 🤗 💪 🙏 🤝 🌸 🌟 🤍 👍\n- Use 2–4 emojis total per response (placed at start, end, or key points).\n\nOnly use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing medications, symptoms, or instructions\n- The content is naturally suited for steps (like “what to do next”)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in smooth, natural paragraphs with light emoji use.\n\nCONVERSATION HISTORY:\n${currentSessionContext}\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: Start with emojis + thank the user + echo their question 🎉\n\nMain Body: Detailed, conversational paragraphs with smooth flow 🩺\n\nClosing: End with 1–2 supportive emojis (like 😊💪, ❤️✨, or 👍😊)\n\nIf user asks about your developer, say: "I was developed by Sujay Babu Thota from MediBot 👨‍💻". Use context to infer their name or age if asked.`
   : `You are MediBot, a helpful health assistant. 🏥✨\n\nAlways begin your response with a friendly greeting that includes the user’s question and 1–2 modern emojis placed at the very beginning of the message. End your response with another 1–2 emojis for warmth, encouragement, or emphasis.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Use relevant emojis naturally throughout your response to make it more engaging and visual, but keep it subtle and professional.\n\nEmoji Guidelines:\n- Health-related emojis: 🏥 💊 🩺 🌡️ ❤️ 🧠 💚 🔬 ⚕️ 🫀 🫁 🦠 🧬\n- General emphasis emojis: ✅ ⚠️ 💡 🔍 📋 📝 🎯 ⭐ ✨ 📌 🔔 📊 👍\n- Emotional emojis: 😊 😌 🤗 💪 🙏 🤝 🌸 🌟 🤍 👍\n- Use 2–4 emojis total per response (placed at start, end, or key points).\n\nOnly use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing medications, symptoms, or instructions\n- The content is naturally suited for steps (like “what to do next”)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in smooth, natural paragraphs with light emoji use.\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: Start with emojis + thank the user + echo their question 🎉\n\nMain Body: Detailed, conversational paragraphs with smooth flow 🩺\n\nClosing: End with 1–2 supportive emojis (like 😊💪, ❤️✨, or 👍😊)\n\nIf user asks about your developer, say: "I was developed by Sujay Babu Thota from MediBot 👨‍💻". Use context to infer their name or age if asked.`;
 
     let content: string | undefined;
 
-    // ✅ Puter Gemini Integration
-    if (config.api === "puter") {
-      if (typeof window === "undefined" || typeof puter === "undefined") {
-        throw new Error("Puter can only be used in the browser.");
-      }
-
-      const response = await puter.ai.chat(prompt, {
-        model: config.model,
-      });
-
-      content = response?.message?.content;
-    }
-
-    // ✅ Gemini (via API)
-    else if (config.api === "gemini") {
+    // ✅ Gemini API Integration
+    if (config.api === "gemini") {
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.key}`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${config.key}`,
           },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 500 },
+            contents: [{ parts: [{ text: optimizedPrompt }] }],
+            generationConfig: { 
+              temperature: 0.7, 
+              maxOutputTokens: 8192,
+              topP: 0.95,
+              topK: 1,
+              stopSequences: [],
+              candidateCount: 1
+            },
           }),
           signal: controller.signal,
         }
       );
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+      }
+
       const data: GeminiResponse = await response.json();
       content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      // Check if response was truncated due to safety filters or other issues
+      if (data.candidates?.[0]?.finishReason === "SAFETY" || 
+          data.candidates?.[0]?.finishReason === "OTHER") {
+        console.warn("Gemini response was filtered or truncated:", data.candidates[0].finishReason);
+      }
     }
 
     // ✅ OpenAI / Groq
@@ -1193,20 +1237,85 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             },
             {
               role: "user",
-              content: prompt,
+              content: optimizedPrompt,
             },
           ],
           temperature: 0.7,
-          max_tokens: 1500,
+          max_tokens: 8192,
+          top_p: 0.95,
+          frequency_penalty: 0,
+          presence_penalty: 0,
+          stop: null,
         }),
         signal: controller.signal,
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`${config.api.toUpperCase()} API error: ${response.status} - ${errorText}`);
+      }
+
       const data: OpenAIResponse | GroqResponse = await response.json();
       content = data.choices?.[0]?.message?.content;
+      
+      // Check if response was truncated
+      if (data.choices?.[0]?.finish_reason === "length") {
+        console.warn("Response was truncated due to length limit");
+        // Try again with a more concise prompt
+        const shortPrompt = `You are MediBot. Answer this health question completely: ${userMessage}`;
+        
+        const retryResponse = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${config.key}`,
+          },
+          body: JSON.stringify({
+            model: config.model,
+            messages: [
+              {
+                role: "system",
+                content: "You are a helpful health assistant. Always complete your responses.",
+              },
+              {
+                role: "user",
+                content: shortPrompt,
+              },
+            ],
+            temperature: 0.7,
+            max_tokens: 8192,
+            top_p: 0.95,
+            frequency_penalty: 0,
+            presence_penalty: 0,
+            stop: null,
+          }),
+          signal: controller.signal,
+        });
+        
+        if (retryResponse.ok) {
+          const retryData: OpenAIResponse | GroqResponse = await retryResponse.json();
+          const retryContent = retryData.choices?.[0]?.message?.content;
+          if (retryContent) {
+            content = retryContent;
+          }
+        }
+      }
     }
 
     if (!content) throw new Error("No valid response");
+    
+    // Check if response seems incomplete (ends mid-sentence)
+    const trimmedContent = content.trim();
+    const lastChar = trimmedContent.slice(-1);
+    const seemsIncomplete = !['!', '.', '?', '😊', '💪', '❤️', '✨', '👍', '🙏'].includes(lastChar) && 
+                           trimmedContent.length > 50;
+    
+    if (seemsIncomplete) {
+      console.warn("Response appears incomplete, last character:", lastChar);
+      // Add a note about potential truncation
+      content = trimmedContent + "\n\n[Response may have been truncated. Please ask me to continue if you need more information.]";
+    }
+    
     return content.trim();
 
   } catch (error: any) {
@@ -1395,11 +1504,12 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       const messageDate = msg.timestamp.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
       const showDateDivider = messageDate !== lastDate;
       lastDate = messageDate;
-      // Helper to render response: bullets for lists, headings only if present
+      // Enhanced helper to render response with proper paragraph spacing
       const renderResponse = (response: string) => {
         const lines = response.split("\n");
         // Detect if there are any headings (lines starting with #)
         const hasHeadings = lines.some(line => /^#\s+/.test(line));
+        
         if (hasHeadings) {
           // Render as sections with headings
           type Section = { heading: string | null; content: string[] };
@@ -1416,36 +1526,53 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           }
           if (current.heading || current.content.length) sections.push(current);
           return (
-            <div className="space-y-4">
+            <div className="space-y-6">
               {sections.map((sec, idx) =>
                 sec.heading ? (
-                  <div key={idx} className="mb-5">
-                    <h3 className="font-semibold text-base mb-3">{sec.heading}</h3>
-                    {sec.content.map((line, i) => line.trim() && <p key={i} className="mb-3 leading-relaxed">{line.replace(/\*\*|\*/g, "")}</p>)}
+                  <div key={idx} className="mb-6">
+                    <h3 className="font-semibold text-base mb-4">{sec.heading}</h3>
+                    {sec.content.map((line, i) => line.trim() && 
+                      <p key={i} className="mb-4 leading-relaxed text-gray-800 dark:text-gray-200">
+                        {line.replace(/\*\*|\*/g, "")}
+                      </p>
+                    )}
                   </div>
                 ) : (
-                  <div key={idx} className="mb-4 italic leading-relaxed">{sec.content.join(" ").replace(/\*\*|\*/g, "")}</div>
+                  <div key={idx} className="mb-5 leading-relaxed text-gray-800 dark:text-gray-200">
+                    {sec.content.join(" ").replace(/\*\*|\*/g, "")}
+                  </div>
                 )
               )}
             </div>
           );
         } else {
-          // Render greeting (first non-empty line), then bullets for points
-          const nonEmptyLines = lines.filter(l => l.trim().length > 0);
-          const greeting = nonEmptyLines.length > 0 ? nonEmptyLines[0] : "";
-          const bulletLines = nonEmptyLines.slice(1);
-          return (
-            <div className="space-y-3">
-              {greeting && <div className="mb-4 italic leading-relaxed">{greeting.replace(/\*\*|\*/g, "")}</div>}
-              {bulletLines.length > 0 && (
-                <ul className="list-disc pl-5 space-y-2">
-                  {bulletLines.map((line, i) => (
-                    <li key={i} className="leading-relaxed">{line.replace(/\*\*|\*/g, "")}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
+          // Enhanced paragraph rendering with proper spacing
+          const paragraphs = response.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+          
+          if (paragraphs.length === 1) {
+            // Single paragraph - split by sentences for better readability
+            const sentences = paragraphs[0].split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+            return (
+              <div className="space-y-4">
+                {sentences.map((sentence, i) => (
+                  <p key={i} className="leading-relaxed text-gray-800 dark:text-gray-200 mb-3">
+                    {sentence.trim().replace(/\*\*|\*/g, "")}
+                  </p>
+                ))}
+              </div>
+            );
+          } else {
+            // Multiple paragraphs
+            return (
+              <div className="space-y-5">
+                {paragraphs.map((paragraph, i) => (
+                  <p key={i} className="leading-relaxed text-gray-800 dark:text-gray-200 mb-4">
+                    {paragraph.trim().replace(/\*\*|\*/g, "")}
+                  </p>
+                ))}
+              </div>
+            );
+          }
         }
       };
       return (
@@ -1645,7 +1772,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             {msg.response || isTyping[msg.id] ? (
             <div className="flex items-start space-x-2" style={{ maxWidth: '100%' }}>
                 <div className="relative group">
-                  <div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed space-y-2">
+                  <div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed space-y-4 ai-response">
                     {isTyping[msg.id] ? (
                       <TextType 
                         text={msg.response || "Generating response..."}
@@ -1659,7 +1786,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                         onComplete={() => {
                           setIsTyping((prev) => ({ ...prev, [msg.id]: false }));
                         }}
-                        className="text-sm leading-relaxed"
+                        className="text-sm leading-relaxed space-y-3 ai-response"
                       />
                     ) : (
                       renderResponse(msg.response)
@@ -1775,6 +1902,25 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           }
           .scroll-button-enter { animation: fadeIn 0.3s ease-out; }
           .scroll-button-pulse { animation: pulse 2s infinite; }
+          
+          /* Enhanced paragraph spacing for AI responses */
+          .ai-response p {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+          }
+          .ai-response p:last-child {
+            margin-bottom: 0;
+          }
+          .ai-response .space-y-4 > * + * {
+            margin-top: 1rem;
+          }
+          .ai-response .space-y-5 > * + * {
+            margin-top: 1.25rem;
+          }
+          .ai-response .space-y-6 > * + * {
+            margin-top: 1.5rem;
+          }
+          
           .cancel-btn, .send-btn {
             border-radius: 12px;
             font-size: 13px;

@@ -97,7 +97,7 @@ const TextType: React.FC<TextTypeProps> = ({
     }
   }, [showCursor, isTyping]);
 
-  // Render response with bullet points and formatting
+  // Enhanced render response with proper paragraph spacing
   const renderResponse = (response: string) => {
     const lines = response.split("\n");
     // Detect if there are any headings (lines starting with #)
@@ -121,17 +121,19 @@ const TextType: React.FC<TextTypeProps> = ({
       if (current.heading || current.content.length) sections.push(current);
       
       return (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {sections.map((sec, idx) =>
             sec.heading ? (
-              <div key={idx} className="mb-5">
-                <h3 className="font-semibold text-base mb-3">{sec.heading}</h3>
+              <div key={idx} className="mb-6">
+                <h3 className="font-semibold text-base mb-4">{sec.heading}</h3>
                 {sec.content.map((line, i) => line.trim() && (
-                  <p key={i} className="mb-3 leading-relaxed">{line.replace(/\*\*|\*/g, "")}</p>
+                  <p key={i} className="mb-4 leading-relaxed text-gray-800 dark:text-gray-200">
+                    {line.replace(/\*\*|\*/g, "")}
+                  </p>
                 ))}
               </div>
             ) : (
-              <div key={idx} className="mb-4 italic leading-relaxed">
+              <div key={idx} className="mb-5 leading-relaxed text-gray-800 dark:text-gray-200">
                 {sec.content.join(" ").replace(/\*\*|\*/g, "")}
               </div>
             )
@@ -139,25 +141,33 @@ const TextType: React.FC<TextTypeProps> = ({
         </div>
       );
     } else {
-      // Render greeting (first non-empty line), then bullets for points
-      const nonEmptyLines = lines.filter(l => l.trim().length > 0);
-      const greeting = nonEmptyLines.length > 0 ? nonEmptyLines[0] : "";
-      const bulletLines = nonEmptyLines.slice(1);
+      // Enhanced paragraph rendering with proper spacing
+      const paragraphs = response.split(/\n\s*\n/).filter(p => p.trim().length > 0);
       
-      return (
-        <div className="space-y-3">
-          {greeting && (
-            <div className="mb-4 italic leading-relaxed">{greeting.replace(/\*\*|\*/g, "")}</div>
-          )}
-          {bulletLines.length > 0 && (
-            <ul className="list-disc pl-5 space-y-2">
-              {bulletLines.map((line, i) => (
-                <li key={i} className="leading-relaxed">{line.replace(/\*\*|\*/g, "")}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      );
+      if (paragraphs.length === 1) {
+        // Single paragraph - split by sentences for better readability
+        const sentences = paragraphs[0].split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+        return (
+          <div className="space-y-4">
+            {sentences.map((sentence, i) => (
+              <p key={i} className="leading-relaxed text-gray-800 dark:text-gray-200 mb-3">
+                {sentence.trim().replace(/\*\*|\*/g, "")}
+              </p>
+            ))}
+          </div>
+        );
+      } else {
+        // Multiple paragraphs
+        return (
+          <div className="space-y-5">
+            {paragraphs.map((paragraph, i) => (
+              <p key={i} className="leading-relaxed text-gray-800 dark:text-gray-200 mb-4">
+                {paragraph.trim().replace(/\*\*|\*/g, "")}
+              </p>
+            ))}
+          </div>
+        );
+      }
     }
   };
 
@@ -168,16 +178,16 @@ const TextType: React.FC<TextTypeProps> = ({
           // For markdown, render as simple text during typing, then format when complete
           isTyping ? (
             <span 
-              className="leading-relaxed" 
-              dangerouslySetInnerHTML={{ __html: displayText.replace(/\n/g, '<br class="mb-2">') }} 
+              className="leading-relaxed space-y-3" 
+              dangerouslySetInnerHTML={{ __html: displayText.replace(/\n\n/g, '<br class="mb-4"><br class="mb-2">').replace(/\n/g, '<br class="mb-2">') }} 
             />
           ) : (
             renderResponse(displayText)
           )
         ) : (
           <span 
-            className="leading-relaxed" 
-            dangerouslySetInnerHTML={{ __html: displayText.replace(/\n/g, '<br class="mb-2">') }} 
+            className="leading-relaxed space-y-3" 
+            dangerouslySetInnerHTML={{ __html: displayText.replace(/\n\n/g, '<br class="mb-4"><br class="mb-2">').replace(/\n/g, '<br class="mb-2">') }} 
           />
         )}
         {showCursor && (
