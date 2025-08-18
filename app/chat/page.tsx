@@ -68,7 +68,7 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { useSearchParams, useRouter } from 'next/navigation';
-import PaymentDialog from "./PaymentDialog";
+// Removed PaymentDialog import (PhonePe/Stripe integration)
 
 declare global {
   interface Window {
@@ -1972,44 +1972,83 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 <Select
                   value={selectedPlan}
                   onValueChange={(value) => {
+                    if (value === "premium") {
+                      window.location.href = '/pricing';
+                      return;
+                    }
                     setSelectedPlan(value);
-                    setSelectedPlanForPayment(value);
-                    setPaymentDialogOpen(true);
                   }}
                 >
-                  <SelectTrigger className="h-8 md:h-9 text-xs font-semibold text-gray-800 dark:text-gray-100 rounded-full px-2 md:px-4 bg-transparent border-none shadow-none hover:bg-transparent focus:bg-transparent focus:ring-0 focus:outline-none w-auto" style={{border: 'none'}}>
-                    <div className="flex items-center space-x-1 md:space-x-2">
+                  <SelectTrigger className="group h-9 md:h-10 text-sm font-semibold text-gray-800 dark:text-gray-100 rounded-full px-3 md:px-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:scale-105 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 w-auto min-w-[120px]">
+                    <div className="flex items-center space-x-2">
                       {selectedPlan === "premium" ? (
-                        <Crown className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
+                        <>
+                          <Crown className="h-4 w-4 md:h-5 md:w-5 text-yellow-500 animate-pulse" />
+                          <span className="hidden sm:inline text-sm font-bold bg-gradient-to-r from-yellow-600 to-orange-500 bg-clip-text text-transparent">Premium</span>
+                        </>
                       ) : (
                         <>
-                          <Crown className="h-5 w-5 md:h-6 md:w-6 text-gray-400" />
-                          <span className="hidden sm:inline text-base">Medibot</span>
-
+                          <div className="relative">
+                            <Crown className="h-5 w-5 md:h-6 md:w-6 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200" />
+                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                          </div>
+                          <span className="hidden sm:inline text-sm font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">Medibot</span>
                         </>
                       )}
+                      <ChevronDown className="h-3 w-3 text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-all duration-200 group-data-[state=open]:rotate-180" />
                     </div>
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs rounded-xl shadow-xl p-1 space-y-1">
-                    <SelectItem value="premium" className="flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                      <div className="flex items-center gap-2">
-                        <Crown className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
-                        <div>
-                          <span className="text-xs font-semibold">Premium Plan</span>
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400">99₹/month</div>
+                  <SelectContent className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg text-gray-900 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 space-y-2 min-w-[280px] animate-in fade-in-0 zoom-in-95 duration-200">
+                    <SelectItem value="premium" className="group flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 dark:hover:from-yellow-900/20 dark:hover:to-orange-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-yellow-200 dark:hover:border-yellow-700/50">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <Crown className="h-5 w-5 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
+                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors duration-200">
+                            Premium Plan
+                          </span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">₹99/month</span>
+                            <div className="px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-bold rounded-full">
+                              UPGRADE
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 leading-tight">
+                            • Unlimited conversations<br/>
+                            • Priority support<br/>
+                            • Advanced AI models
+                          </div>
                         </div>
                       </div>
-                      {selectedPlan === "premium" && <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500 dark:text-green-400" />}
+                      <div className="flex flex-col items-end gap-1">
+                        {selectedPlan === "premium" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+                        <div className="text-[10px] text-gray-400 dark:text-gray-500">Click to upgrade</div>
+                      </div>
                     </SelectItem>
-                    <SelectItem value="base" className="flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
-                        <div>
-                          <span className="text-xs font-semibold">Base Plan</span>
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
+                    <SelectItem value="base" className="group flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-blue-200 dark:hover:border-blue-700/50">
+                      <div className="flex items-center gap-3">
+                        <Sparkles className="h-5 w-5 text-blue-500 group-hover:scale-110 transition-transform duration-200" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">Base Plan</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs font-semibold text-green-600 dark:text-green-400">Free forever</span>
+                            <div className="px-2 py-0.5 bg-gradient-to-r from-green-400 to-blue-400 text-white text-[10px] font-bold rounded-full">
+                              ACTIVE
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 leading-tight">
+                            • Basic conversations<br/>
+                            • Standard AI models<br/>
+                            • Community support
+                          </div>
                         </div>
                       </div>
-                      {selectedPlan === "base" && <Check className="h-3 w-3 md:h-4 md:w-4 text-green-500 dark:text-green-400" />}
+                      <div className="flex flex-col items-end gap-1">
+                        {selectedPlan === "base" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+                        <div className="text-[10px] text-gray-400 dark:text-gray-500">Current plan</div>
+                      </div>
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -2020,67 +2059,132 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
               <Select
                 value={selectedPlan}
                 onValueChange={(value) => {
+                  if (value === "premium") {
+                    window.location.href = '/pricing';
+                    return;
+                  }
                   setSelectedPlan(value);
-                  setSelectedPlanForPayment(value);
-                  setPaymentDialogOpen(true);
                 }}
               >
-                <SelectTrigger className="h-8 text-xs font-semibold text-gray-800 dark:text-gray-100 rounded-full px-2 bg-transparent border-none shadow-none hover:bg-transparent focus:bg-transparent focus:ring-0 focus:outline-none w-auto" style={{border: 'none'}}>
+                <SelectTrigger className="group h-8 text-xs font-semibold text-gray-800 dark:text-gray-100 rounded-full px-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:scale-105 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 w-auto min-w-[100px]">
                   <div className="flex items-center space-x-1">
                     {selectedPlan === "premium" ? (
-                      <Crown className="h-4 w-4 text-yellow-500" />
+                      <>
+                        <Crown className="h-4 w-4 text-yellow-500 animate-pulse" />
+                        <span className="text-xs font-bold bg-gradient-to-r from-yellow-600 to-orange-500 bg-clip-text text-transparent">Premium</span>
+                      </>
                     ) : (
                       <>
-                        <Crown className="h-4 w-4 text-gray-400" />
-                        <span className="text-xs">Medibot</span>
+                        <div className="relative">
+                          <Crown className="h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200" />
+                          <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                        </div>
+                        <span className="text-xs font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">Medibot</span>
                       </>
                     )}
+                    <ChevronDown className="h-3 w-3 text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-all duration-200 group-data-[state=open]:rotate-180" />
                   </div>
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-xs rounded-xl shadow-xl p-1 space-y-1">
-                  <SelectItem value="premium" className="flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                <SelectContent className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg text-gray-900 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 space-y-2 min-w-[260px] animate-in fade-in-0 zoom-in-95 duration-200">
+                  <SelectItem value="premium" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 dark:hover:from-yellow-900/20 dark:hover:to-orange-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-yellow-200 dark:hover:border-yellow-700/50">
                     <div className="flex items-center gap-2">
-                      <Crown className="h-3 w-3 text-yellow-500" />
-                      <div>
-                        <span className="text-xs font-semibold">Premium Plan</span>
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400">99₹/month</div>
+                      <div className="relative">
+                        <Crown className="h-4 w-4 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
+                        <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors duration-200">Premium Plan</span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">₹99/month</span>
+                          <div className="px-1.5 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[9px] font-bold rounded-full">
+                            UPGRADE
+                          </div>
+                        </div>
+                        <div className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5">
+                          Unlimited • Priority • Advanced AI
+                        </div>
                       </div>
                     </div>
-                    {selectedPlan === "premium" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
+                    <div className="flex flex-col items-end gap-0.5">
+                      {selectedPlan === "premium" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
+                      <div className="text-[9px] text-gray-400 dark:text-gray-500">Tap to upgrade</div>
+                    </div>
                   </SelectItem>
-                  <SelectItem value="base" className="flex items-center justify-between px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+                  <SelectItem value="base" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-blue-200 dark:hover:border-blue-700/50">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-3 w-3 text-blue-500" />
-                      <div>
-                        <span className="text-xs font-semibold">Base Plan</span>
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400">Free access (Current plan)</div>
+                      <Sparkles className="h-4 w-4 text-blue-500 group-hover:scale-110 transition-transform duration-200" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">Base Plan</span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-xs font-semibold text-green-600 dark:text-green-400">Free forever</span>
+                          <div className="px-1.5 py-0.5 bg-gradient-to-r from-green-400 to-blue-400 text-white text-[9px] font-bold rounded-full">
+                            ACTIVE
+                          </div>
+                        </div>
+                        <div className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5">
+                          Basic • Standard • Community
+                        </div>
                       </div>
                     </div>
-                    {selectedPlan === "base" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
+                    <div className="flex flex-col items-end gap-0.5">
+                      {selectedPlan === "base" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
+                      <div className="text-[9px] text-gray-400 dark:text-gray-500">Current plan</div>
+                    </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {/* Right: Icons/User Actions */}
-            <div className="flex flex-row items-center gap-1 sm:gap-2 min-w-[120px] justify-end">
+            <div className="flex flex-row items-center gap-2 sm:gap-3 min-w-[140px] justify-end">
               {user ? (
                 <>
-                  <PaymentDialog
-                    open={paymentDialogOpen}
-                    onOpenChange={setPaymentDialogOpen}
-                    plan={selectedPlanForPayment}
-                  />
-                  <Button onClick={startNewChat} variant="ghost" size="icon" className="bg-purple-600/10 hover:bg-purple-600/20 dark:bg-purple-400/10 dark:hover:bg-purple-400/20 text-purple-600 dark:text-purple-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
-                    <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+                  {/* Removed PaymentDialog (PhonePe/Stripe integration) */}
+                  <Button 
+                    onClick={startNewChat} 
+                    variant="ghost" 
+                    size="icon" 
+                    className="group relative bg-gradient-to-br from-purple-500/10 via-purple-600/15 to-purple-700/10 hover:from-purple-500/20 hover:via-purple-600/25 hover:to-purple-700/20 dark:from-purple-400/10 dark:via-purple-500/15 dark:to-purple-600/10 dark:hover:from-purple-400/20 dark:hover:via-purple-500/25 dark:hover:to-purple-600/20 text-purple-600 dark:text-purple-400 rounded-xl h-9 w-9 sm:h-10 sm:w-10 transition-all duration-300 hover:scale-110 hover:rotate-12 hover:shadow-lg hover:shadow-purple-500/20 border border-purple-200/30 dark:border-purple-400/20"
+                    title="Start New Chat"
+                  >
+                    <Plus className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-125 transition-transform duration-300" />
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-400/0 via-purple-500/0 to-purple-600/0 group-hover:from-purple-400/10 group-hover:via-purple-500/5 group-hover:to-purple-600/10 transition-all duration-300"></div>
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
                   </Button>
-                  <Button onClick={handlePrescriptionAnalysis} variant="ghost" size="icon" className="bg-blue-600/10 hover:bg-blue-600/20 dark:bg-blue-400/10 dark:hover:bg-blue-400/20 text-blue-600 dark:text-blue-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
-                    <Camera className="h-4 w-4 sm:h-5 sm:w-5" />
+                  
+                  <Button 
+                    onClick={handlePrescriptionAnalysis} 
+                    variant="ghost" 
+                    size="icon" 
+                    className="group relative bg-gradient-to-br from-blue-500/10 via-blue-600/15 to-cyan-500/10 hover:from-blue-500/20 hover:via-blue-600/25 hover:to-cyan-500/20 dark:from-blue-400/10 dark:via-blue-500/15 dark:to-cyan-400/10 dark:hover:from-blue-400/20 dark:hover:via-blue-500/25 dark:hover:to-cyan-400/20 text-blue-600 dark:text-blue-400 rounded-xl h-9 w-9 sm:h-10 sm:w-10 transition-all duration-300 hover:scale-110 hover:-rotate-6 hover:shadow-lg hover:shadow-blue-500/20 border border-blue-200/30 dark:border-blue-400/20"
+                    title="Analyze Prescription"
+                  >
+                    <Camera className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-125 transition-transform duration-300" />
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-400/0 via-blue-500/0 to-cyan-500/0 group-hover:from-blue-400/10 group-hover:via-blue-500/5 group-hover:to-cyan-500/10 transition-all duration-300"></div>
+                    <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
                   </Button>
-                  <Button onClick={handleHistoryDialog} variant="ghost" size="icon" className="bg-green-600/10 hover:bg-green-600/20 dark:bg-green-400/10 dark:hover:bg-green-400/20 text-green-600 dark:text-green-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
-                    <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5" />
+                  
+                  <Button 
+                    onClick={handleHistoryDialog} 
+                    variant="ghost" 
+                    size="icon" 
+                    className="group relative bg-gradient-to-br from-green-500/10 via-emerald-600/15 to-teal-500/10 hover:from-green-500/20 hover:via-emerald-600/25 hover:to-teal-500/20 dark:from-green-400/10 dark:via-emerald-500/15 dark:to-teal-400/10 dark:hover:from-green-400/20 dark:hover:via-emerald-500/25 dark:hover:to-teal-400/20 text-green-600 dark:text-green-400 rounded-xl h-9 w-9 sm:h-10 sm:w-10 transition-all duration-300 hover:scale-110 hover:rotate-180 hover:shadow-lg hover:shadow-green-500/20 border border-green-200/30 dark:border-green-400/20"
+                    title="View Chat History"
+                  >
+                    <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-125 transition-transform duration-500" />
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-green-400/0 via-emerald-500/0 to-teal-500/0 group-hover:from-green-400/10 group-hover:via-emerald-500/5 group-hover:to-teal-500/10 transition-all duration-300"></div>
+                    <div className="absolute -bottom-0.5 -left-0.5 w-1.5 h-1.5 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-bounce transition-opacity duration-300"></div>
                   </Button>
-                  <Button onClick={exportChat} variant="ghost" size="icon" className="bg-orange-600/10 hover:bg-orange-600/20 dark:bg-orange-400/10 dark:hover:bg-orange-400/20 text-orange-600 dark:text-orange-400 rounded-full h-8 w-8 sm:h-9 sm:w-9">
-                    <Download className="h-4 w-4 sm:h-5 sm:w-5" />
+                  
+                  <Button 
+                    onClick={exportChat} 
+                    variant="ghost" 
+                    size="icon" 
+                    className="group relative bg-gradient-to-br from-orange-500/10 via-amber-600/15 to-yellow-500/10 hover:from-orange-500/20 hover:via-amber-600/25 hover:to-yellow-500/20 dark:from-orange-400/10 dark:via-amber-500/15 dark:to-yellow-400/10 dark:hover:from-orange-400/20 dark:hover:via-amber-500/25 dark:hover:to-yellow-400/20 text-orange-600 dark:text-orange-400 rounded-xl h-9 w-9 sm:h-10 sm:w-10 transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-500/20 border border-orange-200/30 dark:border-orange-400/20"
+                    title="Export Chat"
+                  >
+                    <Download className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-125 group-hover:translate-y-0.5 transition-transform duration-300" />
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-orange-400/0 via-amber-500/0 to-yellow-500/0 group-hover:from-orange-400/10 group-hover:via-amber-500/5 group-hover:to-yellow-500/10 transition-all duration-300"></div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-orange-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
                   </Button>
                 </>
               ) : (
