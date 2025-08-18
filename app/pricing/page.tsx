@@ -17,7 +17,7 @@ const plans = [
   },
   {
     name: 'Premium',
-    price: '₹299/month',
+    price: '₹99/month',
     features: [
       'Unlimited AI chat',
       'Full chat history',
