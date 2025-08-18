@@ -81,8 +81,7 @@ export default function PricingPage() {
     setLoading(planName);
 
     try {
-      // Use test endpoint for now
-      const response = await fetch('/api/phonepe-test-payment', {
+      const response = await fetch('/api/phonepe-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +99,6 @@ export default function PricingPage() {
         // Redirect to PhonePe payment page
         window.location.href = result.data.redirectUrl;
       } else {
-        console.error('Payment error:', result);
         toast.error(result.message || 'Failed to initiate payment');
       }
     } catch (error: any) {
