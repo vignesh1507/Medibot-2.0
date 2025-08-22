@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import React from "react";
+import { SmoothNavigator, GlobalSkeletonLoader } from "../components/SmoothNavigator";
 import Head from "next/head";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Toaster } from "sonner";
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -188,14 +191,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </Head>
-      <body className={`${inter.className} bg-background text-foreground min-h-screen`}>
+      <body className={`${inter.className} bg-background text-foreground min-h-screen fade-in`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <SmoothNavigator>
+            <React.Suspense fallback={<div className="flex items-center justify-center min-h-screen"><GlobalSkeletonLoader /></div>}>
+              {children}
+            </React.Suspense>
+          </SmoothNavigator>
           <Toaster position="top-right" richColors />
         </ThemeProvider>
       </body>
