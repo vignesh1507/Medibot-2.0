@@ -2249,7 +2249,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                           </div>
                           <div>
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">Start a conversation below or try these suggestions:</p>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Start a conversation below or try these suggestions:</p>
                           </div>
                         </div>
                       </div>
@@ -2357,7 +2357,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
               className="h-8 w-8 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
               title="Upload File"
             >
-              <Upload className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
             </Button>
             <input
               ref={fileInputRef}
