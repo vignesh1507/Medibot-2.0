@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import React from "react";
 import { SmoothNavigator, GlobalSkeletonLoader } from "../components/SmoothNavigator";
+import { LoadingProvider } from "@/components/LoadingContext";
 import Head from "next/head";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
@@ -193,6 +194,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </Head>
       <body className={`${inter.className} bg-background text-foreground min-h-screen fade-in`}>
+  <LoadingProvider>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -206,6 +208,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </SmoothNavigator>
           <Toaster position="top-right" richColors />
         </ThemeProvider>
+  </LoadingProvider>
       </body>
     </html>
   );

@@ -37,15 +37,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(isOpen);
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-
-  // Debug: Log userProfile changes
-  useEffect(() => {
-    console.log("Sidebar: userProfile updated", {
-      photoURL: userProfile?.photoURL,
-      displayName: userProfile?.displayName,
-      email: user?.email,
-    });
-  }, [userProfile, user]);
+  const [showProfileOptions, setShowProfileOptions] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -80,6 +72,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       await logout();
       setSidebarOpen(false);
       if (onClose) onClose();
+      setShowProfileOptions(false);
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -96,13 +89,19 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   const toggleCollapse = () => {
     setCollapsed((prev) => !prev);
+    setShowProfileOptions(false);
   };
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       setSidebarOpen(false);
+      setShowProfileOptions(false);
       if (onClose) onClose();
     }
+  };
+
+  const toggleProfileOptions = () => {
+    setShowProfileOptions(!showProfileOptions);
   };
 
   useEffect(() => {
@@ -110,6 +109,24 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       setSidebarOpen(false);
     }
   }, [pathname, isMobile]);
+
+  // Close profile options when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showProfileOptions) {
+        const profileSection = document.getElementById("profile-section");
+        
+        if (profileSection && !profileSection.contains(event.target as Node)) {
+          setShowProfileOptions(false);
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showProfileOptions]);
 
   return (
     <>
@@ -121,15 +138,16 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       )}
 
       <div className="lg:flex lg:items-start">
+        {/* Sidebar Toggle Button (Mobile) */}
         <Button
-  onClick={toggleSidebar}
-  aria-label="Toggle sidebar"
-  className="fixed top-4 left-4 z-50 h-10 w-10 rounded-md bg-transparent text-muted-foreground lg:hidden focus:outline-none focus:ring-0 active:bg-transparent"
->
-  <Menu className="h-5 w-5" />
-</Button>
+          onClick={toggleSidebar}
+          aria-label="Toggle sidebar"
+          className="fixed top-4 left-4 z-50 h-10 w-10 rounded-md bg-black/10 hover:bg-black/20 text-muted-foreground lg:hidden focus:outline-none focus:ring-0 active:bg-black/20 backdrop-blur"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
 
-
+  {/* Sidebar (only one hamburger, no extra icons for feedback or other sections) */}
         <div
           className={cn(
             "fixed inset-y-0 left-0 z-50 bg-card border-r border-border",
@@ -147,6 +165,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           }}
         >
           <div className="flex flex-col h-full p-4">
+            {/* Logo + Collapse/Close */}
             <div className="flex-shrink-0">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-3">
@@ -160,7 +179,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     />
                   </div>
                   {!collapsed && (
-                    <span className="text-foreground font-semibold text-lg">Medibot</span>
+                    <span className="text-foreground font-semibold text-lg">
+                      Medibot
+                    </span>
                   )}
                 </div>
 
@@ -188,34 +209,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                   </button>
                 )}
               </div>
-
-              {!collapsed && (
-                <div className="bg-muted rounded-xl p-4 mb-6 border border-border">
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="w-12 h-12" key={userProfile?.photoURL || "default"}>
-                      <AvatarImage
-                        src={userProfile?.photoURL || user?.photoURL || ""}
-                      />
-                      <AvatarFallback className="bg-purple-600 text-white font-semibold">
-                        {userProfile?.displayName?.charAt(0).toUpperCase() ||
-                          user?.displayName?.charAt(0).toUpperCase() ||
-                          user?.email?.charAt(0).toUpperCase() ||
-                          "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-foreground font-medium truncate">
-                        {userProfile?.displayName || user?.displayName || user?.email?.split("@")[0] || "User"}
-                      </p>
-                      <p className="text-muted-foreground text-sm truncate">
-                        {user?.email || "user@example.com"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
+            {/* Menu Items */}
             <div className="flex-1 overflow-y-auto">
               <nav className="space-y-2">
                 {menuItems.map((item) => {
@@ -243,44 +239,122 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               </nav>
             </div>
 
-            <div className="flex-shrink-0 space-y-3 pt-4">
-              {mounted && (
-                <Button
-                  variant="ghost"
-                  onClick={toggleTheme}
-                  className={cn(
-                    "w-full justify-start h-12 rounded-xl",
-                    "text-muted-foreground hover:text-foreground hover:bg-muted",
-                    collapsed ? "justify-center" : "px-4"
-                  )}
-                  title={collapsed ? (theme === "dark" ? "Light Mode" : "Dark Mode") : undefined}
-                >
-                  {theme === "dark" ? (
-                    <Sun className="h-5 w-5" />
-                  ) : (
-                    <Moon className="h-5 w-5" />
-                  )}
-                  {!collapsed && (
-                    <span className="ml-3">
-                      {theme === "dark" ? "Light Mode" : "Dark Mode"}
-                    </span>
-                  )}
-                </Button>
-              )}
+            {/* Bottom: Profile with integrated options */}
+            <div className="flex-shrink-0 pt-4 border-t border-border mt-4">
+              {!collapsed ? (
+                <div id="profile-section" className="space-y-2">
+                  {/* Profile section that toggles options when clicked */}
+                  <div
+                    onClick={toggleProfileOptions}
+                    className={cn(
+                      "bg-muted rounded-xl p-4 border border-border cursor-pointer transition-all",
+                      showProfileOptions ? "rounded-b-none" : "hover:bg-muted/80"
+                    )}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage
+                          src={userProfile?.photoURL || user?.photoURL || ""}
+                        />
+                        <AvatarFallback className="bg-purple-600 text-white font-semibold">
+                          {userProfile?.displayName?.charAt(0).toUpperCase() ||
+                            user?.displayName?.charAt(0).toUpperCase() ||
+                            user?.email?.charAt(0).toUpperCase() ||
+                            "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground font-medium truncate">
+                          {userProfile?.displayName ||
+                            user?.displayName ||
+                            user?.email?.split("@")[0] ||
+                            "User"}
+                        </p>
+                        <p className="text-muted-foreground text-sm truncate">
+                          {user?.email || "user@example.com"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-              <Button
-                onClick={handleSignOut}
-                variant="outline"
-                className={cn(
-                  "w-full justify-start border-border h-12 rounded-xl",
-                  "text-muted-foreground hover:text-red-400 hover:bg-muted",
-                  collapsed ? "justify-center" : "px-4"
-                )}
-                title={collapsed ? "Sign Out" : undefined}
-              >
-                <LogOut className="h-5 w-5" />
-                {!collapsed && <span className="ml-3">Sign Out</span>}
-              </Button>
+                  {/* Theme and Sign Out options */}
+                  {showProfileOptions && (
+                    <div className="bg-muted rounded-b-xl border border-border border-t-0 overflow-hidden">
+                      <Button
+                        variant="ghost"
+                        onClick={toggleTheme}
+                        className="w-full justify-start h-12 rounded-none px-4 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      >
+                        {theme === "dark" ? (
+                          <Sun className="h-5 w-5 mr-3" />
+                        ) : (
+                          <Moon className="h-5 w-5 mr-3" />
+                        )}
+                        {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                      </Button>
+
+                      <Button
+                        onClick={handleSignOut}
+                        variant="ghost"
+                        className="w-full justify-start h-12 rounded-none px-4 text-muted-foreground hover:text-red-400 hover:bg-muted/50"
+                      >
+                        <LogOut className="h-5 w-5 mr-3" />
+                        Sign Out
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Collapsed state
+                <div className="flex flex-col items-center space-y-2">
+                  <div
+                    onClick={toggleProfileOptions}
+                    className="cursor-pointer p-2 rounded-full hover:bg-muted transition-colors"
+                    title="Profile options"
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage
+                        src={userProfile?.photoURL || user?.photoURL || ""}
+                      />
+                      <AvatarFallback className="bg-purple-600 text-white text-sm">
+                        {userProfile?.displayName?.charAt(0).toUpperCase() ||
+                          user?.displayName?.charAt(0).toUpperCase() ||
+                          user?.email?.charAt(0).toUpperCase() ||
+                          "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+
+                  {/* Theme and Sign Out options for collapsed state */}
+                  {showProfileOptions && (
+                    <div className="bg-muted rounded-xl border border-border p-2 w-full space-y-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={toggleTheme}
+                        className="w-full h-10 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        title={theme === "dark" ? "Light Mode" : "Dark Mode"}
+                      >
+                        {theme === "dark" ? (
+                          <Sun className="h-5 w-5" />
+                        ) : (
+                          <Moon className="h-5 w-5" />
+                        )}
+                      </Button>
+
+                      <Button
+                        onClick={handleSignOut}
+                        variant="ghost"
+                        size="icon"
+                        className="w-full h-10 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-muted/50"
+                        title="Sign Out"
+                      >
+                        <LogOut className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

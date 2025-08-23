@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shield, CheckCircle } from "lucide-react"
 import { motion } from "framer-motion"
-import Link from "next/link"
+import InstantLoadingLink from "@/components/InstantLoadingLink"
 
 export default function TermsPage() {
   const primaryColor = "bg-[#e0f7fa]"
@@ -118,11 +118,11 @@ export default function TermsPage() {
               <p className="text-[#546e7a] mb-4">
                 Your use of the Service is also governed by our Privacy Policy, which explains how we collect, use, and protect your personal information.
               </p>
-              <Link href="/privacy">
+              <InstantLoadingLink href="/privacy">
                 <Button className={buttonClasses}>
                   View Privacy Policy
                 </Button>
-              </Link>
+              </InstantLoadingLink>
             </CardContent>
           </Card>
         </motion.div>
@@ -193,12 +193,12 @@ export default function TermsPage() {
           <p className="text-[#546e7a] mb-6">
             For any queries related to these terms, please reach out via our Contact page.
           </p>
-          <Link href="/privacy">
+          <InstantLoadingLink href="/privacy">
             <Button className={`${buttonClasses} mr-4`}>View Privacy Policy</Button>
-          </Link>
-          <Link href="/">
+          </InstantLoadingLink>
+          <InstantLoadingLink href="/">
             <Button className={buttonClasses}>Back to Home</Button>
-          </Link>
+          </InstantLoadingLink>
         </motion.div>
       </motion.div>
     </div>

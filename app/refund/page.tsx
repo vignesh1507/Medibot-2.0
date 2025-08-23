@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircle } from "lucide-react"
 import { motion } from "framer-motion"
-import Link from "next/link"
+import InstantLoadingLink from "@/components/InstantLoadingLink"
 
 export default function RefundPolicyPage() {
   const primaryColor = "bg-[#e0f7fa]"
@@ -81,9 +81,9 @@ export default function RefundPolicyPage() {
           <p className="text-[#546e7a] mb-6">
             For refund-related concerns, please contact our customer support.
           </p>
-          <Link href="/">
+          <InstantLoadingLink href="/">
             <Button className={buttonClasses}>Back to Home</Button>
-          </Link>
+          </InstantLoadingLink>
         </motion.div>
 
         <motion.div variants={item} className="pt-6 text-center">

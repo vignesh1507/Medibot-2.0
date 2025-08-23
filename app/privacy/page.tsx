@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Lock, Mail, Database, Shield, CheckCircle } from "lucide-react"
 import { motion } from "framer-motion"
-import Link from "next/link"
+import InstantLoadingLink from "@/components/InstantLoadingLink"
 
 export default function PrivacyPage() {
   const primaryColor = "bg-[#e0f7fa]"
@@ -155,12 +155,12 @@ export default function PrivacyPage() {
             <Mail className="h-5 w-5 text-[#4dd0e1] mr-2" />
             <p className="text-[#546e7a]">Questions? Contact us at privacy@medibot.com</p>
           </div>
-          <Link href="/terms">
+          <InstantLoadingLink href="/terms">
             <Button className={`${buttonClasses} mr-4`}>View Terms</Button>
-          </Link>
-          <Link href="/">
+          </InstantLoadingLink>
+          <InstantLoadingLink href="/">
             <Button className={buttonClasses}>Back to Home</Button>
-          </Link>
+          </InstantLoadingLink>
         </motion.div>
 
       </motion.div>
