@@ -262,7 +262,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-36 p-3 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-xl shadow-lg opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all origin-bottom z-50 pointer-events-none group-hover:pointer-events-auto text-center">
       <p className="text-xs font-medium text-foreground mb-2">Scan QR to Download</p>
       <img
-        src="/path-to-your-qr-code.png"
+        src="/qr.png"
         alt="Download App QR"
         className="w-24 h-24 mx-auto object-contain"
       />
