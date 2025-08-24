@@ -20,6 +20,8 @@ import {
   Menu,
   MessageSquare,
   X,
+  Smartphone, // Add this import
+  Download, // Add this import
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -147,7 +149,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <Menu className="h-5 w-5" />
         </Button>
 
-  {/* Sidebar (only one hamburger, no extra icons for feedback or other sections) */}
+        {/* Sidebar */}
         <div
           className={cn(
             "fixed inset-y-0 left-0 z-50 bg-card border-r border-border",
@@ -239,8 +241,41 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               </nav>
             </div>
 
+            {/* Get the App Section (DeepSeek style) */}
+           {/* Get the App Combined Button with QR */}
+{/* Get the App Sidebar Item (Enhanced UI) */}
+<div className="relative group w-full">
+  <Button
+    size="sm"
+    variant="outline"
+    className={cn(
+      "flex items-center w-full h-12 rounded-xl px-4 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 shadow-sm hover:shadow-md hover:bg-blue-100 dark:hover:bg-blue-900 transition-all duration-200",
+      collapsed && "justify-center px-0"
+    )}
+  >
+    <Smartphone className="h-5 w-5 flex-shrink-0" />
+    {!collapsed && <span className="ml-3 font-medium">Get the App</span>}
+  </Button>
+
+  {/* QR Code Popup */}
+  {!collapsed && (
+    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-36 p-3 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-xl shadow-lg opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all origin-bottom z-50 pointer-events-none group-hover:pointer-events-auto text-center">
+      <p className="text-xs font-medium text-foreground mb-2">Scan QR to Download</p>
+      <img
+        src="/path-to-your-qr-code.png"
+        alt="Download App QR"
+        className="w-24 h-24 mx-auto object-contain"
+      />
+    </div>
+  )}
+</div>
+
+
+
+
+
             {/* Bottom: Profile with integrated options */}
-            <div className="flex-shrink-0 pt-4 border-t border-border mt-4">
+            <div className="flex-shrink-0 pt-4 border-t border-border">
               {!collapsed ? (
                 <div id="profile-section" className="space-y-2">
                   {/* Profile section that toggles options when clicked */}

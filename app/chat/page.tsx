@@ -1955,104 +1955,187 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Transparent header, plan selector inline after MediBot name on md+ screens */}
           <div className="sticky top-0 z-20 flex flex-row items-center justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-transparent shadow-none w-full min-h-[44px] sm:min-h-[56px] md:min-h-[64px]">
-  {/* Left: Sidebar + Plan Selector */}
-  <div className="flex flex-row items-center gap-2 min-w-[120px]">
-    {/* Sidebar Toggle */}
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setSidebarOpen(true)}
-      className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-7 w-7 sm:h-8 sm:w-8"
-      aria-label="Open sidebar"
-    >
-      {/* <MenuIcon /> */}
-    </Button>
-
-    {/* Medibot Selector (small screens, left side) */}
-    <div className="md:hidden">
-      <Select
-        value={selectedPlan}
-        onValueChange={(value) => {
-          if (value === "premium") {
-            window.location.href = "/pricing";
-            return;
-          }
-          setSelectedPlan(value);
-        }}
-      >
-        <SelectTrigger className="group h-8 text-xs font-semibold text-gray-800 dark:text-gray-100 rounded-full px-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:scale-105 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 w-auto min-w-[100px]">
-          <div className="flex items-center space-x-1">
-            {selectedPlan === "premium" ? (
-              <>
-                <Crown className="h-4 w-4 text-yellow-500 animate-pulse" />
-                <span className="text-xs font-bold bg-gradient-to-r from-yellow-600 to-orange-500 bg-clip-text text-transparent">
-                  Premium
-                </span>
-              </>
-            ) : (
-              <>
-                <div className="relative">
-                  <Crown className="h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200" />
-                  <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
-                </div>
-                <span className="text-xs font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
-                  Medibot
-                </span>
-              </>
-            )}
-            <ChevronDown className="h-3 w-3 text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-all duration-200 group-data-[state=open]:rotate-180" />
-          </div>
-        </SelectTrigger>
-        <SelectContent
-          className="
-            bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg 
-            text-gray-900 dark:text-gray-100 rounded-2xl shadow-2xl 
-            border border-gray-200/50 dark:border-gray-700/50 
-            p-2 space-y-2 
-            w-[180px] sm:w-[220px] md:w-[260px]   /* ✅ responsive widths */
-            animate-in fade-in-0 zoom-in-95 duration-200
-          "
-        >
-          <SelectItem
-            value="premium"
-            className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 dark:hover:from-yellow-900/20 dark:hover:to-orange-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-yellow-200 dark:hover:border-yellow-700/50"
-          >
-            <div className="flex items-center gap-2">
-              <Crown className="h-4 w-4 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
-              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                Premium Plan
-              </span>
+            {/* Left: Brand/Sidebar + Plan Selector (on md+ screens) */}
+            <div className="flex flex-row items-center gap-2 min-w-[120px]">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarOpen(true)}
+                className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-7 w-7 sm:h-8 sm:w-8"
+                aria-label="Open sidebar"
+              >
+                {/* Optional: add icon like <MenuIcon /> */}
+              </Button>
+             
+              {/* Plan Selector: visible on left for md+ screens only */}
+              <div className="ml-2 hidden md:block">
+                <Select
+                  value={selectedPlan}
+                  onValueChange={(value) => {
+                    if (value === "premium") {
+                      window.location.href = '/pricing';
+                      return;
+                    }
+                    setSelectedPlan(value);
+                  }}
+                >
+                  <SelectTrigger className="group h-9 md:h-10 text-sm font-semibold text-gray-800 dark:text-gray-100 rounded-full px-3 md:px-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:scale-105 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 w-auto min-w-[120px]">
+                    <div className="flex items-center space-x-2">
+                      {selectedPlan === "premium" ? (
+                        <>
+                          <Crown className="h-4 w-4 md:h-5 md:w-5 text-yellow-500 animate-pulse" />
+                          <span className="hidden sm:inline text-sm font-bold bg-gradient-to-r from-yellow-600 to-orange-500 bg-clip-text text-transparent">Premium</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="relative">
+                            <Crown className="h-5 w-5 md:h-6 md:w-6 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200" />
+                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                          </div>
+                          <span className="hidden sm:inline text-sm font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">Medibot</span>
+                        </>
+                      )}
+                      <ChevronDown className="h-3 w-3 text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-all duration-200 group-data-[state=open]:rotate-180" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg text-gray-900 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 space-y-2 min-w-[280px] animate-in fade-in-0 zoom-in-95 duration-200">
+                    <SelectItem value="premium" className="group flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 dark:hover:from-yellow-900/20 dark:hover:to-orange-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-yellow-200 dark:hover:border-yellow-700/50">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <Crown className="h-5 w-5 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
+                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors duration-200">
+                            Premium Plan
+                          </span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">₹99/month</span>
+                            <div className="px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-bold rounded-full">
+                              UPGRADE
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 leading-tight">
+                            • Unlimited conversations<br/>
+                            • Priority support<br/>
+                            • Advanced AI models
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        {selectedPlan === "premium" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+                        <div className="text-[10px] text-gray-400 dark:text-gray-500">Click to upgrade</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="base" className="group flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-blue-200 dark:hover:border-blue-700/50">
+                      <div className="flex items-center gap-3">
+                        <Sparkles className="h-5 w-5 text-blue-500 group-hover:scale-110 transition-transform duration-200" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">Base Plan</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs font-semibold text-green-600 dark:text-green-400">Free forever</span>
+                            <div className="px-2 py-0.5 bg-gradient-to-r from-green-400 to-blue-400 text-white text-[10px] font-bold rounded-full">
+                              ACTIVE
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 leading-tight">
+                            • Basic conversations<br/>
+                            • Standard AI models<br/>
+                            • Community support
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        {selectedPlan === "base" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
+                        <div className="text-[10px] text-gray-400 dark:text-gray-500">Current plan</div>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            {selectedPlan === "premium" && (
-              <Check className="h-3 w-3 text-green-500 dark:text-green-400" />
-            )}
-          </SelectItem>
-          <SelectItem
-            value="base"
-            className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-blue-200 dark:hover:border-blue-700/50"
-          >
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                Base Plan
-              </span>
+            {/* Center: Plan Selector for small screens */}
+            <div className="flex flex-row items-center justify-center flex-1 md:hidden">
+              <Select
+                value={selectedPlan}
+                onValueChange={(value) => {
+                  if (value === "premium") {
+                    window.location.href = '/pricing';
+                    return;
+                  }
+                  setSelectedPlan(value);
+                }}
+              >
+                <SelectTrigger className="group h-8 text-xs font-semibold text-gray-800 dark:text-gray-100 rounded-full px-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:scale-105 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 w-auto min-w-[100px]">
+                  <div className="flex items-center space-x-1">
+                    {selectedPlan === "premium" ? (
+                      <>
+                        <Crown className="h-4 w-4 text-yellow-500 animate-pulse" />
+                        <span className="text-xs font-bold bg-gradient-to-r from-yellow-600 to-orange-500 bg-clip-text text-transparent">Premium</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="relative">
+                          <Crown className="h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200" />
+                          <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                        </div>
+                        <span className="text-xs font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">Medibot</span>
+                      </>
+                    )}
+                    <ChevronDown className="h-3 w-3 text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-all duration-200 group-data-[state=open]:rotate-180" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg text-gray-900 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 space-y-2 min-w-[260px] animate-in fade-in-0 zoom-in-95 duration-200">
+                  <SelectItem value="premium" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 dark:hover:from-yellow-900/20 dark:hover:to-orange-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-yellow-200 dark:hover:border-yellow-700/50">
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Crown className="h-4 w-4 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
+                        <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors duration-200">Premium Plan</span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">₹99/month</span>
+                          <div className="px-1.5 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[9px] font-bold rounded-full">
+                            UPGRADE
+                          </div>
+                        </div>
+                        <div className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5">
+                          Unlimited • Priority • Advanced AI
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      {selectedPlan === "premium" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
+                      <div className="text-[9px] text-gray-400 dark:text-gray-500">Tap to upgrade</div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="base" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-blue-200 dark:hover:border-blue-700/50">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-blue-500 group-hover:scale-110 transition-transform duration-200" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">Base Plan</span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-xs font-semibold text-green-600 dark:text-green-400">Free forever</span>
+                          <div className="px-1.5 py-0.5 bg-gradient-to-r from-green-400 to-blue-400 text-white text-[9px] font-bold rounded-full">
+                            ACTIVE
+                          </div>
+                        </div>
+                        <div className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5">
+                          Basic • Standard • Community
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      {selectedPlan === "base" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
+                      <div className="text-[9px] text-gray-400 dark:text-gray-500">Current plan</div>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            {selectedPlan === "base" && (
-              <Check className="h-3 w-3 text-green-500 dark:text-green-400" />
-            )}
-          </SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-
-    {/* Plan Selector (desktop, stays left side) */}
-    <div className="hidden md:block ml-2">
-      {/* Your existing desktop Select here */}
-    </div>
-  </div>
-
-  {/* Right: Icons/User Actions */}
-  <div className="flex flex-row items-center gap-2 sm:gap-3 min-w-[140px] justify-end">
+            {/* Right: Icons/User Actions */}
+            <div className="flex flex-row items-center gap-2 sm:gap-3 min-w-[140px] justify-end">
               {user ? (
                 <>
                   {/* Removed PaymentDialog (PhonePe/Stripe integration) */}
@@ -2119,8 +2202,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 </>
               )}
             </div>
-</div>
-
+          </div>
 
           <div className="relative flex-1 overflow-hidden">
             <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
