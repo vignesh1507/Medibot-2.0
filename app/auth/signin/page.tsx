@@ -17,6 +17,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const { signIn, signInWithGoogle, signInWithFacebook } = useAuth()
   const router = useRouter()
 
@@ -25,7 +26,7 @@ export default function SignInPage() {
     setLoading(true)
 
     try {
-      await signIn(email, password)
+      await signIn(email, password, rememberMe)
       toast.success("Signed in successfully!", {
         position: "top-center",
         style: {
@@ -135,6 +136,17 @@ export default function SignInPage() {
           {/* Logo and Title */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center space-x-3 mb-5">
+                  {/* Remember Me Checkbox */}
+                  <div className="flex items-center mt-2">
+                    <input
+                      id="rememberMe"
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={e => setRememberMe(e.target.checked)}
+                      className="accent-blue-600 h-4 w-4 rounded border-gray-400 focus:ring-blue-500"
+                    />
+                    <label htmlFor="rememberMe" className="ml-2 text-slate-300 text-sm select-none cursor-pointer">Remember Me</label>
+                  </div>
               <div className="w-14 h-14 relative">
                 <Image 
                   src="/logo.png" 

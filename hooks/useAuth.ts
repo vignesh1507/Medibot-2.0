@@ -133,7 +133,10 @@ export function useAuth() {
   }, [user, refreshProfile]);
 
   // Auth functions
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
+    // Set persistence based on rememberMe
+    const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth');
+    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
     return signInWithEmailAndPassword(auth, email, password);
   };
 

@@ -20,6 +20,7 @@ export default function SignUpPage() {
     password: "",
     confirmPassword: "",
     agreeToTerms: false,
+    rememberMe: false,
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -199,6 +200,17 @@ export default function SignUpPage() {
               </div>
             </div>
 
+            {/* Remember Me Checkbox */}
+            <div className="flex items-center mb-2">
+              <input
+                id="rememberMe"
+                type="checkbox"
+                checked={formData.rememberMe}
+                onChange={e => setFormData({ ...formData, rememberMe: e.target.checked })}
+                className="accent-purple-600 h-4 w-4 rounded border-gray-400 focus:ring-purple-500"
+              />
+              <label htmlFor="rememberMe" className="ml-2 text-slate-300 text-sm select-none cursor-pointer">Remember Me</label>
+            </div>
             {/* Terms and Conditions */}
             <div className="flex items-start space-x-2 py-1">
               <Checkbox

@@ -20,9 +20,12 @@ export async function POST(req: NextRequest) {
 
     // Validate required fields
     if (!amount || !userId || !planName) {
+      console.error('PhonePe Payment Error: Missing fields', { amount, userId, planName });
+      const body = await req.text();
+      console.error('Request body:', body);
       return NextResponse.json({
         success: false,
-        message: 'Missing required fields: amount, userId, or planName'
+        message: `Missing required fields: amount=${amount}, userId=${userId}, planName=${planName}`
       }, { status: 400 });
     }
 
@@ -40,14 +43,21 @@ export async function POST(req: NextRequest) {
     const transactionId = `TXN${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
     
     // Prepare payment payload
+    // Detect base URL for callback/redirect
+    let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (!baseUrl) {
+      // Try to infer from request headers (for local dev)
+      const host = req.headers.get('host');
+      baseUrl = host?.includes('localhost') ? `http://${host}` : `https://${host}`;
+    }
     const paymentPayload = {
       merchantId: MERCHANT_ID,
       merchantTransactionId: transactionId,
       merchantUserId: userId.substring(0, 36), // Ensure it's within limits
       amount: amount * 100, // Convert to paise
-  redirectUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/api/phonepe-callback`,
-  redirectMode: 'POST',
-  callbackUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/api/phonepe-callback`,
+      redirectUrl: `${baseUrl}/api/phonepe-callback`,
+      redirectMode: 'POST',
+      callbackUrl: `${baseUrl}/api/phonepe-callback`,
       paymentInstrument: {
         type: 'PAY_PAGE'
       }
