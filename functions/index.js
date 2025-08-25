@@ -1,9 +1,52 @@
+// Scheduled function to send medication reminders
+exports.sendMedicationReminders = functions.pubsub.schedule("* * * * *").onRun(async (context) => {
+  const now = new Date();
+  const currentTime = now.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
+  const remindersSnapshot = await admin.firestore().collection("medication_reminders")
+    .where("time", "==", currentTime)
+    .get();
+
+  remindersSnapshot.forEach(async (doc) => {
+    const { medicineName, email, userId } = doc.data();
+    // Get user's FCM token from users collection
+    const userDoc = await admin.firestore().collection("users").doc(userId).get();
+    const fcmToken = userDoc.exists ? userDoc.data().fcmToken : null;
+
+    // Send FCM push notification
+    if (fcmToken) {
+      await admin.messaging().send({
+        token: fcmToken,
+        notification: {
+          title: "💊 Medication Reminder",
+          body: `Time to take ${medicineName}`,
+        },
+        data: { medicineName },
+      });
+    }
+
+    // Send email reminder (reuse your existing email logic)
+    if (email) {
+      await resend.emails.send({
+        from: "MediBot <no-reply@your-domain.com>",
+        to: [email],
+        subject: "Medication Reminder",
+        text: `Time to take your medicine: ${medicineName}`,
+        html: `<div><h2>Medication Reminder</h2><p>Time to take your medicine: <strong>${medicineName}</strong></p></div>`,
+      });
+    }
+  });
+});
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const { Resend } = require("resend");
 const { v4: uuidv4 } = require("uuid");
 
-admin.initializeApp();
+const serviceAccount = require("./medibot-457514-firebase-adminsdk-fbsvc-4a9a9554c2.json");
+
+ admin.initializeApp({
+   credential: admin.credential.cert(serviceAccount),
+   databaseURL: "https://medibot-457514.firebaseio.com"
+ });
 
 const resend = new Resend(functions.config().resend.api_key);
 

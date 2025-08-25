@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Menu, Plus, Pill, Clock, Trash2, Edit, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+  import { getMessaging, getToken } from "firebase/messaging";
+  import {  setDoc } from "firebase/firestore";
 import {
   addMedication,
   updateMedication,
@@ -45,6 +47,26 @@ export default function MedicationsPage() {
   const { user } = useAuth();
   const reminderTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
+  // FCM token collection and saving logic
+
+  useEffect(() => {
+    async function saveFcmToken(userId: string) {
+      try {
+        const messaging = getMessaging();
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          const fcmToken = await getToken(messaging, { vapidKey: "BMxZwmRm6QusAkd3tzvysDAZB8ReTuJVSQQHdc50nh6WCkN4Ja11FPpKLNwJuHKZUJwzsyKIciT1yKLpePHLDaE" });
+          await setDoc(doc(db, "users", userId), { fcmToken }, { merge: true });
+        }
+      } catch (err) {
+        console.error("FCM token error:", err);
+      }
+    }
+    if (user?.uid) {
+      saveFcmToken(user.uid);
+    }
+  }, [user]);
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -53,42 +75,10 @@ export default function MedicationsPage() {
   }, []);
 
   const sendMobileNotification = async (userId: string, title: string, body: string) => {
-    try {
-      const userDocRef = doc(db, "users", userId);
-      const userDoc = await getDoc(userDocRef);
-      const fcmToken = userDoc.data()?.fcmToken;
-
-      if (!fcmToken) {
-        console.log(`No FCM token found for user ${userId}. Falling back to console log.`);
-        console.log(`Notification: ${title} - ${body}`);
-        toast.info("Push notifications are disabled. Enable them in your browser settings.");
-        return;
-      }
-
-      const response = await fetch("https://fcm.googleapis.com/fcm/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `key=YOUR_FCM_SERVER_KEY`, // 🔁 Replace with your FCM server key
-        },
-        body: JSON.stringify({
-          to: fcmToken,
-          notification: {
-            title,
-            body,
-            icon: "/logo.png",
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to send mobile notification: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error(`Error sending mobile notification: ${error instanceof Error ? error.message : String(error)}`);
-      console.log(`Fallback log: ${title} - ${body}`);
-      toast.error("Failed to send mobile notification");
-    }
+  // Push notifications are sent from the backend (Cloud Function) using the user's FCM token.
+  // This function only logs and shows a toast for debugging.
+  console.log(`Push notification scheduled: ${title} - ${body}`);
+  toast.info("Push notification will be sent by backend if enabled.");
   };
 
   const sendEmailNotification = async (email: string, subject: string, body: string) => {
