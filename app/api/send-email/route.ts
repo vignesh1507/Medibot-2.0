@@ -69,102 +69,250 @@ export async function POST(req: Request) {
     }
 
     const htmlContent = `
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <title>${subject}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <style>
-          body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #f4f6f8;
-            font-family: Arial, sans-serif;
-            color: #333;
-          }
-          .email-wrapper {
-            width: 100%;
-            height: 100%;
-          }
-          .email-container {
-            background-color: #ffffff;
-            max-width: 600px;
-            width: 100%;
-            padding: 40px;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-          }
-          .header {
-            background-color: #4f46e5;
-            padding: 40px 0;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-          }
-          .header img {
-            width: 120px;
-          }
-          .icon {
-            font-size: 60px;
-            color: #4f46e5;
-            margin-bottom: 20px;
-          }
-          h1 {
-            font-size: 22px;
-            margin-bottom: 16px;
-            color: #222;
-          }
-          p {
-            font-size: 16px;
-            margin: 8px 0;
-          }
-          .code {
-            font-size: 24px;
-            font-weight: bold;
-            margin: 20px 0;
-            color: #4f46e5;
-            letter-spacing: 1px;
-          }
-          .footer {
-            text-align: center;
-            font-size: 12px;
-            color: #999;
-            margin-top: 30px;
-          }
-          .footer a {
-            color: #4f46e5;
-            text-decoration: none;
-          }
-        </style>
-      </head>
-      <body>
-        <table class="email-wrapper" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td align="center" valign="middle">
-              <div class="email-container">
-                <div class="header">
-                  <img src="/logo.png" alt="MediBot Logo" />
-                </div>
-                <div class="icon">🔒</div>
-                <h1>Hi ${to?.split("@")[0] || "User"},</h1>
-                <p>Here's the Remiander you requested:</p>
-                <div class="code">${message}</div>
-                <p>If you didn't request this, you can ignore this email or contact us.</p>
-                <p>Thanks,<br />The MediBot Team</p>
-                <div class="footer">
-                  © ${new Date().getFullYear()} MediBot. All rights reserved.<br />
-                  <a href="https://yourdomain.com/contact">Contact Us</a>
-                </div>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>${subject}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      /* Base styles */
+      body, html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #f8fafc;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #334155;
+        line-height: 1.6;
+      }
+      
+      /* Container styles */
+      .email-wrapper {
+        width: 100%;
+        height: 100%;
+      }
+      
+      .email-container {
+        background-color: #ffffff;
+        max-width: 600px;
+        width: 100%;
+        margin: 0 auto;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      }
+      
+      /* Header styles */
+      .header {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        padding: 30px 0;
+        text-align: center;
+      }
+      
+      .logo-container {
+        background-color: white;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+      }
+      
+      .logo {
+        color: #4f46e5;
+        font-size: 40px;
+        font-weight: bold;
+      }
+      
+      .brand-name {
+        color: white;
+        font-size: 24px;
+        font-weight: 600;
+        margin-top: 15px;
+        letter-spacing: 0.5px;
+      }
+      
+      /* Content styles */
+      .content {
+        padding: 40px;
+      }
+      
+      .greeting {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 25px;
+        color: #1e293b;
+      }
+      
+      .message-container {
+        background-color: #f1f5f9;
+        border-left: 4px solid #4f46e5;
+        padding: 20px;
+        border-radius: 0 8px 8px 0;
+        margin: 25px 0;
+      }
+      
+      .message-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      .message-content {
+        font-size: 16px;
+        color: #1e293b;
+        line-height: 1.7;
+      }
+      
+      .cta-container {
+        text-align: center;
+        margin: 30px 0;
+      }
+      
+      .cta-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        text-decoration: none;
+        padding: 14px 30px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+        transition: all 0.3s ease;
+      }
+      
+      .cta-button:hover {
+        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+        transform: translateY(-2px);
+      }
+      
+      /* Footer styles */
+      .footer {
+        background-color: #f8fafc;
+        padding: 25px 40px;
+        text-align: center;
+        border-top: 1px solid #e2e8f0;
+      }
+      
+      .footer-text {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 15px;
+      }
+      
+      .footer-links {
+        margin-bottom: 15px;
+      }
+      
+      .footer-link {
+        color: #4f46e5;
+        text-decoration: none;
+        font-size: 14px;
+        margin: 0 12px;
+        transition: color 0.2s ease;
+      }
+      
+      .footer-link:hover {
+        color: #7c3aed;
+        text-decoration: underline;
+      }
+      
+      .copyright {
+        font-size: 12px;
+        color: #94a3b8;
+        margin-top: 15px;
+      }
+      
+      /* Responsive adjustments */
+      @media (max-width: 650px) {
+        .content {
+          padding: 30px 25px;
+        }
+        
+        .header {
+          padding: 25px 0;
+        }
+        
+        .logo-container {
+          width: 70px;
+          height: 70px;
+        }
+        
+        .logo {
+          font-size: 32px;
+        }
+        
+        .cta-button {
+          padding: 12px 25px;
+          font-size: 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <table class="email-wrapper" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td align="center" valign="middle">
+          <div class="email-container">
+            <!-- Header with branding -->
+            <div class="header">
+              <div class="logo-container">
+                <div class="logo">M</div>
               </div>
-            </td>
-          </tr>
-        </table>
-      </body>
-    </html>
-    `;
+              <div class="brand-name">MediBot</div>
+            </div>
+            
+            <!-- Content area -->
+            <div class="content">
+              <h1 class="greeting">Hello ${to?.split("@")[0] || "there"},</h1>
+              
+              <p>You have a reminder from MediBot:</p>
+              
+              <div class="message-container">
+                <div class="message-label">Your Reminder</div>
+                <div class="message-content">${message}</div>
+              </div>
+              
+              <p>If you have any questions or need to adjust this reminder, please visit your MediBot dashboard.</p>
+              
+              <div class="cta-container">
+                <a href="https://medibot-ai.com/dashboard" class="cta-button">Go to Dashboard</a>
+              </div>
+              
+              <p>If you didn't request this reminder, you can safely ignore this email or contact our support team.</p>
+              
+              <p>Best regards,<br /><strong>The MediBot Team</strong></p>
+            </div>
+            
+            <!-- Footer -->
+            <div class="footer">
+              <p class="footer-text">Need help? We're here for you.</p>
+              
+              <div class="footer-links">
+                <a href="https://medibot-ai.com/help" class="footer-link">Help Center</a>
+                <a href="https://medibot-ai.com/contact" class="footer-link">Contact Us</a>
+                <a href="https://medibot-ai.com/privacy" class="footer-link">Privacy Policy</a>
+              </div>
+              
+              <p class="copyright">© ${new Date().getFullYear()} MediBot. All rights reserved.<br />
+              You are receiving this email because you have an account with MediBot.</p>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+`;
 
     // Check if RESEND_API_KEY is configured
     if (!process.env.RESEND_API_KEY) {
