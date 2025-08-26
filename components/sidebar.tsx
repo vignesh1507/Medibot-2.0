@@ -20,8 +20,8 @@ import {
   Menu,
   MessageSquare,
   X,
-  Smartphone, // Add this import
-  Download, // Add this import
+  Smartphone,
+  Download,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -140,13 +140,23 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       )}
 
       <div className="lg:flex lg:items-start">
-        {/* Sidebar Toggle Button (Mobile) */}
+        {/* Enhanced Sidebar Toggle Button (Mobile) */}
         <Button
           onClick={toggleSidebar}
           aria-label="Toggle sidebar"
-          className="fixed top-4 left-4 z-50 h-10 w-10 rounded-md bg-black/10 hover:bg-black/20 text-muted-foreground lg:hidden focus:outline-none focus:ring-0 active:bg-black/20 backdrop-blur"
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "fixed z-50 h-10 w-10 lg:hidden transition-all duration-300",
+            "text-foreground hover:bg-transparent",
+            sidebarOpen ? "left-[240px] top-4" : "left-4 top-4"
+          )}
         >
-          <Menu className="h-5 w-5" />
+          {sidebarOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
         </Button>
 
         {/* Sidebar */}
@@ -241,38 +251,32 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               </nav>
             </div>
 
-            {/* Get the App Section (DeepSeek style) */}
-           {/* Get the App Combined Button with QR */}
-{/* Get the App Sidebar Item (Enhanced UI) */}
-<div className="relative group w-full">
-  <Button
-    size="sm"
-    variant="outline"
-    className={cn(
-      "flex items-center w-full h-12 rounded-xl px-4 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 shadow-sm hover:shadow-md hover:bg-blue-100 dark:hover:bg-blue-900 transition-all duration-200",
-      collapsed && "justify-center px-0"
-    )}
-  >
-    <Smartphone className="h-5 w-5 flex-shrink-0" />
-    {!collapsed && <span className="ml-3 font-medium">Get the App</span>}
-  </Button>
+            {/* Get the App Section */}
+            <div className="relative group w-full mb-4">
+              <Button
+                size="sm"
+                variant="outline"
+                className={cn(
+                  "flex items-center w-full h-12 rounded-xl px-4 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 shadow-sm hover:shadow-md hover:bg-blue-100 dark:hover:bg-blue-900 transition-all duration-200",
+                  collapsed && "justify-center px-0"
+                )}
+              >
+                <Smartphone className="h-5 w-5 flex-shrink-0" />
+                {!collapsed && <span className="ml-3 font-medium">Get the App</span>}
+              </Button>
 
-  {/* QR Code Popup */}
-  {!collapsed && (
-    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-36 p-3 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-xl shadow-lg opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all origin-bottom z-50 pointer-events-none group-hover:pointer-events-auto text-center">
-      <p className="text-xs font-medium text-foreground mb-2">Scan QR to Download</p>
-      <img
-        src="/qr.png"
-        alt="Download App QR"
-        className="w-24 h-24 mx-auto object-contain"
-      />
-    </div>
-  )}
-</div>
-
-
-
-
+              {/* QR Code Popup */}
+              {!collapsed && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-36 p-3 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-xl shadow-lg opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all origin-bottom z-50 pointer-events-none group-hover:pointer-events-auto text-center">
+                  <p className="text-xs font-medium text-foreground mb-2">Scan QR to Download</p>
+                  <img
+                    src="/qr.png"
+                    alt="Download App QR"
+                    className="w-24 h-24 mx-auto object-contain"
+                  />
+                </div>
+              )}
+            </div>
 
             {/* Bottom: Profile with integrated options */}
             <div className="flex-shrink-0 pt-4 border-t border-border">

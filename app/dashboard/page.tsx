@@ -141,11 +141,9 @@ export default function DashboardPage() {
         <main className="flex-1 flex flex-col overflow-hidden">
           {/* Modern Header */}
           <header className="sticky top-0 z-20 bg-white/80 dark:bg-background/80 backdrop-blur border-b border-gray-200 dark:border-gray-700 shadow-sm">
-            <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
+            <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4" style={{ marginLeft: '40px' }}>
               <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden text-muted-foreground hover:bg-primary/10">
-                  <Menu className="h-5 w-5" />
-                </Button>
+                {/* Removed dashboard page menu icon button for small screens */}
                 <div className="relative">
                   <Image src="/logo.png" alt="Medibot Icon" width={40} height={40} className="rounded-full shadow-lg" />
                   <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-background"></span>

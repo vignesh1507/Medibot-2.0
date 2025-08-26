@@ -1952,737 +1952,672 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           }
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Transparent header, plan selector inline after MediBot name on md+ screens */}
-          <div className="sticky top-0 z-20 flex flex-row items-center justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-transparent shadow-none w-full min-h-[44px] sm:min-h-[56px] md:min-h-[64px]">
-            {/* Left: Brand/Sidebar + Plan Selector (on md+ screens) */}
-            <div className="flex flex-row items-center gap-2 min-w-[120px]">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(true)}
-                className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-7 w-7 sm:h-8 sm:w-8"
-                aria-label="Open sidebar"
-              >
-                {/* Optional: add icon like <MenuIcon /> */}
-              </Button>
-             
-              {/* Plan Selector: visible on left for md+ screens only */}
-              <div className="ml-2 hidden md:block">
-                <Select
-                  value={selectedPlan}
-                  onValueChange={(value) => {
-                    if (value === "premium") {
-                      window.location.href = '/pricing';
-                      return;
-                    }
-                    setSelectedPlan(value);
-                  }}
-                >
-                  <SelectTrigger className="group h-9 md:h-10 text-sm font-semibold text-gray-800 dark:text-gray-100 rounded-full px-3 md:px-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:scale-105 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 w-auto min-w-[120px]">
-                    <div className="flex items-center space-x-2">
-                      {selectedPlan === "premium" ? (
-                        <>
-                          <Crown className="h-4 w-4 md:h-5 md:w-5 text-yellow-500 animate-pulse" />
-                          <span className="hidden sm:inline text-sm font-bold bg-gradient-to-r from-yellow-600 to-orange-500 bg-clip-text text-transparent">Premium</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="relative">
-                            <Crown className="h-5 w-5 md:h-6 md:w-6 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200" />
-                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                          </div>
-                          <span className="hidden sm:inline text-sm font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">Medibot</span>
-                        </>
-                      )}
-                      <ChevronDown className="h-3 w-3 text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-all duration-200 group-data-[state=open]:rotate-180" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg text-gray-900 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 space-y-2 min-w-[280px] animate-in fade-in-0 zoom-in-95 duration-200">
-                    <SelectItem value="premium" className="group flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 dark:hover:from-yellow-900/20 dark:hover:to-orange-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-yellow-200 dark:hover:border-yellow-700/50">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <Crown className="h-5 w-5 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
-                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors duration-200">
-                            Premium Plan
-                          </span>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">₹99/month</span>
-                            <div className="px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[10px] font-bold rounded-full">
-                              UPGRADE
-                            </div>
-                          </div>
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 leading-tight">
-                            • Unlimited conversations<br/>
-                            • Priority support<br/>
-                            • Advanced AI models
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        {selectedPlan === "premium" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
-                        <div className="text-[10px] text-gray-400 dark:text-gray-500">Click to upgrade</div>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="base" className="group flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-blue-200 dark:hover:border-blue-700/50">
-                      <div className="flex items-center gap-3">
-                        <Sparkles className="h-5 w-5 text-blue-500 group-hover:scale-110 transition-transform duration-200" />
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">Base Plan</span>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs font-semibold text-green-600 dark:text-green-400">Free forever</span>
-                            <div className="px-2 py-0.5 bg-gradient-to-r from-green-400 to-blue-400 text-white text-[10px] font-bold rounded-full">
-                              ACTIVE
-                            </div>
-                          </div>
-                          <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 leading-tight">
-                            • Basic conversations<br/>
-                            • Standard AI models<br/>
-                            • Community support
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        {selectedPlan === "base" && <Check className="h-4 w-4 text-green-500 dark:text-green-400" />}
-                        <div className="text-[10px] text-gray-400 dark:text-gray-500">Current plan</div>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {/* Center: Plan Selector for small screens */}
-            <div className="flex flex-row items-center justify-center flex-1 md:hidden">
-              <Select
-                value={selectedPlan}
-                onValueChange={(value) => {
-                  if (value === "premium") {
-                    window.location.href = '/pricing';
-                    return;
-                  }
-                  setSelectedPlan(value);
-                }}
-              >
-                <SelectTrigger className="group h-8 text-xs font-semibold text-gray-800 dark:text-gray-100 rounded-full px-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:scale-105 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 w-auto min-w-[100px]">
-                  <div className="flex items-center space-x-1">
-                    {selectedPlan === "premium" ? (
-                      <>
-                        <Crown className="h-4 w-4 text-yellow-500 animate-pulse" />
-                        <span className="text-xs font-bold bg-gradient-to-r from-yellow-600 to-orange-500 bg-clip-text text-transparent">Premium</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="relative">
-                          <Crown className="h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200" />
-                          <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
-                        </div>
-                        <span className="text-xs font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">Medibot</span>
-                      </>
-                    )}
-                    <ChevronDown className="h-3 w-3 text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-all duration-200 group-data-[state=open]:rotate-180" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg text-gray-900 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 space-y-2 min-w-[260px] animate-in fade-in-0 zoom-in-95 duration-200">
-                  <SelectItem value="premium" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 dark:hover:from-yellow-900/20 dark:hover:to-orange-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-yellow-200 dark:hover:border-yellow-700/50">
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <Crown className="h-4 w-4 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
-                        <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors duration-200">Premium Plan</span>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">₹99/month</span>
-                          <div className="px-1.5 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[9px] font-bold rounded-full">
-                            UPGRADE
-                          </div>
-                        </div>
-                        <div className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5">
-                          Unlimited • Priority • Advanced AI
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-0.5">
-                      {selectedPlan === "premium" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
-                      <div className="text-[9px] text-gray-400 dark:text-gray-500">Tap to upgrade</div>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="base" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-blue-200 dark:hover:border-blue-700/50">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-blue-500 group-hover:scale-110 transition-transform duration-200" />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">Base Plan</span>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-xs font-semibold text-green-600 dark:text-green-400">Free forever</span>
-                          <div className="px-1.5 py-0.5 bg-gradient-to-r from-green-400 to-blue-400 text-white text-[9px] font-bold rounded-full">
-                            ACTIVE
-                          </div>
-                        </div>
-                        <div className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5">
-                          Basic • Standard • Community
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-0.5">
-                      {selectedPlan === "base" && <Check className="h-3 w-3 text-green-500 dark:text-green-400" />}
-                      <div className="text-[9px] text-gray-400 dark:text-gray-500">Current plan</div>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Right: Icons/User Actions */}
-            <div className="flex flex-row items-center gap-2 sm:gap-3 min-w-[140px] justify-end">
-              {user ? (
+       <div className="flex-1 flex flex-col overflow-hidden">
+  {/* Transparent header, plan selector inline after MediBot name on all screens */}
+  <div className="sticky top-0 z-20 flex flex-row items-center justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-transparent shadow-none w-full min-h-[44px] sm:min-h-[56px] md:min-h-[64px]">
+    {/* Left: Brand/Sidebar + Plan Selector */}
+    <div className="flex flex-row items-center gap-1 min-w-[100px] w-auto flex-shrink-0">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setSidebarOpen(true)}
+        className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
+        aria-label="Open sidebar"
+      >
+        {/* Optional: add icon like <MenuIcon /> */}
+      </Button>
+      {/* Brand Name with responsive font size */}
+      {/* Plan Selector: visible on left for all screens */}
+      <div className="ml-1">
+        <Select
+          value={selectedPlan}
+          onValueChange={(value) => {
+            if (value === "premium") {
+              window.location.href = '/pricing';
+              return;
+            }
+            setSelectedPlan(value);
+          }}
+        >
+          <SelectTrigger className="group h-7 sm:h-8 md:h-9 text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 rounded-full px-2 sm:px-3 md:px-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:scale-105 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 w-auto min-w-[80px] sm:min-w-[100px] md:min-w-[120px]">
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              {selectedPlan === "premium" ? (
                 <>
-                  {/* Removed PaymentDialog (PhonePe/Stripe integration) */}
-                  <Button 
-                    onClick={startNewChat} 
-                    variant="ghost" 
-                    size="icon" 
-                    className="group relative bg-gradient-to-br from-purple-500/10 via-purple-600/15 to-purple-700/10 hover:from-purple-500/20 hover:via-purple-600/25 hover:to-purple-700/20 dark:from-purple-400/10 dark:via-purple-500/15 dark:to-purple-600/10 dark:hover:from-purple-400/20 dark:hover:via-purple-500/25 dark:hover:to-purple-600/20 text-purple-600 dark:text-purple-400 rounded-xl h-9 w-9 sm:h-10 sm:w-10 transition-all duration-300 hover:scale-110 hover:rotate-12 hover:shadow-lg hover:shadow-purple-500/20 border border-purple-200/30 dark:border-purple-400/20"
-                    title="Start New Chat"
-                  >
-                    <Plus className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-125 transition-transform duration-300" />
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-400/0 via-purple-500/0 to-purple-600/0 group-hover:from-purple-400/10 group-hover:via-purple-500/5 group-hover:to-purple-600/10 transition-all duration-300"></div>
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
-                  </Button>
-                  
-                  <Button 
-                    onClick={handlePrescriptionAnalysis} 
-                    variant="ghost" 
-                    size="icon" 
-                    className="group relative bg-gradient-to-br from-blue-500/10 via-blue-600/15 to-cyan-500/10 hover:from-blue-500/20 hover:via-blue-600/25 hover:to-cyan-500/20 dark:from-blue-400/10 dark:via-blue-500/15 dark:to-cyan-400/10 dark:hover:from-blue-400/20 dark:hover:via-blue-500/25 dark:hover:to-cyan-400/20 text-blue-600 dark:text-blue-400 rounded-xl h-9 w-9 sm:h-10 sm:w-10 transition-all duration-300 hover:scale-110 hover:-rotate-6 hover:shadow-lg hover:shadow-blue-500/20 border border-blue-200/30 dark:border-blue-400/20"
-                    title="Analyze Prescription"
-                  >
-                    <Camera className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-125 transition-transform duration-300" />
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-400/0 via-blue-500/0 to-cyan-500/0 group-hover:from-blue-400/10 group-hover:via-blue-500/5 group-hover:to-cyan-500/10 transition-all duration-300"></div>
-                    <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
-                  </Button>
-                  
-                  <Button 
-                    onClick={handleHistoryDialog} 
-                    variant="ghost" 
-                    size="icon" 
-                    className="group relative bg-gradient-to-br from-green-500/10 via-emerald-600/15 to-teal-500/10 hover:from-green-500/20 hover:via-emerald-600/25 hover:to-teal-500/20 dark:from-green-400/10 dark:via-emerald-500/15 dark:to-teal-400/10 dark:hover:from-green-400/20 dark:hover:via-emerald-500/25 dark:hover:to-teal-400/20 text-green-600 dark:text-green-400 rounded-xl h-9 w-9 sm:h-10 sm:w-10 transition-all duration-300 hover:scale-110 hover:rotate-180 hover:shadow-lg hover:shadow-green-500/20 border border-green-200/30 dark:border-green-400/20"
-                    title="View Chat History"
-                  >
-                    <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-125 transition-transform duration-500" />
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-green-400/0 via-emerald-500/0 to-teal-500/0 group-hover:from-green-400/10 group-hover:via-emerald-500/5 group-hover:to-teal-500/10 transition-all duration-300"></div>
-                    <div className="absolute -bottom-0.5 -left-0.5 w-1.5 h-1.5 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-bounce transition-opacity duration-300"></div>
-                  </Button>
-                  
-                  <Button 
-                    onClick={exportChat} 
-                    variant="ghost" 
-                    size="icon" 
-                    className="group relative bg-gradient-to-br from-orange-500/10 via-amber-600/15 to-yellow-500/10 hover:from-orange-500/20 hover:via-amber-600/25 hover:to-yellow-500/20 dark:from-orange-400/10 dark:via-amber-500/15 dark:to-yellow-400/10 dark:hover:from-orange-400/20 dark:hover:via-amber-500/25 dark:hover:to-yellow-400/20 text-orange-600 dark:text-orange-400 rounded-xl h-9 w-9 sm:h-10 sm:w-10 transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-500/20 border border-orange-200/30 dark:border-orange-400/20"
-                    title="Export Chat"
-                  >
-                    <Download className="h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-125 group-hover:translate-y-0.5 transition-transform duration-300" />
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-orange-400/0 via-amber-500/0 to-yellow-500/0 group-hover:from-orange-400/10 group-hover:via-amber-500/5 group-hover:to-yellow-500/10 transition-all duration-300"></div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-orange-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
-                  </Button>
+                  <Crown className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-yellow-500 animate-pulse" />
+                  <span className="text-xs sm:text-sm font-bold bg-gradient-to-r from-yellow-600 to-orange-500 bg-clip-text text-transparent">Premium</span>
                 </>
               ) : (
                 <>
-                  <Link href="/auth/signin">
-                    <Button variant="outline" className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-8 px-3 sm:h-9 sm:px-4 w-full sm:w-auto rounded-full text-xs">
-                      Login
-                    </Button>
-                  </Link>
-                  <Link href="/auth/signup">
-                    <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-8 px-3 sm:h-9 sm:px-4 w-full sm:w-auto rounded-full shadow-sm text-xs">
-                      Get Started
-                    </Button>
-                  </Link>
+                  <div className="relative">
+                    <Crown className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200" />
+                    <div className="absolute -top-0.5 -right-0.5 w-1 sm:w-1.5 md:w-2 h-1 sm:h-1.5 md:h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  </div>
+                  <span className="text-xs sm:text-sm font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">Medibot</span>
+                </>
+              )}
+              <ChevronDown className="h-2 w-2 sm:h-3 sm:w-3 md:h-3 md:w-3 text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-all duration-200 group-data-[state=open]:rotate-180" />
+            </div>
+          </SelectTrigger>
+          <SelectContent className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg text-gray-900 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 space-y-2 min-w-[260px] animate-in fade-in-0 zoom-in-95 duration-200">
+            <SelectItem value="premium" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 dark:hover:from-yellow-900/20 dark:hover:to-orange-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-yellow-200 dark:hover:border-yellow-700/50">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="relative">
+                  <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
+                  <div className="absolute -top-0.5 sm:-top-1 -right-0.5 sm:-right-1 w-1.5 sm:w-2 h-1.5 sm:h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors duration-200">
+                    Premium Plan
+                  </span>
+                  <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
+                    <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">₹99/month</span>
+                    <div className="px-1.5 sm:px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[9px] sm:text-[10px] font-bold rounded-full">
+                      UPGRADE
+                    </div>
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 leading-tight">
+                    • Unlimited conversations<br/>
+                    • Priority support<br/>
+                    • Advanced AI models
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-0.5 sm:gap-1">
+                {selectedPlan === "premium" && <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 dark:text-green-400" />}
+                <div className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500">Tap to upgrade</div>
+              </div>
+            </SelectItem>
+            <SelectItem value="base" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-blue-200 dark:hover:border-blue-700/50">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 group-hover:scale-110 transition-transform duration-200" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">Base Plan</span>
+                  <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
+                    <span className="text-xs font-semibold text-green-600 dark:text-green-400">Free forever</span>
+                    <div className="px-1.5 sm:px-2 py-0.5 bg-gradient-to-r from-green-400 to-blue-400 text-white text-[9px] sm:text-[10px] font-bold rounded-full">
+                      ACTIVE
+                    </div>
+                  </div>
+                  <div className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 leading-tight">
+                    • Basic conversations<br/>
+                    • Standard AI models<br/>
+                    • Community support
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-0.5 sm:gap-1">
+                {selectedPlan === "base" && <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 dark:text-green-400" />}
+                <div className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500">Current plan</div>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+    {/* Right: Icons/User Actions */}
+    <div className="flex flex-row items-center gap-1 sm:gap-2 min-w-[120px] justify-end w-auto flex-shrink-0">
+      {user ? (
+        <>
+          <Button 
+            onClick={startNewChat} 
+            variant="ghost" 
+            size="icon" 
+            className="group relative bg-gradient-to-br from-purple-500/10 via-purple-600/15 to-purple-700/10 hover:from-purple-500/20 hover:via-purple-600/25 hover:to-purple-700/20 dark:from-purple-400/10 dark:via-purple-500/15 dark:to-purple-600/10 dark:hover:from-purple-400/20 dark:hover:via-purple-500/25 dark:hover:to-purple-600/20 text-purple-600 dark:text-purple-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:rotate-12 hover:shadow-lg hover:shadow-purple-500/20 border border-purple-200/30 dark:border-purple-400/20"
+            title="Start New Chat"
+          >
+            <Plus className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 transition-transform duration-300" />
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-400/0 via-purple-500/0 to-purple-600/0 group-hover:from-purple-400/10 group-hover:via-purple-500/5 group-hover:to-purple-600/10 transition-all duration-300"></div>
+            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-purple-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
+          </Button>
+          
+          <Button 
+            onClick={handlePrescriptionAnalysis} 
+            variant="ghost" 
+            size="icon" 
+            className="group relative bg-gradient-to-br from-blue-500/10 via-blue-600/15 to-cyan-500/10 hover:from-blue-500/20 hover:via-blue-600/25 hover:to-cyan-500/20 dark:from-blue-400/10 dark:via-blue-500/15 dark:to-cyan-400/10 dark:hover:from-blue-400/20 dark:hover:via-blue-500/25 dark:hover:to-cyan-400/20 text-blue-600 dark:text-blue-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:-rotate-6 hover:shadow-lg hover:shadow-blue-500/20 border border-blue-200/30 dark:border-blue-400/20"
+            title="Analyze Prescription"
+          >
+            <Camera className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 transition-transform duration-300" />
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-400/0 via-blue-500/0 to-cyan-500/0 group-hover:from-blue-400/10 group-hover:via-blue-500/5 group-hover:to-cyan-500/10 transition-all duration-300"></div>
+            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
+          </Button>
+          
+          <Button 
+            onClick={handleHistoryDialog} 
+            variant="ghost" 
+            size="icon" 
+            className="group relative bg-gradient-to-br from-green-500/10 via-emerald-600/15 to-teal-500/10 hover:from-green-500/20 hover:via-emerald-600/25 hover:to-teal-500/20 dark:from-green-400/10 dark:via-emerald-500/15 dark:to-teal-400/10 dark:hover:from-green-400/20 dark:hover:via-emerald-500/25 dark:hover:to-teal-400/20 text-green-600 dark:text-green-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:rotate-180 hover:shadow-lg hover:shadow-green-500/20 border border-green-200/30 dark:border-green-400/20"
+            title="View Chat History"
+          >
+            <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 transition-transform duration-500" />
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-green-400/0 via-emerald-500/0 to-teal-500/0 group-hover:from-green-400/10 group-hover:via-emerald-500/5 group-hover:to-teal-500/10 transition-all duration-300"></div>
+            <div className="absolute -bottom-0.5 -left-0.5 w-1.5 h-1.5 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-bounce transition-opacity duration-300"></div>
+          </Button>
+          
+          <Button 
+            onClick={exportChat} 
+            variant="ghost" 
+            size="icon" 
+            className="group relative bg-gradient-to-br from-orange-500/10 via-amber-600/15 to-yellow-500/10 hover:from-orange-500/20 hover:via-amber-600/25 hover:to-yellow-500/20 dark:from-orange-400/10 dark:via-amber-500/15 dark:to-yellow-400/10 dark:hover:from-orange-400/20 dark:hover:via-amber-500/25 dark:hover:to-yellow-400/20 text-orange-600 dark:text-orange-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-500/20 border border-orange-200/30 dark:border-orange-400/20"
+            title="Export Chat"
+          >
+            <Download className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 group-hover:translate-y-0.5 transition-transform duration-300" />
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-orange-400/0 via-amber-500/0 to-yellow-500/0 group-hover:from-orange-400/10 group-hover:via-amber-500/5 group-hover:to-yellow-500/10 transition-all duration-300"></div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 bg-orange-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
+          </Button>
+        </>
+      ) : (
+        <>
+          <Link href="/auth/signin">
+            <Button variant="outline" className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-7 px-2 sm:h-8 sm:px-3 md:h-9 md:px-4 w-full sm:w-auto rounded-full text-xs">
+              Login
+            </Button>
+          </Link>
+          <Link href="/auth/signup">
+            <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-7 px-2 sm:h-8 sm:px-3 md:h-9 md:px-4 w-full sm:w-auto rounded-full shadow-sm text-xs">
+              Get Started
+            </Button>
+          </Link>
+        </>
+      )}
+    </div>
+  </div>
+
+  <div className="relative flex-1 overflow-hidden">
+    <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
+      <div className="max-w-3xl mx-auto space-y-4">
+        {!user ? (
+          <div className="min-h-full flex items-center justify-center px-2 sm:px-0">
+            <div className="w-full max-w-md text-center space-y-8 mx-auto flex flex-col items-center justify-center">
+              <div className="flex flex-col items-center space-y-6">
+                <div className="w-20 h-20 relative">
+                  <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">Please log in or sign up to start chatting.</p>
+                </div>
+              </div>
+              <div className="space-y-4 w-full">
+                <Link href="/auth/signin">
+                  <Button
+                    variant="outline"
+                    className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                  >
+                    Login
+                  </Button>
+                </Link>
+                <Link href="/auth/signup">
+                  <Button
+                    variant="outline"
+                    className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                  >
+                    Signup
+                  </Button>
+                </Link>
+              </div>
+              <div className="mt-8 w-full">
+                <div className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Start a conversation below or try these suggestions:</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+                  <Button className="w-full flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-blue-100 dark:hover:bg-blue-800 transition-all">
+                    🌡️ What are the symptoms of flu?
+                  </Button>
+                  <Button className="w-full flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-green-100 dark:hover:bg-green-800 transition-all">
+                    💊 How to manage high blood pressure?
+                  </Button>
+                  <Button className="w-full flex items-center justify-center gap-2 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-purple-100 dark:hover:bg-purple-800 transition-all">
+                    🏃‍♀️ Best exercises for heart health
+                  </Button>
+                  <Button className="w-full flex items-center justify-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-yellow-100 dark:hover:bg-yellow-800 transition-all">
+                    🥗 Nutrition tips for diabetes
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (!currentSession || currentSession.messages.length === 0) ? (
+          <div className="flex flex-1 flex-col min-h-[60vh]">
+            <div className="flex-1 flex items-center justify-center">
+              <div className="w-full max-w-md mx-auto text-center space-y-8 flex flex-col items-center justify-center">
+                <div className="flex flex-col items-center space-y-6">
+                  <div className="w-20 h-20 relative">
+                    <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Start a conversation below or try these suggestions:</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="pb-4">
+              <AISuggestions 
+                onSuggestionClick={(suggestion) => {
+                  setMessage(suggestion);
+                  setTimeout(() => handleSendMessage(), 100);
+                }}
+                disabled={loading}
+              />
+            </div>
+          </div>
+        ) : (
+          renderMessages
+        )}
+      </div>
+      <div ref={messagesEndRef} />
+    </ScrollArea>
+    
+    {/* 🔥 ENHANCED SCROLL-TO-LATEST BUTTON */}
+    {showScrollButton && (
+      <button
+        onClick={() => scrollToBottom('smooth')}
+        className="fixed bottom-24 right-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 z-50 scroll-button-enter scroll-button-pulse border border-blue-400/30"
+        aria-label="Scroll to latest message"
+        style={{
+          transform: showScrollButton ? 'translateY(0)' : 'translateY(100px)',
+          opacity: showScrollButton ? 1 : 0,
+        }}
+      >
+        <div className="flex items-center justify-center">
+          <ChevronDown className="h-5 w-5" />
+          {hasNewMessages && (
+            <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full h-3 w-3 flex items-center justify-center">
+              <div className="h-1.5 w-1.5 bg-white rounded-full animate-ping"></div>
+            </div>
+          )}
+        </div>
+      </button>
+    )}
+  </div>
+  
+  {user && (
+    <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-5 pt-4">
+      <div className="mx-auto max-w-3xl">
+        <div className="flex flex-col gap-2 rounded-3xl bg-white dark:bg-gray-800 p-4 shadow-lg focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-gray-900 transition-all duration-300 relative">
+          
+          {/* Full-width Lottie background when recording */}
+          {isRecording && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
+              <Lottie
+                animationData={audioWave}
+                loop
+                autoPlay
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  opacity: 0.3, // Make semi-transparent for readability
+                }}
+              />
+            </div>
+          )}
+
+          <div className="relative z-20">
+            <textarea
+              ref={textareaRef}
+              value={message}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                if (textareaRef.current) {
+                  textareaRef.current.style.height = "auto";
+                  textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+                }
+              }}
+              onKeyDown={handleKeyPress}
+              placeholder={
+                isRecording ? "Listening..." : "Ask a health question or upload a file..."
+              }
+              className="w-full resize-none bg-transparent text-sm placeholder-gray-500 dark:placeholder-gray-400 dark:text-white outline-none"
+              rows={1}
+              maxLength={1000}
+              disabled={loading}
+              aria-label="Message input"
+            />
+          </div>
+
+          <div className="flex justify-between items-center pt-2 z-20">
+            <div className="flex items-center gap-2">
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <SelectTrigger className="h-8 text-sm dark:text-white bg-transparent border-none shadow-none focus:ring-0 focus:outline-none">
+                  <SelectValue placeholder="Model" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-100 dark:bg-gray-800 dark:text-white text-sm border-gray-200 dark:border-gray-700">
+                  <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
+                  <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                  <SelectItem value="medibot">MediBot</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={handleFileUpload}
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                title="Upload File"
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              {/* Voice input button */}
+              <VoiceInputButton
+                onResult={(text) => {
+                  setMessage(text);
+                  setTimeout(() => handleSendMessage(), 100);
+                }}
+                disabled={loading}
+                onStartRecording={() => setIsRecording(true)}
+                onStopRecording={() => setIsRecording(false)}
+              />
+            </div>
+
+            <button
+              onClick={loading ? handleStopGeneration : handleSendMessage}
+              disabled={!loading && (!message.trim() && !selectedFile)}
+              data-testid={loading ? "stop-button" : "send-button"}
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border dark:border-zinc-600"
+              aria-label={loading ? "Stop Generation" : "Send Message"}
+            >
+              {loading ? (
+                <StopCircle
+                  width="14"
+                  height="14"
+                  style={{ color: "currentcolor" }}
+                />
+              ) : (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  style={{ color: "currentcolor" }}
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fill="currentColor"
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M8.70711 1.39644C8.31659 1.00592 7.68342 1.00592 7.2929 1.39644L2.21968 6.46966L1.68935 6.99999L2.75001 8.06065L3.28034 7.53032L7.25001 3.56065V14.25V15H8.75001V14.25V3.56065L12.7197 7.53032L13.25 8.06065L14.3107 6.99999L13.7803 6.46966L8.70711 1.39644Z"
+                  />
+                </svg>
+              )}
+            </button>
+          </div>
+
+          {fileName && (
+            <div className="flex items-center gap-2 pt-1 z-20">
+              <Badge className="bg-gray-100 dark:bg-gray-700 dark:text-white text-sm truncate max-w-[300px]">
+                {fileName}
+              </Badge>
+              <Button
+                onClick={removeFile}
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-red-500 hover:text-red-600"
+                title="Remove File"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <p className="mt-1 text-center text-sm text-gray-500 font-sans">
+        MediBot can make mistakes. Check important info.
+      </p>
+    </div>
+  )}
+
+  {/* Additional dialogs and components */}
+  {user && (
+    <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
+      <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center space-x-2 text-lg">
+            <Camera className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <span>Prescription Analysis</span>
+          </DialogTitle>
+          <DialogDescription>
+            Upload a photo or PDF of your prescription to analyze its contents.
+          </DialogDescription>
+        </DialogHeader>
+        {!analysisResult ? (
+          <div className="space-y-4">
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              Upload a file for AI-powered analysis and information.
+            </p>
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center">
+              {analyzingPrescription ? (
+                <div className="space-y-4">
+                  <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">Analyzing file...</p>
+                </div>
+              ) : (
+                <>
+                  <Camera className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Upload prescription file</p>
+                  <Button
+                    onClick={handleFileUpload}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Choose File
+                  </Button>
                 </>
               )}
             </div>
-          </div>
-
-          <div className="relative flex-1 overflow-hidden">
-            <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
-              <div className="max-w-3xl mx-auto space-y-4">
-                {!user ? (
-                  <div className="min-h-full flex items-center justify-center">
-                    <div className="w-full max-w-md text-center space-y-8">
-                      <div className="flex flex-col items-center space-y-6">
-                        <div className="w-20 h-20 relative">
-                          <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
-                        </div>
-                        <div>
-                          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
-                          <p className="text-gray-500 dark:text-gray-400 text-sm">Please log in or sign up to start chatting.</p>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <Link href="/auth/signin">
-                          <Button
-                            variant="outline"
-                            className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
-                          >
-                            Login
-                          </Button>
-                        </Link>
-                        <Link href="/auth/signup">
-                          <Button
-                            variant="outline"
-                            className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
-                          >
-                            Signup
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                ) : (!currentSession || currentSession.messages.length === 0) ? (
-                  <div className="flex flex-1 flex-col min-h-[60vh]">
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="w-full max-w-md mx-auto text-center space-y-8 flex flex-col items-center justify-center">
-                        <div className="flex flex-col items-center space-y-6">
-                          <div className="w-20 h-20 relative">
-                            <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
-                          </div>
-                          <div>
-                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Start a conversation below or try these suggestions:</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="pb-4">
-                      <AISuggestions 
-                        onSuggestionClick={(suggestion) => {
-                          setMessage(suggestion);
-                          setTimeout(() => handleSendMessage(), 100);
-                        }}
-                        disabled={loading}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  renderMessages
-                )}
-              </div>
-              <div ref={messagesEndRef} />
-            </ScrollArea>
-            
-            {/* 🔥 ENHANCED SCROLL-TO-LATEST BUTTON */}
-            {showScrollButton && (
-              <button
-                onClick={() => scrollToBottom('smooth')}
-                className="fixed bottom-24 right-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 z-50 scroll-button-enter scroll-button-pulse border border-blue-400/30"
-                aria-label="Scroll to latest message"
-                style={{
-                  transform: showScrollButton ? 'translateY(0)' : 'translateY(100px)',
-                  opacity: showScrollButton ? 1 : 0,
-                }}
-              >
-                <div className="flex items-center justify-center">
-                  <ChevronDown className="h-5 w-5" />
-                  {hasNewMessages && (
-                    <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full h-3 w-3 flex items-center justify-center">
-                      <div className="h-1.5 w-1.5 bg-white rounded-full animate-ping"></div>
-                    </div>
-                  )}
-                </div>
-              </button>
-            )}
-          </div>
-          
-         {user && (
-  <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-5 pt-4">
-    <div className="mx-auto max-w-3xl">
-      <div className="flex flex-col gap-2 rounded-3xl bg-white dark:bg-gray-800 p-4 shadow-lg focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-gray-900 transition-all duration-300 relative">
-        
-        {/* Full-width Lottie background when recording */}
-        {isRecording && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-10">
-            <Lottie
-              animationData={audioWave}
-              loop
-              autoPlay
-              style={{
-                width: "100%",
-                height: "100%",
-                opacity: 0.3, // Make semi-transparent for readability
-              }}
-            />
-          </div>
-        )}
-
-        <div className="relative z-20">
-          <textarea
-            ref={textareaRef}
-            value={message}
-            onChange={(e) => {
-              setMessage(e.target.value);
-              if (textareaRef.current) {
-                textareaRef.current.style.height = "auto";
-                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-              }
-            }}
-            onKeyDown={handleKeyPress}
-            placeholder={
-              isRecording ? "Listening..." : "Ask a health question or upload a file..."
-            }
-            className="w-full resize-none bg-transparent text-sm placeholder-gray-500 dark:placeholder-gray-400 dark:text-white outline-none"
-            rows={1}
-            maxLength={1000}
-            disabled={loading}
-            aria-label="Message input"
-          />
-        </div>
-
-        <div className="flex justify-between items-center pt-2 z-20">
-          <div className="flex items-center gap-2">
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger className="h-8 text-sm dark:text-white bg-transparent border-none shadow-none focus:ring-0 focus:outline-none">
-                <SelectValue placeholder="Model" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-100 dark:bg-gray-800 dark:text-white text-sm border-gray-200 dark:border-gray-700">
-                <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
-                <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                <SelectItem value="medibot">MediBot</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={handleFileUpload}
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
-              title="Upload File"
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*,application/pdf"
-              onChange={handleFileChange}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setAnalyzingPrescription(true);
+                  analyzePrescription(file)
+                    .then((analysis) => {
+                      setAnalysisResult({
+                        ...analysis,
+                        userId: user.uid,
+                        fileName: file.name,
+                        createdAt: new Date(),
+                      });
+                      toast.success("Prescription analyzed successfully!");
+                    })
+                    .catch((error: any) => {
+                      console.error("Error analyzing prescription:", error);
+                      toast.error("Failed to analyze prescription");
+                    })
+                    .finally(() => {
+                      setAnalyzingPrescription(false);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    });
+                }
+              }}
               className="hidden"
             />
-            {/* Voice input button */}
-            <VoiceInputButton
-              onResult={(text) => {
-                setMessage(text);
-                setTimeout(() => handleSendMessage(), 100);
-              }}
-              disabled={loading}
-              onStartRecording={() => setIsRecording(true)}
-              onStopRecording={() => setIsRecording(false)}
-            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Supported formats: JPG, PNG, HEIC, PDF. For informational purposes only.
+            </p>
           </div>
-
-          <button
-            onClick={loading ? handleStopGeneration : handleSendMessage}
-            disabled={!loading && (!message.trim() && !selectedFile)}
-            data-testid={loading ? "stop-button" : "send-button"}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border dark:border-zinc-600"
-            aria-label={loading ? "Stop Generation" : "Send Message"}
-          >
-            {loading ? (
-              <StopCircle
-                width="14"
-                height="14"
-                style={{ color: "currentcolor" }}
-              />
-            ) : (
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                style={{ color: "currentcolor" }}
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill="currentColor"
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M8.70711 1.39644C8.31659 1.00592 7.68342 1.00592 7.2929 1.39644L2.21968 6.46966L1.68935 6.99999L2.75001 8.06065L3.28034 7.53032L7.25001 3.56065V14.25V15H8.75001V14.25V3.56065L12.7197 7.53032L13.25 8.06065L14.3107 6.99999L13.7803 6.46966L8.70711 1.39644Z"
-                />
-              </svg>
-            )}
-          </button>
-        </div>
-
-        {fileName && (
-          <div className="flex items-center gap-2 pt-1 z-20">
-            <Badge className="bg-gray-100 dark:bg-gray-700 dark:text-white text-sm truncate max-w-[300px]">
-              {fileName}
-            </Badge>
-            <Button
-              onClick={removeFile}
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 text-red-500 hover:text-red-600"
-              title="Remove File"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
-    </div>
-
-    <p className="mt-1 text-center text-sm text-gray-500 font-sans">
-      MediBot can make mistakes. Check important info.
-    </p>
-  </div>
-)}
-
-          
-          {/* Additional dialogs and components remain the same */}
-          {user && (
-            <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
-              <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center space-x-2 text-lg">
-                    <Camera className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                    <span>Prescription Analysis</span>
-                  </DialogTitle>
-                  <DialogDescription>
-                    Upload a photo or PDF of your prescription to analyze its contents.
-                  </DialogDescription>
-                </DialogHeader>
-                {!analysisResult ? (
-                  <div className="space-y-4">
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
-                      Upload a file for AI-powered analysis and information.
-                    </p>
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center">
-                      {analyzingPrescription ? (
-                        <div className="space-y-4">
-                          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                          <p className="text-gray-500 dark:text-gray-400 text-sm">Analyzing file...</p>
-                        </div>
-                      ) : (
-                        <>
-                          <Camera className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Upload prescription file</p>
-                          <Button
-                            onClick={handleFileUpload}
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
-                          >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Choose File
-                          </Button>
-                        </>
-                      )}
+        ) : (
+          <div className="space-y-6">
+            <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-lg">
+                  <FileText className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <span>Analysis Results</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Detected Medications</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {analysisResult.medications.map((med, index) => (
+                        <Badge key={index} className="bg-blue-600 text-white text-sm">
+                          <Pill className="mr-2 h-3 w-3" />
+                          {med}
+                        </Badge>
+                      ))}
                     </div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*,application/pdf"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setAnalyzingPrescription(true);
-                          analyzePrescription(file)
-                            .then((analysis) => {
-                              setAnalysisResult({
-                                ...analysis,
-                                userId: user.uid,
-                                fileName: file.name,
-                                createdAt: new Date(),
-                              });
-                              toast.success("Prescription analyzed successfully!");
-                            })
-                            .catch((error: any) => {
-                              console.error("Error analyzing prescription:", error);
-                              toast.error("Failed to analyze prescription");
-                            })
-                            .finally(() => {
-                              setAnalyzingPrescription(false);
-                              if (fileInputRef.current) fileInputRef.current.value = "";
-                            });
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Supported formats: JPG, PNG, HEIC, PDF. For informational purposes only.
-                    </p>
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2 text-lg">
-                          <FileText className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                          <span>Analysis Results</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 gap-4">
-                          <div>
-                            <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Detected Medications</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {analysisResult.medications.map((med, index) => (
-                                <Badge key={index} className="bg-blue-600 text-white text-sm">
-                                  <Pill className="mr-2 h-3 w-3" />
-                                  {med}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Dosage Information</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {analysisResult.dosages.map((dosage, index) => (
-                                <Badge key={index} variant="secondary" className="text-sm">
-                                  {dosage}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Dosage Information</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {analysisResult.dosages.map((dosage, index) => (
+                        <Badge key={index} variant="secondary" className="text-sm">
+                          {dosage}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Instructions</h4>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                    {analysisResult.instructions}
+                  </p>
+                </div>
+                {analysisResult.warnings?.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white flex items-center">
+                      <AlertCircle className="mr-2 h-5 w-5 text-yellow-500" />
+                      <span>Warnings & Precautions</span>
+                    </h4>
+                    <div className="space-y-2">
+                      {analysisResult.warnings.map((warning, index) => (
+                        <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-3 rounded-lg">
+                          <p className="text-yellow-700 dark:text-yellow-300 text-sm">{warning}</p>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Instructions</h4>
-                          <p className="text-gray-500 dark:text-gray-400 text-sm bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
-                            {analysisResult.instructions}
-                          </p>
-                        </div>
-                        {analysisResult.warnings?.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white flex items-center">
-                              <AlertCircle className="mr-2 h-5 w-5 text-yellow-500" />
-                              <span>Warnings & Precautions</span>
-                            </h4>
-                            <div className="space-y-2">
-                              {analysisResult.warnings.map((warning, index) => (
-                                <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-3 rounded-lg">
-                                  <p className="text-yellow-700 dark:text-yellow-300 text-sm">{warning}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-3 rounded-lg">
-                          <p className="text-blue-700 dark:text-blue-300 text-sm">
-                            <strong>Important:</strong> This analysis is for informational purposes only. Always follow your doctor's instructions and consult your pharmacist.
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                      <Button
-                        onClick={() => {
-                          setAnalysisResult(null);
-                          setPrescriptionDialogOpen(false);
-                        }}
-                        variant="outline"
-                        className="flex-1"
-                      >
-                        Close
-                      </Button>
-                      <Button
-                        onClick={() => setAnalysisResult(null)}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        Analyze Another
-                      </Button>
+                      ))}
                     </div>
                   </div>
                 )}
-              </DialogContent>
-            </Dialog>
-          )}
-          
-          {user && (
-            <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
-              <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-md mx-auto">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center space-x-2 text-lg">
-                    <RotateCcw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                    <span>Recent Chats</span>
-                  </DialogTitle>
-                  <DialogDescription>
-                    View your recent chat sessions.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 overflow-y-auto max-h-96">
-                  {sessions.length > 0 ? (
-                    sessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className={`p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
-                          currentSession?.id === session.id
-                            ? "bg-blue-600/20 border-blue-600"
-                            : "bg-gray-100 dark:bg-gray-700 hover:bg-blue-600/10"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div
-                            className="flex-1"
-                          onClick={() => {
-                              setCurrentSession(normalizeSession(session));
-                              if (session.id) {
-                                setLastSessionId(session.id);
-                                // Update URL with session id
-                                router.replace(`/chat?session=${session.id}`);
-                              }
-                              setHistoryDialogOpen(false);
-                            }}
-                          > 
-                            <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-xs font-mono select-all break-all mt-1">
-                              ID: {session.id}
-                            </p>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">
-                              {session.messages.length} messages • {formatISTDateTime(session.updatedAt)}
-                            </p>
-                            {session.messages.length > 0 && (
-                              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 truncate">
-                                {session.messages[session.messages.length - 1]?.message || "No messages"}
-                              </p>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={async () => {
-                              try {
-                                if (session.id) {
-                                  await deleteChatSession(session.id);
-                                  setSessions((prev) => prev.filter((s) => s.id !== session.id));
-                                  if (currentSession?.id === session.id) {
-                                    setCurrentSession(null);
-                                    localStorage.removeItem(`lastSessionId_${user.uid}`);
-                                  }
-                                  toast.success("Chat session deleted!");
-                                } else {
-                                  console.error("Session ID is undefined or null.");
-                                  toast.error("Failed to delete chat session: Invalid session ID");
-                                }
-                              } catch (error: any) {
-                                console.error("Error deleting session:", error);
-                                toast.error(`Failed to delete chat session: ${error.message || "Unknown error"}`);
-                              }
-                            }}
-                            className="text-red-500 hover:text-red-600 h-8 w-8"
-                            title="Delete Session"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-500 dark:text-gray-400 text-sm text-center">
-                      No chat sessions found.
-                    </p>
-                  )}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-3 rounded-lg">
+                  <p className="text-blue-700 dark:text-blue-300 text-sm">
+                    <strong>Important:</strong> This analysis is for informational purposes only. Always follow your doctor's instructions and consult your pharmacist.
+                  </p>
                 </div>
-              </DialogContent>
-            </Dialog>
+              </CardContent>
+            </Card>
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+              <Button
+                onClick={() => {
+                  setAnalysisResult(null);
+                  setPrescriptionDialogOpen(false);
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => setAnalysisResult(null)}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Analyze Another
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )}
+  
+  {user && (
+    <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+      <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-md mx-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center space-x-2 text-lg">
+            <RotateCcw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <span>Recent Chats</span>
+          </DialogTitle>
+          <DialogDescription>
+            View your recent chat sessions.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 overflow-y-auto max-h-96">
+          {sessions.length > 0 ? (
+            sessions.map((session) => (
+              <div
+                key={session.id}
+                className={`p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
+                  currentSession?.id === session.id
+                    ? "bg-blue-600/20 border-blue-600"
+                    : "bg-gray-100 dark:bg-gray-700 hover:bg-blue-600/10"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div
+                    className="flex-1"
+                    onClick={() => {
+                      setCurrentSession(normalizeSession(session));
+                      if (session.id) {
+                        setLastSessionId(session.id);
+                        // Update URL with session id
+                        router.replace(`/chat?session=${session.id}`);
+                      }
+                      setHistoryDialogOpen(false);
+                    }}
+                  > 
+                    <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs font-mono select-all break-all mt-1">
+                      ID: {session.id}
+                    </p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                      {session.messages.length} messages • {formatISTDateTime(session.updatedAt)}
+                    </p>
+                    {session.messages.length > 0 && (
+                      <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 truncate">
+                        {session.messages[session.messages.length - 1]?.message || "No messages"}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={async () => {
+                      try {
+                        if (session.id) {
+                          await deleteChatSession(session.id);
+                          setSessions((prev) => prev.filter((s) => s.id !== session.id));
+                          if (currentSession?.id === session.id) {
+                            setCurrentSession(null);
+                            localStorage.removeItem(`lastSessionId_${user.uid}`);
+                          }
+                          toast.success("Chat session deleted!");
+                        } else {
+                          console.error("Session ID is undefined or null.");
+                          toast.error("Failed to delete chat session: Invalid session ID");
+                        }
+                      } catch (error: any) {
+                        console.error("Error deleting session:", error);
+                        toast.error(`Failed to delete chat session: ${error.message || "Unknown error"}`);
+                      }
+                    }}
+                    className="text-red-500 hover:text-red-600 h-8 w-8"
+                    title="Delete Session"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400 text-sm text-center">
+              No chat sessions found.
+            </p>
           )}
         </div>
+      </DialogContent>
+    </Dialog>
+  )}
+</div>
       </div>
     </AuthGuard>
   );

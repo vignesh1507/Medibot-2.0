@@ -1,60 +1,40 @@
+
+
+// PhonePe V2 Integration (Client ID & Client Secret)
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 
-// PhonePe UAT/Production API endpoints
-const PHONEPE_API_URL = 'https://api.phonepe.com/apis/pg'; // Production endpoint
-const MERCHANT_ID = process.env.NEXT_PUBLIC_PHONEPE_MERCHANT_ID;
-const SALT_KEY = process.env.NEXT_PUBLIC_PHONEPE_SALT_KEY;
-const SALT_INDEX = 1;
-const CLIENT_ID = process.env.NEXT_PUBLIC_PHONEPE_CLIENT_ID;
-const CLIENT_SECRET = process.env.NEXT_PUBLIC_PHONEPE_CLIENT_SECRET;
-
-// Validate credentials
-if (!MERCHANT_ID || !SALT_KEY) {
-  console.error('PhonePe credentials not configured');
-}
+const PHONEPE_API_URL = 'https://api.phonepe.com/apis/pg';
+const CLIENT_ID = 'SU2507251940196342599529';
+const CLIENT_SECRET = '1cedc54d-5c48-4cc5-a60c-a8ecd88c1b11';
+const API_VERSION = 'v2';
 
 export async function POST(req: NextRequest) {
   try {
     const { amount, userId, planName } = await req.json();
 
-    // Validate required fields
+    console.log('[PhonePe] Incoming payment request:', { amount, userId, planName });
+
     if (!amount || !userId || !planName) {
-      console.error('PhonePe Payment Error: Missing fields', { amount, userId, planName });
-      const body = await req.text();
-      console.error('Request body:', body);
+      console.log('[PhonePe] Missing required fields:', { amount, userId, planName });
       return NextResponse.json({
         success: false,
         message: `Missing required fields: amount=${amount}, userId=${userId}, planName=${planName}`
       }, { status: 400 });
     }
 
-    // Validate credentials
-    if (!MERCHANT_ID || !SALT_KEY) {
-      return NextResponse.json({
-        success: false,
-        message: 'PhonePe credentials not configured'
-      }, { status: 500 });
-    }
-
-    console.log('PhonePe Payment Request:', { amount, userId, planName, MERCHANT_ID });
-
     // Generate unique transaction ID
     const transactionId = `TXN${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Prepare payment payload
-    // Detect base URL for callback/redirect
     let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
     if (!baseUrl) {
-      // Try to infer from request headers (for local dev)
       const host = req.headers.get('host');
       baseUrl = host?.includes('localhost') ? `http://${host}` : `https://${host}`;
     }
     const paymentPayload = {
-      merchantId: MERCHANT_ID,
+      merchantId: CLIENT_ID,
       merchantTransactionId: transactionId,
-      merchantUserId: userId.substring(0, 36), // Ensure it's within limits
-      amount: amount * 100, // Convert to paise
+      merchantUserId: userId.substring(0, 36),
+      amount: amount * 100,
       redirectUrl: `${baseUrl}/api/phonepe-callback`,
       redirectMode: 'POST',
       callbackUrl: `${baseUrl}/api/phonepe-callback`,
@@ -63,56 +43,56 @@ export async function POST(req: NextRequest) {
       }
     };
 
-    // Convert payload to base64
-    const base64Payload = Buffer.from(JSON.stringify(paymentPayload)).toString('base64');
-    
-    // Generate checksum
-  const checksumString = base64Payload + '/pg/v1/pay' + SALT_KEY;
-  const checksum = crypto.createHash('sha256').update(checksumString).digest('hex') + `###${SALT_INDEX}`;
+    const payloadString = JSON.stringify(paymentPayload);
+    const signature = crypto.createHmac('sha256', CLIENT_SECRET).update(payloadString).digest('hex');
 
-    // Make request to PhonePe API
-    const response = await fetch(`${PHONEPE_API_URL}/v1/pay`, {
+    console.log('[PhonePe] Payment payload:', paymentPayload);
+    console.log('[PhonePe] HMAC signature:', signature);
+
+    const response = await fetch(`${PHONEPE_API_URL}/${API_VERSION}/initiatePayment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-VERIFY': checksum,
-        ...(CLIENT_ID && CLIENT_SECRET ? {
-          'X-CLIENT-ID': CLIENT_ID,
-          'X-CLIENT-SECRET': CLIENT_SECRET,
-        } : {})
+        'X-CLIENT-ID': CLIENT_ID,
+        'X-API-VERSION': API_VERSION,
+        'X-VERIFY': signature
       },
-      body: JSON.stringify({
-        request: base64Payload
-      })
+      body: payloadString
     });
 
-    const result = await response.json();
-    
-    // Log the response for debugging
-    console.log('PhonePe API Response:', JSON.stringify(result, null, 2));
-    console.log('Response Status:', response.status);
+    let result;
+    try {
+      result = await response.json();
+    } catch (err) {
+      console.log('[PhonePe] Error parsing response:', err);
+      result = { success: false, message: 'Invalid response from PhonePe', raw: await response.text() };
+    }
+
+    console.log('[PhonePe] API response:', result);
 
     if (result.success) {
       return NextResponse.json({
         success: true,
         data: {
           redirectUrl: result.data.instrumentResponse.redirectInfo.url,
-          transactionId: transactionId,
-          planName: planName
+          transactionId,
+          planName
         }
       });
     } else {
       return NextResponse.json({
         success: false,
-        message: result.message || 'Payment initiation failed'
+        message: result.message || 'Payment initiation failed',
+        debug: result.raw || result
       }, { status: 400 });
     }
 
   } catch (error: any) {
-    console.error('PhonePe payment error:', error);
+    console.error('[PhonePe] payment error:', error);
     return NextResponse.json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      debug: error?.message || error
     }, { status: 500 });
   }
 }
