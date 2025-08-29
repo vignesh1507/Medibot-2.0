@@ -16,15 +16,16 @@ export async function POST(req: NextRequest) {
     const merchantId = process.env.PHONEPE_MERCHANT_ID;
     const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
     const clientVersion = process.env.PHONEPE_CLIENT_VERSION || "1";
-    const { merchantTransactionId, amount, currency, redirectUrl, callbackUrl } = body;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://medibot-ai.com";
+    const { merchantTransactionId, amount, currency } = body;
 
     // Validate required fields
-    if (!merchantId || !merchantTransactionId || !amount || !currency || !redirectUrl || !callbackUrl) {
+    if (!merchantId || !merchantTransactionId || !amount || !currency) {
       return NextResponse.json(
         {
           success: false,
           message: "Missing required fields",
-          debug: { merchantId, merchantTransactionId, amount, currency, redirectUrl, callbackUrl },
+          debug: { merchantId, merchantTransactionId, amount, currency },
         },
         { status: 400 }
       );
@@ -36,9 +37,9 @@ export async function POST(req: NextRequest) {
       merchantTransactionId,
       amount: parseInt(amount, 10), // amount in paise (integer)
       currency,
-      redirectUrl,
+      redirectUrl: `${baseUrl}/api/phonepe-callback`,
       redirectMode: "POST",
-      callbackUrl,
+      callbackUrl: `${baseUrl}/api/phonepe-callback`,
       paymentInstrument: { type: "PAY_PAGE" },
     };
     const payloadString = JSON.stringify(paymentPayload);
