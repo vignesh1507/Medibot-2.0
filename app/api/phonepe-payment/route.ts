@@ -13,7 +13,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     console.log("[PhonePe] Incoming request body:", body);
     // Use production credentials from .env.local
-    const merchantId = process.env.PHONEPE_MERCHANT_ID;
+  // Use provided client/merchant ID from env, fallback to hardcoded value
+  const merchantId = process.env.PHONEPE_MERCHANT_ID || process.env.NEXT_PUBLIC_PHONEPE_MERCHANT_ID || "SU2507251940196342599529";
     const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
     const clientVersion = process.env.PHONEPE_CLIENT_VERSION || "1";
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://medibot-ai.com";
