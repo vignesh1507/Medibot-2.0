@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -29,25 +28,25 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc } from "firebase/firestore";
 
 export default function HomePage() {
-  // Light medical-themed color variables
-  const primaryColor = "bg-[#e0f7fa]";
-  const primaryHover = "hover:bg-[#b2ebf2]";
-  const primaryBorder = "border-[#80deea]";
-  const primaryText = "text-[#00796b]";
+  // Medibot-like theme variables
+  const primaryColor = "bg-[#0E7490]";
+  const primaryHover = "hover:bg-[#0C6A83]";
+  const primaryBorder = "border-[#0E7490]";
+  const primaryText = "text-[#0E7490]";
 
-  const secondaryColor = "bg-[#e3f2fd]";
-  const secondaryHover = "hover:bg-[#bbdefb]";
-  const secondaryBorder = "border-[#90caf9]";
-  const secondaryText = "text-[#1565c0]";
+  const secondaryColor = "bg-[#F0F9FF]";
+  const secondaryHover = "hover:bg-[#E0F2FE]";
+  const secondaryBorder = "border-[#BAE6FD]";
+  const secondaryText = "text-[#0369A1]";
 
-  const accentColor = "bg-[#e8f5e9]";
-  const accentHover = "hover:bg-[#c8e6c9]";
-  const accentBorder = "border-[#a5d6a7]";
-  const accentText = "text-[#2e7d32]";
+  const accentColor = "bg-[#0D9488]";
+  const accentHover = "hover:bg-[#0F766E]";
+  const accentBorder = "border-[#0D9488]";
+  const accentText = "text-[#0D9488]";
 
-  const buttonClasses = `h-10 px-6 ${primaryColor} ${primaryText} border ${primaryBorder} rounded-full text-base font-medium shadow-none ${primaryHover} hover:border-[#4dd0e1] hover:text-[#00796b]`;
-  const secondaryButtonClasses = `h-10 px-6 ${secondaryColor} ${secondaryText} border ${secondaryBorder} rounded-full text-base font-medium shadow-none ${secondaryHover} hover:border-[#64b5f6] hover:text-[#1565c0]`;
-  const accentButtonClasses = `h-10 px-6 ${accentColor} ${accentText} border ${accentBorder} rounded-full text-base font-medium shadow-none ${accentHover} hover:border-[#81c784] hover:text-[#2e7d32]`;
+  const buttonClasses = `h-10 px-6 ${primaryColor} text-white border ${primaryBorder} rounded-lg text-base font-medium shadow-none ${primaryHover} hover:border-[#0C6A83] hover:text-white`;
+  const secondaryButtonClasses = `h-10 px-6 ${secondaryColor} ${secondaryText} border ${secondaryBorder} rounded-lg text-base font-medium shadow-none ${secondaryHover} hover:border-[#7DD3FC] hover:text-[#0369A1]`;
+  const accentButtonClasses = `h-10 px-6 ${accentColor} text-white border ${accentBorder} rounded-lg text-base font-medium shadow-none ${accentHover} hover:border-[#0F766E] hover:text-white`;
 
   // Animation controls
   const controls = useAnimation();
@@ -323,18 +322,18 @@ export default function HomePage() {
       </Head>
       
       <div
-        className={`min-h-screen bg-gradient-to-br from-[#f5f5f5] via-[#e8f5e9] to-[#e3f2fd] text-[#263238] flex flex-col items-center justify-start overflow-x-hidden`}
+        className={`min-h-screen bg-gradient-to-br from-[#F0F9FF] via-white to-[#ECFDF5] text-[#0F766E] flex flex-col items-center justify-start overflow-x-hidden`}
       >
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-64 h-64 bg-[#b2ebf2]/50 rounded-full blur-3xl animate-float-slow"></div>
-        <div className="absolute bottom-20 right-10 w-64 h-64 bg-[#bbdefb]/50 rounded-full blur-3xl animate-float-medium"></div>
-        <div className="absolute top-1/3 right-1/4 w-32 h-32 bg-[#c8e6c9]/50 rounded-full blur-2xl animate-float-fast"></div>
+        <div className="absolute top-20 left-10 w-64 h-64 bg-[#CFFAFE]/50 rounded-full blur-3xl animate-float-slow"></div>
+        <div className="absolute bottom-20 right-10 w-64 h-64 bg-[#CCFBF1]/50 rounded-full blur-3xl animate-float-medium"></div>
+        <div className="absolute top-1/3 right-1/4 w-32 h-32 bg-[#A5F3FC]/50 rounded-full blur-2xl animate-float-fast"></div>
       </div>
 
       {/* Header Section */}
       <header
-        className={`fixed top-0 left-0 w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-200 shadow-sm`}
+        className={`fixed top-0 left-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-[#E0F2FE] shadow-sm`}
         role="banner"
       >
         <nav className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between" role="navigation" aria-label="Main navigation">
@@ -357,27 +356,26 @@ export default function HomePage() {
               initial={{ x: -10, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-xl font-bold text-[#00796b]"
+              className="text-xl font-bold text-[#0E7490]"
             >
               MediBot
             </motion.h1>
           </div>
-         <motion.div
-  initial={{ opacity: 0 }}
-  animate={{ opacity: 1 }}
-  transition={{ duration: 0.5, delay: 0.4 }}
-  className="flex flex-col sm:flex-row items-center gap-2 sm:space-x-4"
->
-  <Link href="/auth/signin" className="w-full sm:w-auto">
-    <Button className={`${buttonClasses} w-full sm:w-auto`}>
-      Sign In
-    </Button>
-  </Link>
-  
-</motion.div>
-
-          </nav>
-        </header>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="flex flex-col sm:flex-row items-center gap-2 sm:space-x-4"
+          >
+            <Link href="/auth/signin" className="w-full sm:w-auto">
+              <Button className={`${secondaryButtonClasses} w-full sm:w-auto`}>
+                Sign In
+              </Button>
+            </Link>
+           
+          </motion.div>
+        </nav>
+      </header>
 
       {/* Hero Section */}
       <main role="main" aria-label="Main content">
@@ -399,8 +397,8 @@ export default function HomePage() {
             />
             <defs>
               <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style={{ stopColor: "#b2ebf2", stopOpacity: 0.3 }} />
-                <stop offset="100%" style={{ stopColor: "#c8e6c9", stopOpacity: 0.3 }} />
+                <stop offset="0%" style={{ stopColor: "#CFFAFE", stopOpacity: 0.3 }} />
+                <stop offset="100%" style={{ stopColor: "#CCFBF1", stopOpacity: 0.3 }} />
               </linearGradient>
             </defs>
           </svg>
@@ -412,11 +410,11 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="text-4xl font-extrabold tracking-tight text-[#263238] sm:text-5xl md:text-6xl"
+              className="text-4xl font-extrabold tracking-tight text-[#0F766E] sm:text-5xl md:text-6xl"
               id="hero-heading"
             >
               Transform Your Health with{" "}
-              <span className="bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
                 MediBot
               </span>
             </motion.h1>
@@ -424,7 +422,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="mt-6 max-w-2xl mx-auto text-xl text-[#546e7a]"
+              className="mt-6 max-w-2xl mx-auto text-xl text-[#0F766E]"
               aria-describedby="hero-heading"
             >
               Your AI-powered health companion that simplifies medication management,
@@ -438,7 +436,7 @@ export default function HomePage() {
             >
               <Button
                 asChild
-                className={`inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-full shadow-sm text-white bg-gradient-to-r from-[#00acc1] to-[#42a5f5] hover:from-[#00838f] hover:to-[#1e88e5] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4dd0e1]`}
+                className={`inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-[#0E7490] to-[#0D9488] hover:from-[#0C6A83] hover:to-[#0F766E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0E7490]`}
               >
                 <Link href="/auth/signup">Get Started Free</Link>
               </Button>
@@ -452,7 +450,7 @@ export default function HomePage() {
             transition={{ duration: 0.8, delay: 0.6 }}
             className="mt-16 relative"
           >
-            <div className="relative max-w-4xl mx-auto rounded-3xl overflow-hidden border border-gray-200 shadow-2xl shadow-[#b2ebf2]/50">
+            <div className="relative max-w-4xl mx-auto rounded-3xl overflow-hidden border border-gray-200 shadow-2xl shadow-[#CFFAFE]/50">
               <Image
                 src="/main.png"
                 alt="MediBot App Dashboard"
@@ -465,8 +463,8 @@ export default function HomePage() {
             </div>
 
             {/* Floating elements around the hero image */}
-            <div className="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-[#b2ebf2]/50 blur-xl animate-pulse-slow"></div>
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full bg-[#bbdefb]/50 blur-xl animate-pulse-medium"></div>
+            <div className="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-[#CFFAFE]/50 blur-xl animate-pulse-slow"></div>
+            <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full bg-[#CCFBF1]/50 blur-xl animate-pulse-medium"></div>
           </motion.div>
         </div>
       </section>
@@ -486,17 +484,17 @@ export default function HomePage() {
 
         <motion.div variants={item} className="text-center mb-16">
           <span
-            className={`inline-block px-4 py-2 bg-[#e0f7fa] text-[#00796b] rounded-full text-sm font-medium mb-4`}
+            className={`inline-block px-4 py-2 bg-[#CFFAFE] text-[#0E7490] rounded-lg text-sm font-medium mb-4`}
           >
             Powerful Features
           </span>
-          <h2 id="features-heading" className="text-4xl md:text-5xl font-bold text-[#263238]">
+          <h2 id="features-heading" className="text-4xl md:text-5xl font-bold text-[#0F766E]">
             Take Control of Your{" "}
-            <span className="bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
               Health
             </span>
           </h2>
-          <p className="mt-4 text-lg text-[#546e7a] max-w-2xl mx-auto">
+          <p className="mt-4 text-lg text-[#0F766E] max-w-2xl mx-auto">
             MediBot combines cutting-edge technology with intuitive design to
             revolutionize your health management.
           </p>
@@ -505,43 +503,42 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[
             {
-              icon: <Pill className="h-6 w-6 text-[#00acc1]" />,
+              icon: <Pill className="h-6 w-6 text-[#0E7490]" />,
               title: "Smart Medication Tracking",
               description:
                 "Easily log and track your medications with our intuitive interface. Set up schedules, view history, and get insights into your adherence.",
               image: "/healthtrack.png",
             },
             {
-  icon: <MessageCircle className="h-6 w-6 text-[#00acc1]" />,
-  title: "AI-Powered Health Chat",
-  description:
-    "Ask MediBot anything about your health or prescriptions. Our AI provides accurate, personalized advice to support your wellness journey.",
-  image: "/chat.png",
-},
-
+              icon: <MessageCircle className="h-6 w-6 text-[#0E7490]" />,
+              title: "AI-Powered Health Chat",
+              description:
+                "Ask MediBot anything about your health or prescriptions. Our AI provides accurate, personalized advice to support your wellness journey.",
+              image: "/chat.png",
+            },
             {
-              icon: <Clock className="h-6 w-6 text-[#00acc1]" />,
+              icon: <Clock className="h-6 w-6 text-[#0E7490]" />,
               title: "Timely Reminders",
               description:
                 "Receive customized reminders via email, WhatsApp, or push notifications to stay on top of your medication schedule.",
               image: "/medication.png",
             },
             {
-              icon: <Calendar className="h-6 w-6 text-[#00acc1]" />,
+              icon: <Calendar className="h-6 w-6 text-[#0E7490]" />,
               title: "Medical Information Summarizer",
               description:
                 "Visualize your medication and appointment schedules in a sleek, interactive calendar to plan your health routine effectively.",
               image: "/summarize.webp",
             },
             {
-              icon: <Activity className="h-6 w-6 text-[#00acc1]" />,
+              icon: <Activity className="h-6 w-6 text-[#0E7490]" />,
               title: "Prescription Analysis",
               description:
                 "Get tailored health tips and analytics based on your medication adherence and health data to optimize your well-being.",
               image: "/prescription.webp",
             },
             {
-              icon: <Shield className="h-6 w-6 text-[#00acc1]" />,
+              icon: <Shield className="h-6 w-6 text-[#0E7490]" />,
               title: "Secure & Private",
               description:
                 "Your data is protected with state-of-the-art encryption, ensuring your health information remains private and secure.",
@@ -555,7 +552,7 @@ export default function HomePage() {
               transition={{ duration: 0.2 }}
             >
               <Card
-                className={`group bg-white rounded-xl border border-gray-200 shadow-lg shadow-[#b2ebf2]/30 hover:shadow-[#b2ebf2]/50 transition-all h-full overflow-hidden`}
+                className={`group bg-white rounded-xl border border-gray-200 shadow-lg shadow-[#CFFAFE]/30 hover:shadow-[#CFFAFE]/50 transition-all h-full overflow-hidden`}
               >
                 <div className="relative h-48 overflow-hidden">
                   <Image
@@ -568,13 +565,13 @@ export default function HomePage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/20 to-transparent"></div>
                 </div>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-3 text-[#263238] text-xl font-semibold">
-                    <div className={`p-2 bg-[#e0f7fa] rounded-lg`}>{feature.icon}</div>
+                  <CardTitle className="flex items-center space-x-3 text-[#0F766E] text-xl font-semibold">
+                    <div className={`p-2 bg-[#CFFAFE] rounded-lg`}>{feature.icon}</div>
                     <span>{feature.title}</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-[#546e7a] text-base">{feature.description}</p>
+                  <p className="text-[#0F766E] text-base">{feature.description}</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -614,17 +611,17 @@ export default function HomePage() {
               className="lg:w-1/2"
             >
               <span
-                className={`inline-block px-4 py-2 bg-[#e3f2fd] text-[#1565c0] rounded-full text-sm font-medium mb-4`}
+                className={`inline-block px-4 py-2 bg-[#E0F2FE] text-[#0E7490] rounded-lg text-sm font-medium mb-4`}
               >
                 Mobile Friendly
               </span>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#263238] mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold text-[#0F766E] mb-6">
                 Health Management{" "}
-                <span className="bg-gradient-to-r from-[#42a5f5] to-[#4dd0e1] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
                   On The Go
                 </span>
               </h2>
-              <p className="text-lg text-[#546e7a] mb-6">
+              <p className="text-lg text-[#0F766E] mb-6">
                 Access your medication schedules, health insights, and AI assistant from
                 anywhere with our beautifully designed mobile interface. Join{" "}
                 {isLoading ? "many" : `${downloadCount.toLocaleString()}+`} users who
@@ -638,8 +635,8 @@ export default function HomePage() {
                   "Biometric authentication",
                 ].map((item, index) => (
                   <li key={index} className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-[#42a5f5] mt-0.5 mr-3 flex-shrink-0" />
-                    <span className="text-[#546e7a]">{item}</span>
+                    <CheckCircle className="h-5 w-5 text-[#0E7490] mt-0.5 mr-3 flex-shrink-0" />
+                    <span className="text-[#0F766E]">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -694,17 +691,17 @@ export default function HomePage() {
               className="lg:w-1/2"
             >
               <span
-                className={`inline-block px-4 py-2 bg-[#e0f7fa] text-[#00796b] rounded-full text-sm font-medium mb-4`}
+                className={`inline-block px-4 py-2 bg-[#CFFAFE] text-[#0E7490] rounded-lg text-sm font-medium mb-4`}
               >
                 AI Assistant
               </span>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#263238] mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold text-[#0F766E] mb-6">
                 Your Personal{" "}
-                <span className="bg-gradient-to-r from-[#4dd0e1] to-[#42a5f5] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#0D9488] to-[#0E7490] bg-clip-text text-transparent">
                   Health Companion
                 </span>
               </h2>
-              <p className="text-lg text-[#546e7a] mb-6">
+              <p className="text-lg text-[#0F766E] mb-6">
                 MediBot's AI assistant learns your health patterns and provides
                 personalized recommendations to optimize your medication routine.
               </p>
@@ -716,8 +713,8 @@ export default function HomePage() {
                   "Dosage optimization",
                 ].map((item, index) => (
                   <li key={index} className="flex items-start">
-                    <CheckCircle className="h-5 w-5 text-[#4dd0e1] mt-0.5 mr-3 flex-shrink-0" />
-                    <span className="text-[#546e7a]">{item}</span>
+                    <CheckCircle className="h-5 w-5 text-[#0D9488] mt-0.5 mr-3 flex-shrink-0" />
+                    <span className="text-[#0F766E]">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -731,7 +728,7 @@ export default function HomePage() {
 
       {/* Stats Section */}
       <section
-        className={`w-full py-20 bg-gradient-to-br from-[#e0f7fa] via-[#e8f5e9] to-[#e3f2fd]`}
+        className={`w-full py-20 bg-gradient-to-br from-[#F0F9FF] via-[#ECFDF5] to-[#E0F2FE]`}
       >
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
@@ -745,27 +742,27 @@ export default function HomePage() {
               {
                 number: isLoading ? "Loading..." : `${userCount.toLocaleString()}`,
                 label: "Users Count",
-                icon: <Eye className="h-6 w-6 text-[#e91e63]" />,
+                icon: <Eye className="h-6 w-6 text-[#0E7490]" />,
               },
               {
                 number: "92%",
                 label: "Satisfaction Rate",
-                icon: <Star className="h-6 w-6 text-[#ff9800]" />,
+                icon: <Star className="h-6 w-6 text-[#0E7490]" />,
               },
               {
                 number: "100+",
                 label: "Tokens per day",
-                icon: <Pill className="h-6 w-6 text-[#4caf50]" />,
+                icon: <Pill className="h-6 w-6 text-[#0D9488]" />,
               },
               {
                 number: "24/7",
                 label: "Support Available",
-                icon: <Stethoscope className="h-6 w-6 text-[#2196f3]" />,
+                icon: <Stethoscope className="h-6 w-6 text-[#0E7490]" />,
               },
               {
                 number: isLoading ? "Loading..." : `${downloadCount.toLocaleString()}`,
                 label: "Total Downloads",
-                icon: <Download className="h-6 w-6 text-[#9c27b0]" />,
+                icon: <Download className="h-6 w-6 text-[#0D9488]" />,
               },
             ].map((stat, index) => (
               <motion.div
@@ -775,10 +772,10 @@ export default function HomePage() {
                 className="p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-200 shadow-md"
               >
                 <div className="flex justify-center mb-3">{stat.icon}</div>
-                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent mb-2">
+                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent mb-2">
                   {stat.number}
                 </div>
-                <div className="text-[#546e7a] text-lg">{stat.label}</div>
+                <div className="text-[#0F766E] text-lg">{stat.label}</div>
               </motion.div>
             ))}
           </motion.div>
@@ -804,17 +801,17 @@ export default function HomePage() {
 
         <motion.div variants={item} className="text-center mb-16">
           <span
-            className={`inline-block px-4 py-2 bg-[#e0f7fa] text-[#00796b] rounded-full text-sm font-medium mb-4`}
+            className={`inline-block px-4 py-2 bg-[#CFFAFE] text-[#0E7490] rounded-lg text-sm font-medium mb-4`}
           >
             Pricing Plans
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#263238]">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#0F766E]">
             Choose Your{" "}
-            <span className="bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
               Plan
             </span>
           </h2>
-          <p className="mt-4 text-lg text-[#546e7a] max-w-2xl mx-auto">
+          <p className="mt-4 text-lg text-[#0F766E] max-w-2xl mx-auto">
             Select the perfect plan to suit your health management needs with MediBot's
             flexible pricing options.
           </p>
@@ -878,18 +875,18 @@ export default function HomePage() {
               <Card
                 className={`group bg-white rounded-xl border ${
                   plan.highlighted
-                    ? "border-[#4dd0e1] shadow-[#4dd0e1]/50"
-                    : "border-gray-200 shadow-[#b2ebf2]/30"
-                } shadow-lg hover:shadow-[#b2ebf2]/50 transition-all h-full overflow-hidden`}
+                    ? "border-[#0D9488] shadow-[#0D9488]/50"
+                    : "border-gray-200 shadow-[#CFFAFE]/30"
+                } shadow-lg hover:shadow-[#CFFAFE]/50 transition-all h-full overflow-hidden`}
               >
                 <CardHeader>
-                  <CardTitle className="text-[#263238] text-xl font-semibold">
+                  <CardTitle className="text-[#0F766E] text-xl font-semibold">
                     {plan.title}
                   </CardTitle>
-                  <div className="text-3xl font-bold bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent">
+                  <div className="text-3xl font-bold bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
                     {plan.price}
                     {plan.period && (
-                      <span className="text-base text-[#546e7a] ml-2">/{plan.period}</span>
+                      <span className="text-base text-[#0F766E] ml-2">/{plan.period}</span>
                     )}
                   </div>
                 </CardHeader>
@@ -897,8 +894,8 @@ export default function HomePage() {
                   <ul className="space-y-3 mb-6">
                     {plan.features.map((feature, i) => (
                       <li key={i} className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-[#4dd0e1] mt-0.5 mr-3 flex-shrink-0" />
-                        <span className="text-[#546e7a]">{feature}</span>
+                        <CheckCircle className="h-5 w-5 text-[#0D9488] mt-0.5 mr-3 flex-shrink-0" />
+                        <span className="text-[#0F766E]">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -906,7 +903,7 @@ export default function HomePage() {
                     asChild
                     className={`${
                       plan.highlighted
-                        ? "bg-gradient-to-r from-[#00acc1] to-[#42a5f5] text-white hover:from-[#00838f] hover:to-[#1e88e5]"
+                        ? "bg-gradient-to-r from-[#0E7490] to-[#0D9488] text-white hover:from-[#0C6A83] hover:to-[#0F766E]"
                         : buttonClasses
                     } w-full`}
                   >
@@ -929,17 +926,17 @@ export default function HomePage() {
           className="text-center mb-16"
         >
           <span
-            className={`inline-block px-4 py-2 bg-[#e8f5e9] text-[#2e7d32] rounded-full text-sm font-medium mb-4`}
+            className={`inline-block px-4 py-2 bg-[#D1FAE5] text-[#065F46] rounded-lg text-sm font-medium mb-4`}
           >
             Partnerships
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#263238]">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#0F766E]">
             Trusted{" "}
-            <span className="bg-gradient-to-r from-[#4caf50] to-[#00acc1] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#0D9488] to-[#0E7490] bg-clip-text text-transparent">
               Collaborations
             </span>
           </h2>
-          <p className="mt-4 text-lg text-[#546e7a] max-w-2xl mx-auto">
+          <p className="mt-4 text-lg text-[#0F766E] max-w-2xl mx-auto">
             We collaborate with distinguished healthcare professionals and researchers like Dr. Saikat Gochhait to advance evidence-based digital health innovation.
           </p>
         </motion.div>
@@ -947,19 +944,19 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {[
             {
-              icon: <Stethoscope className="h-8 w-8 text-[#4caf50]" />,
+              icon: <Stethoscope className="h-8 w-8 text-[#0D9488]" />,
               title: "Healthcare Experts",
               description: "Collaborating with distinguished healthcare professionals like Dr. Saikat Gochhait (Honoris Causa) to integrate evidence-based practices.",
               count: "1"
             },
             {
-              icon: <Shield className="h-8 w-8 text-[#00acc1]" />,
+              icon: <Shield className="h-8 w-8 text-[#0E7490]" />,
               title: "Active Partnerships",
               description: "Strategic collaborations focused on clinical decision support and AI-powered health management systems.",
               count: "1"
             },
             {
-              icon: <Activity className="h-8 w-8 text-[#42a5f5]" />,
+              icon: <Activity className="h-8 w-8 text-[#0E7490]" />,
               title: "Patients Reached",
               description: "Healthcare professionals and patients benefiting from our collaborative research and development initiatives.",
               count: isLoading ? "Loading..." : `${userCount.toLocaleString()}+`
@@ -973,17 +970,17 @@ export default function HomePage() {
               viewport={{ once: true }}
               whileHover={{ y: -5 }}
             >
-              <Card className="bg-white rounded-xl border border-gray-200 shadow-lg shadow-[#b2ebf2]/30 hover:shadow-[#b2ebf2]/50 transition-all h-full p-6 text-center">
-                <div className={`inline-flex p-4 bg-[#e8f5e9] rounded-full mb-4`}>
+              <Card className="bg-white rounded-xl border border-gray-200 shadow-lg shadow-[#CFFAFE]/30 hover:shadow-[#CFFAFE]/50 transition-all h-full p-6 text-center">
+                <div className={`inline-flex p-4 bg-[#D1FAE5] rounded-lg mb-4`}>
                   {collab.icon}
                 </div>
-                <div className="text-3xl font-bold bg-gradient-to-r from-[#4caf50] to-[#00acc1] bg-clip-text text-transparent mb-2">
+                <div className="text-3xl font-bold bg-gradient-to-r from-[#0D9488] to-[#0E7490] bg-clip-text text-transparent mb-2">
                   {collab.count}
                 </div>
-                <h3 className="text-xl font-semibold text-[#263238] mb-3">
+                <h3 className="text-xl font-semibold text-[#0F766E] mb-3">
                   {collab.title}
                 </h3>
-                <p className="text-[#546e7a] text-base">
+                <p className="text-[#0F766E] text-base">
                   {collab.description}
                 </p>
               </Card>
@@ -1011,13 +1008,13 @@ export default function HomePage() {
       <section className="w-full max-w-4xl mx-auto px-6 py-20">
         <div className="text-center mb-16">
           <span
-            className={`inline-block px-4 py-2 bg-[#e3f2fd] text-[#1565c0] rounded-full text-sm font-medium mb-4`}
+            className={`inline-block px-4 py-2 bg-[#E0F2FE] text-[#0E7490] rounded-lg text-sm font-medium mb-4`}
           >
             Need Help?
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#263238]">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#0F766E]">
             Frequently Asked{" "}
-            <span className="bg-gradient-to-r from-[#42a5f5] to-[#4dd0e1] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
               Questions
             </span>
           </h2>
@@ -1062,7 +1059,7 @@ export default function HomePage() {
                 viewport={{ once: true }}
               >
                 <Card
-                  className={`bg-white rounded-xl border border-gray-200 hover:border-[#4dd0e1]/50 transition-all ${
+                  className={`bg-white rounded-xl border border-gray-200 hover:border-[#0D9488]/50 transition-all ${
                     isOpen ? "shadow-md" : ""
                   }`}
                 >
@@ -1071,13 +1068,13 @@ export default function HomePage() {
                     onClick={() => setIsOpen(!isOpen)}
                   >
                     <CardTitle className="flex justify-between items-center">
-                      <span className="text-lg font-medium text-[#263238]">
+                      <span className="text-lg font-medium text-[#0F766E]">
                         {faq.question}
                       </span>
                       {isOpen ? (
-                        <ChevronDown className="h-5 w-5 text-[#4dd0e1] transition-transform" />
+                        <ChevronDown className="h-5 w-5 text-[#0D9488] transition-transform" />
                       ) : (
-                        <ChevronRight className="h-5 w-5 text-[#78909c] group-hover:text-[#4dd0e1] transition-transform" />
+                        <ChevronRight className="h-5 w-5 text-[#0F766E] group-hover:text-[#0D9488] transition-transform" />
                       )}
                     </CardTitle>
                   </CardHeader>
@@ -1089,7 +1086,7 @@ export default function HomePage() {
                       transition={{ duration: 0.2 }}
                     >
                       <CardContent className="pt-0 pb-6">
-                        <p className="text-[#546e7a]">{faq.answer}</p>
+                        <p className="text-[#0F766E]">{faq.answer}</p>
                       </CardContent>
                     </motion.div>
                   )}
@@ -1106,7 +1103,7 @@ export default function HomePage() {
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.8 }}
-        className={`w-full py-32 bg-gradient-to-br from-[#e0f7fa] via-[#e8f5e9] to-[#e3f2fd] relative overflow-hidden`}
+        className={`w-full py-32 bg-gradient-to-br from-[#F0F9FF] via-[#ECFDF5] to-[#E0F2FE] relative overflow-hidden`}
       >
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 w-full h-full opacity-10">
@@ -1114,7 +1111,7 @@ export default function HomePage() {
               <path
                 d="M0,0 L100,0 L100,100 L0,100 Z"
                 fill="none"
-                stroke="#263238"
+                stroke="#0F766E"
                 strokeWidth="0.5"
                 strokeDasharray="5,5"
               />
@@ -1128,26 +1125,26 @@ export default function HomePage() {
             whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="inline-block p-4 bg-[#e0f7fa] rounded-full mb-6"
+            className="inline-block p-4 bg-[#CFFAFE] rounded-lg mb-6"
           >
-            <Heart className="h-8 w-8 text-[#00796b]" />
+            <Heart className="h-8 w-8 text-[#0E7490]" />
           </motion.div>
 
-          <h2 className="text-4xl md:text-5xl font-bold text-[#263238] mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#0F766E] mb-6">
             Ready to Transform Your{" "}
-            <span className="bg-gradient-to-r from-[#00acc1] to-[#42a5f5] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
               Healthcare
             </span>
             ?
           </h2>
-          <p className="text-[#546e7a] text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-[#0F766E] text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
             Join {isLoading ? "many" : `${userCount.toLocaleString()}+`} patients and
             healthcare professionals who trust MediBot for better health outcomes.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <Link href="/auth/signup">
               <Button
-                className={`${buttonClasses} w-60 h-14 text-lg bg-gradient-to-r from-[#00acc1] to-[#42a5f5] hover:from-[#00838f] hover:to-[#fffff] text-white`}
+                className={`${buttonClasses} w-60 h-14 text-lg bg-gradient-to-r from-[#0E7490] to-[#0D9488] hover:from-[#0C6A83] hover:to-[#0F766E] text-white`}
               >
                 Get Started Free
               </Button>
@@ -1175,17 +1172,17 @@ export default function HomePage() {
                   className="rounded-full object-cover"
                 />
               </div>
-              <h1 className="text-2xl font-bold text-[#00796b]">MediBot</h1>
+              <h1 className="text-2xl font-bold text-[#0E7490]">MediBot</h1>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
               <div>
-                <h3 className="text-[#263238] font-semibold mb-4">Product</h3>
+                <h3 className="text-[#0F766E] font-semibold mb-4">Product</h3>
                 <ul className="space-y-3">
                   <li>
                     <Link
                       href="#features"
-                      className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
+                      className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >
                       Features
                     </Link>
@@ -1193,7 +1190,7 @@ export default function HomePage() {
                   <li>
                     <Link
                       href="#pricing"
-                      className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
+                      className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >
                       Pricing
                     </Link>
@@ -1201,12 +1198,12 @@ export default function HomePage() {
                 </ul>
               </div>
               <div>
-                <h3 className="text-[#263238] font-semibold mb-4">Features</h3>
+                <h3 className="text-[#0F766E] font-semibold mb-4">Features</h3>
                 <ul className="space-y-3">
                   <li>
                     <Link
                       href="/chat"
-                      className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
+                      className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >
                       AI Chatbot
                     </Link>
@@ -1214,7 +1211,7 @@ export default function HomePage() {
                   <li>
                     <Link
                       href="/medications"
-                      className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
+                      className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >
                       Medication Reminders
                     </Link>
@@ -1222,7 +1219,7 @@ export default function HomePage() {
                   <li>
                     <Link
                       href="/summarizer"
-                      className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
+                      className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >
                       Medical Summarizer
                     </Link>
@@ -1230,7 +1227,7 @@ export default function HomePage() {
                   <li>
                     <Link
                       href="/chat"
-                      className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
+                      className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >
                       Prescription Analysis
                     </Link>
@@ -1238,12 +1235,12 @@ export default function HomePage() {
                 </ul>
               </div>
               <div>
-                <h3 className="text-[#263238] font-semibold mb-4">Legal</h3>
+                <h3 className="text-[#0F766E] font-semibold mb-4">Legal</h3>
                 <ul className="space-y-3">
                   <li>
                     <Link
                       href="/privacy"
-                      className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
+                      className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >
                       Privacy Policy
                     </Link>
@@ -1251,7 +1248,7 @@ export default function HomePage() {
                   <li>
                     <Link
                       href="/terms"
-                      className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
+                      className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >
                       Terms of Service
                     </Link>
@@ -1259,7 +1256,7 @@ export default function HomePage() {
                   <li>
                     <Link
                       href="/refund"
-                      className="text-[#546e7a] hover:text-[#00acc1] transition-colors"
+                      className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >
                      Refund Policy
                     </Link>
@@ -1271,11 +1268,11 @@ export default function HomePage() {
           </div>
 
           <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-[#78909c] mb-4 md:mb-0">
+            <p className="text-[#0F766E] mb-4 md:mb-0">
               © {new Date().getFullYear()} MediBot by Asvix. All rights reserved.
             </p>
             <div className="flex space-x-6">
-              <Link href="#" className="text-[#78909c] hover:text-[#00acc1] transition-colors">
+              <Link href="#" className="text-[#0F766E] hover:text-[#0E7490] transition-colors">
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"
@@ -1289,7 +1286,7 @@ export default function HomePage() {
                   />
                 </svg>
               </Link>
-              <Link href="#" className="text-[#78909c] hover:text-[#00acc1] transition-colors">
+              <Link href="#" className="text-[#0F766E] hover:text-[#0E7490] transition-colors">
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"
@@ -1299,7 +1296,7 @@ export default function HomePage() {
                   <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
                 </svg>
               </Link>
-              <Link href="#" className="text-[#78909c] hover:text-[#00acc1] transition-colors">
+              <Link href="#" className="text-[#0F766E] hover:text-[#0E7490] transition-colors">
                 <svg
                   className="w-5 h-5"
                   fill="currentColor"

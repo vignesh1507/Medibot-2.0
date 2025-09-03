@@ -9,15 +9,32 @@ firebase.initializeApp({
   appId: "1:806828516267:web:a75aad403f3dfbc67da8ee"
 });
 
-
-
 const messaging = firebase.messaging();
 
+// Handle background messages (when app is not in focus)
 messaging.onBackgroundMessage(function(payload) {
-  self.registration.showNotification(payload.notification.title, {
-    body: payload.notification.body,
-    icon: '/logo.png'
-  });
+  console.log('[firebase-messaging-sw.js] Background message received:', payload);
+  
+  const notificationTitle = payload.notification?.title || payload.data?.title || 'MediBot Reminder';
+  const notificationBody = payload.notification?.body || payload.data?.body || 'You have a medication reminder';
+  
+  const notificationOptions = {
+    body: notificationBody,
+    icon: '/logo.png',
+    badge: '/logo.png',
+    tag: 'medication-reminder-' + Date.now(),
+    requireInteraction: true,
+    vibrate: [200, 100, 200],
+    actions: [
+      { action: 'taken', title: '✓ Taken' },
+      { action: 'dismiss', title: '✗ Dismiss' }
+    ],
+    data: payload.data
+  };
+
+  console.log('[firebase-messaging-sw.js] Showing notification:', notificationTitle, notificationOptions);
+  
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 self.addEventListener('notificationclick', function(event) {

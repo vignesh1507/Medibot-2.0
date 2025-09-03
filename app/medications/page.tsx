@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Menu, Plus, Pill, Clock, Trash2, Edit, Bell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-  import { getMessaging, getToken } from "firebase/messaging";
+  import { getMessaging, getToken, onMessage } from "firebase/messaging";
   import {  setDoc } from "firebase/firestore";
 import {
   addMedication,
@@ -52,11 +52,74 @@ export default function MedicationsPage() {
   useEffect(() => {
     async function saveFcmToken(userId: string) {
       try {
+        console.log("Requesting notification permission...");
         const messaging = getMessaging();
         const permission = await Notification.requestPermission();
+        console.log("Notification permission:", permission);
+        
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+          try {
+            // Force update by unregistering first
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              if (registration.scope.includes('firebase-messaging-sw')) {
+                await registration.unregister();
+              }
+            }
+            
+            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+              updateViaCache: 'none'
+            });
+            console.log('Service Worker registered:', registration);
+            
+            // Wait for service worker to be ready
+            await navigator.serviceWorker.ready;
+            console.log('Service Worker is ready');
+          } catch (swError) {
+            console.error('Service Worker registration failed:', swError);
+          }
+        }
+        
         if (permission === "granted") {
+          console.log("Getting FCM token...");
           const fcmToken = await getToken(messaging, { vapidKey: "BMxZwmRm6QusAkd3tzvysDAZB8ReTuJVSQQHdc50nh6WCkN4Ja11FPpKLNwJuHKZUJwzsyKIciT1yKLpePHLDaE" });
-          await setDoc(doc(db, "users", userId), { fcmToken }, { merge: true });
+          console.log("FCM token received:", fcmToken ? "Yes" : "No");
+          
+          if (fcmToken) {
+            await setDoc(doc(db, "users", userId), { fcmToken }, { merge: true });
+            console.log("FCM token saved to Firestore");
+            
+            // Handle foreground messages
+            onMessage(messaging, (payload) => {
+              console.log('Foreground FCM message received:', payload);
+              
+              // Show browser notification for foreground messages
+              if (Notification.permission === 'granted') {
+                const title = payload.notification?.title || payload.data?.title || 'MediBot Reminder';
+                const body = payload.notification?.body || payload.data?.body || 'You have a medication reminder';
+                
+                console.log('Showing foreground notification:', title, body);
+                
+                const notification = new Notification(title, {
+                  body: body,
+                  icon: '/logo.png',
+                  tag: 'medication-reminder-fg-' + Date.now(),
+                  requireInteraction: true
+                });
+                
+                // Auto close after 10 seconds
+                setTimeout(() => {
+                  notification.close();
+                }, 10000);
+              }
+            });
+            
+          } else {
+            console.error("No FCM token received");
+          }
+        } else {
+          console.warn("Notification permission not granted:", permission);
         }
       } catch (err) {
         console.error("FCM token error:", err);
@@ -75,10 +138,28 @@ export default function MedicationsPage() {
   }, []);
 
   const sendMobileNotification = async (userId: string, title: string, body: string) => {
-  // Push notifications are sent from the backend (Cloud Function) using the user's FCM token.
-  // This function only logs and shows a toast for debugging.
-  console.log(`Push notification scheduled: ${title} - ${body}`);
-  toast.info("Push notification will be sent by backend if enabled.");
+  try {
+    // Fetch user's FCM token from Firestore
+    const userDoc = await getDoc(doc(db, "users", userId));
+    const fcmToken = userDoc.data()?.fcmToken;
+    console.log("FCM token found:", fcmToken ? "Yes" : "No");
+    if (!fcmToken) throw new Error("No FCM token found for user");
+
+    // Call backend API to send push notification
+    console.log("Sending push notification:", { title, body });
+    const response = await fetch("/api/send-push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: fcmToken, title, body }),
+    });
+    const result = await response.json();
+    console.log("Push notification result:", result);
+    if (!result.success) throw new Error(result.error || "Push notification failed");
+    toast.success("Push notification sent!");
+  } catch (err) {
+    console.error("Push notification error:", err);
+    toast.error("Failed to send push notification");
+  }
   };
 
   const sendEmailNotification = async (email: string, subject: string, body: string) => {
@@ -137,14 +218,16 @@ export default function MedicationsPage() {
 
       const delay = reminder.getTime() - now.getTime();
 
-      const timeoutId = setTimeout(() => {
+      const timeoutId = setTimeout(async () => {
         const message = `It's time to take your ${medication.name} (${medication.dosage}) at ${time}.`;
-        const notifications = [
-          sendMobileNotification(user!.uid, `Medication Reminder: ${medication.name}`, message),
-          sendEmailNotification(email, `Medication Reminder: ${medication.name}`, message),
-        ];
-        Promise.all(notifications);
-
+        try {
+          await Promise.all([
+            sendMobileNotification(user!.uid, `Medication Reminder: ${medication.name}`, message),
+            sendEmailNotification(email, `Medication Reminder: ${medication.name}`, message),
+          ]);
+        } catch (err) {
+          console.error("Error sending notifications:", err);
+        }
         scheduleReminders(medication, email);
       }, delay);
 
@@ -359,6 +442,8 @@ export default function MedicationsPage() {
 
   const formatTime = (time: string) => (isMobile ? time.replace(/:00$/, "") : time);
 
+
+
   return (
     <AuthGuard>
       <div className="flex min-h-screen bg-white dark:bg-[#0e1a2b] text-black dark:text-white">
@@ -367,6 +452,7 @@ export default function MedicationsPage() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-[#a855f7]">Manage Your Medications</h1>
             <p className="text-muted-foreground mt-1 mb-6">Track your medications and set reminders</p>
+           
           </div>
 
           <div className="relative max-w-2xl mx-auto mb-8">
