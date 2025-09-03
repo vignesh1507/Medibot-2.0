@@ -1,76 +1,155 @@
 
 
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
+import { randomUUID } from "crypto";
+import { initializeApp, getApps } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { credential } from "firebase-admin";
 
-const PHONEPE_API_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://api.phonepe.com/apis/hermes/pg/v2/init"
-    : "https://api-preprod.phonepe.com/apis/pg-sandbox/v2/init";
+const { StandardCheckoutClient, Env, StandardCheckoutPayRequest } = require("pg-sdk-node");
+
+// Initialize Firebase Admin
+let admin_db: any = null;
+
+if (!getApps().length) {
+  try {
+    let serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || "{}");
+    // Ensure private_key PEM is correctly formatted with newlines
+    if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+    initializeApp({
+      credential: credential.cert(serviceAccount),
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "medibot-457514"
+    });
+    admin_db = getFirestore();
+  } catch (error) {
+    console.error("Failed to initialize Firebase Admin:", error);
+  }
+} else {
+  admin_db = getFirestore();
+}
+
+// Initialize the PhonePe Standard Checkout Client
+const clientId = process.env.PHONEPE_CLIENT_ID;
+const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
+// Determine PhonePe SDK environment: use PHONEPE_ENV if set, else NODE_ENV
+const envSetting = process.env.PHONEPE_ENV?.toUpperCase();
+const env = envSetting === "PRODUCTION"
+  ? Env.PRODUCTION
+  : envSetting === "SANDBOX"
+    ? Env.SANDBOX
+    : process.env.NODE_ENV === "production"
+      ? Env.PRODUCTION
+      : Env.SANDBOX;
+
+let phonepeClient: any = null;
+
+// Initialize PhonePe client
+if (clientId && clientSecret) {
+  try {
+    phonepeClient = StandardCheckoutClient.getInstance(clientId, clientSecret, 1, env);
+  } catch (error) {
+    console.error("Failed to initialize PhonePe client:", error);
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     console.log("[PhonePe] Incoming request body:", body);
-    // Use production credentials from .env.local
-  // Use provided client/merchant ID from env, fallback to hardcoded value
-  const merchantId = process.env.PHONEPE_MERCHANT_ID || process.env.NEXT_PUBLIC_PHONEPE_MERCHANT_ID || "SU2507251940196342599529";
-    const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
-    const clientVersion = process.env.PHONEPE_CLIENT_VERSION || "1";
+    
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://medibot-ai.com";
-    const { merchantTransactionId, amount, currency } = body;
+    const { amount, userId, planName } = body;
 
     // Validate required fields
-    if (!merchantId || !merchantTransactionId || !amount || !currency) {
+    if (!phonepeClient) {
       return NextResponse.json(
         {
           success: false,
-          message: "Missing required fields",
-          debug: { merchantId, merchantTransactionId, amount, currency },
+          message: "PhonePe client not initialized. Check environment variables.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!userId || !amount || !planName) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Missing required fields: userId, amount, or planName",
+          debug: { userId, amount, planName },
         },
         { status: 400 }
       );
     }
 
-    // Prepare payload for PhonePe
-    const paymentPayload = {
-      merchantId,
-      merchantTransactionId,
-      amount: parseInt(amount, 10), // amount in paise (integer)
-      currency,
-      redirectUrl: `${baseUrl}/api/phonepe-callback`,
-      redirectMode: "POST",
-      callbackUrl: `${baseUrl}/api/phonepe-callback`,
-      paymentInstrument: { type: "PAY_PAGE" },
-    };
-    const payloadString = JSON.stringify(paymentPayload);
-    const apiPath = "/apis/hermes/pg/v2/init";
-    const toSign = payloadString + apiPath + clientSecret;
-    const sha256Hash = crypto.createHash("sha256").update(toSign).digest("hex");
-    const signature = Buffer.from(sha256Hash).toString("base64");
-    const xVerify = `${signature}###${clientSecret}`;
+    const merchantTransactionId = `MEDIBOT-${planName.toUpperCase()}-${randomUUID()}`;
+    const amountInPaise = amount * 100;
 
-    // Call PhonePe API
-    const response = await fetch(PHONEPE_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-VERIFY": xVerify,
-        "X-MERCHANT-ID": merchantId,
-        "X-API-VERSION": clientVersion,
-      },
-      body: payloadString,
-    });
+    // The URL the user will be redirected to after payment completion/failure
+    const redirectUrl = `${baseUrl}/api/phonepe-callback?merchantTransactionId=${merchantTransactionId}&planName=${planName}&userId=${userId}`;
 
-    let result;
     try {
-      result = await response.json();
-    } catch (err) {
-      result = { success: false, message: "Invalid response from PhonePe", raw: await response.text() };
-    }
-    console.log("[PhonePe] API response:", result);
+      // Use the SDK to create a new payment request
+      const request = StandardCheckoutPayRequest.builder()
+        .merchantOrderId(merchantTransactionId)
+        .amount(amountInPaise)
+        .redirectUrl(redirectUrl)
+        .build();
 
-    return NextResponse.json(result, { status: response.status });
+      const response = await phonepeClient.pay(request);
+
+      if (!response || !response.redirectUrl) {
+        console.error("PhonePe SDK Error:", response);
+        throw new Error("Failed to get redirect URL from PhonePe.");
+      }
+
+      // Log the transaction attempt in Firestore
+      try {
+        if (admin_db) {
+          await admin_db.collection('payments').doc(merchantTransactionId).set({
+            userId: userId,
+            planName: planName,
+            amount: amount,
+            amountInPaise: amountInPaise,
+            merchantTransactionId: merchantTransactionId,
+            status: 'pending_payment_gateway',
+            createdAt: new Date(),
+            paymentHistory: [{
+              at: new Date().toISOString(),
+              action: "attemptedOnline",
+              note: `Initiated transaction ${merchantTransactionId} for ${planName} plan`
+            }]
+          });
+        }
+      } catch (dbError) {
+        console.error("Error logging to Firestore:", dbError);
+        // Continue with payment even if logging fails
+      }
+
+      console.log(`Successfully initiated payment for user ${userId}, plan ${planName}`);
+      
+      return NextResponse.json({
+        success: true,
+        data: {
+          redirectUrl: response.redirectUrl,
+          merchantTransactionId: merchantTransactionId
+        },
+        message: "Payment initiated successfully"
+      });
+
+    } catch (error) {
+      console.error("Error initiating PhonePe payment:", error);
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Could not initiate payment with PhonePe.",
+          debug: error instanceof Error ? error.message : error
+        },
+        { status: 500 }
+      );
+    }
   } catch (error: any) {
     console.error("[PhonePe] payment error:", error);
     return NextResponse.json(

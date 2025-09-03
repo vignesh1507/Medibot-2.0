@@ -95,15 +95,26 @@ export default function PricingPage() {
 
       const result = await response.json();
 
-      if (result.success) {
+      if (result.success && result.data?.redirectUrl) {
+        // Store transaction ID in localStorage for potential status checking
+        if (result.data.merchantTransactionId) {
+          localStorage.setItem('pendingPayment', JSON.stringify({
+            transactionId: result.data.merchantTransactionId,
+            planName: planName,
+            amount: amount,
+            timestamp: Date.now()
+          }));
+        }
+        
         // Redirect to PhonePe payment page
         window.location.href = result.data.redirectUrl;
       } else {
-        toast.error(result.message || 'Failed to initiate payment');
+        console.error('Payment initiation failed:', result);
+        toast.error(result.message || 'Failed to initiate payment. Please try again.');
       }
     } catch (error: any) {
       console.error('Payment error:', error);
-      toast.error('Failed to process payment. Please try again.');
+      toast.error('Failed to process payment. Please check your connection and try again.');
     } finally {
       setLoading(null);
     }
