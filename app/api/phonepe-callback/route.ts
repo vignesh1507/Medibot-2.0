@@ -5,23 +5,25 @@ import { credential } from "firebase-admin";
 
 // Initialize Firebase Admin
 let admin_db: any = null;
-
-if (!getApps().length) {
+const projectId_cb = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+const clientEmail_cb = process.env.FIREBASE_CLIENT_EMAIL;
+const rawPrivateKey_cb = process.env.FIREBASE_PRIVATE_KEY;
+if (!getApps().length && projectId_cb && clientEmail_cb && rawPrivateKey_cb) {
   try {
-    let serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || "{}");
-    // Ensure private_key PEM is correctly formatted with newlines
-    if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    // Strip surrounding quotes if present and fix newline escapes
+    let privateKey = rawPrivateKey_cb;
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1);
     }
+    privateKey = privateKey.replace(/\\n/g, '\n');
     initializeApp({
-      credential: credential.cert(serviceAccount),
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "medibot-457514"
+      credential: credential.cert({ projectId: projectId_cb, clientEmail: clientEmail_cb, privateKey }),
     });
     admin_db = getFirestore();
   } catch (error) {
     console.error("Failed to initialize Firebase Admin:", error);
   }
-} else {
+} else if (getApps().length) {
   admin_db = getFirestore();
 }
 

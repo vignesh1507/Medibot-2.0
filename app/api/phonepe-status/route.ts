@@ -7,29 +7,26 @@ const { StandardCheckoutClient, Env } = require("pg-sdk-node");
 
 // Initialize Firebase Admin
 let admin_db: any = null;
-
-if (!getApps().length) {
+const projectId_st = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+const clientEmail_st = process.env.FIREBASE_CLIENT_EMAIL;
+const rawPrivateKey_st = process.env.FIREBASE_PRIVATE_KEY;
+if (!getApps().length && projectId_st && clientEmail_st && rawPrivateKey_st) {
   try {
-    let serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || "{}");
-    // Ensure private_key PEM is correctly formatted with newlines
-    if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-    }
+    const privateKey = rawPrivateKey_st.replace(/\\n/g, '\n');
     initializeApp({
-      credential: credential.cert(serviceAccount),
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "medibot-457514"
+      credential: credential.cert({ projectId: projectId_st, clientEmail: clientEmail_st, privateKey }),
     });
     admin_db = getFirestore();
   } catch (error) {
     console.error("Failed to initialize Firebase Admin:", error);
   }
-} else {
+} else if (getApps().length) {
   admin_db = getFirestore();
 }
 
-// Initialize PhonePe client
-const clientId = process.env.PHONEPE_CLIENT_ID;
-const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
+// Initialize PhonePe client (trim stray whitespace/newlines)
+const clientId = process.env.PHONEPE_CLIENT_ID?.trim();
+const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim();
 const env = process.env.NODE_ENV === "production" ? Env.PRODUCTION : Env.SANDBOX;
 
 let phonepeClient: any = null;

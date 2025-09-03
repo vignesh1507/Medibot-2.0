@@ -10,29 +10,33 @@ const { StandardCheckoutClient, Env, StandardCheckoutPayRequest } = require("pg-
 
 // Initialize Firebase Admin
 let admin_db: any = null;
-
-if (!getApps().length) {
+const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+const rawPrivateKey = process.env.FIREBASE_PRIVATE_KEY;
+// Only initialize if not already done and all credentials present
+if (!getApps().length && projectId && clientEmail && rawPrivateKey) {
   try {
-    let serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || "{}");
-    // Ensure private_key PEM is correctly formatted with newlines
-    if (serviceAccount.private_key && typeof serviceAccount.private_key === 'string') {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    // Normalize privateKey PEM: trim, strip quotes, convert line endings
+    let privateKey = rawPrivateKey.trim();
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1).trim();
     }
+    // Convert literal \n to actual newlines, handle Windows CRLF
+    privateKey = privateKey.replace(/\\n/g, '\n').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     initializeApp({
-      credential: credential.cert(serviceAccount),
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "medibot-457514"
+      credential: credential.cert({ projectId, clientEmail, privateKey }),
     });
     admin_db = getFirestore();
   } catch (error) {
     console.error("Failed to initialize Firebase Admin:", error);
   }
-} else {
+} else if (getApps().length) {
   admin_db = getFirestore();
 }
 
-// Initialize the PhonePe Standard Checkout Client
-const clientId = process.env.PHONEPE_CLIENT_ID;
-const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
+// Initialize the PhonePe Standard Checkout Client (trim any stray whitespace)
+const clientId = process.env.PHONEPE_CLIENT_ID?.trim();
+const clientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim();
 // Determine PhonePe SDK environment: use PHONEPE_ENV if set, else NODE_ENV
 const envSetting = process.env.PHONEPE_ENV?.toUpperCase();
 const env = envSetting === "PRODUCTION"
