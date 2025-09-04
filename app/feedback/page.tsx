@@ -4,7 +4,7 @@ import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { Send, MessageCircle } from "lucide-react"
+import { Menu, MessageCircle } from "lucide-react"
 
 export default function FeedbackPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -59,7 +59,7 @@ export default function FeedbackPage() {
                   onClick={() => setSidebarOpen(true)}
                   className="text-muted-foreground lg:hidden h-10 w-10"
                 >
-                  <Send className="h-5 w-5" />
+                  <Menu className="h-5 w-5" />
                 </Button>
                 <h1 className="font-semibold text-lg">Feedback</h1>
               </div>
