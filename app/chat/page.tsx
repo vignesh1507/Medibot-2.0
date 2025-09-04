@@ -170,7 +170,6 @@ function ChatContent() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isTyping, setIsTyping] = useState<{ [messageId: string]: boolean }>({});
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>("base");
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<string>("base");
@@ -732,8 +731,6 @@ CONVERSATION PATTERNS:
         };
       });
       
-      setIsTyping((prev) => ({ ...prev, [messageId]: true }));
-      
       const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
       setCurrentSession((prev) => {
         if (!prev) return prev;
@@ -811,8 +808,7 @@ CONVERSATION PATTERNS:
       setAbortController(null);
     }
     
-    // Stop all typing animations immediately
-    setIsTyping({});
+    // Stop all generation immediately
     setLoading(false);
     
     // Reset stop state after a short delay
@@ -826,7 +822,6 @@ CONVERSATION PATTERNS:
   const handleStopResponse = (messageId: string) => {
     if (abortController) {
       abortController.abort();
-      setIsTyping((prev) => ({ ...prev, [messageId]: false }));
       setAbortController(null);
       toast.info("Response generation stopped");
     }
@@ -847,8 +842,6 @@ CONVERSATION PATTERNS:
         ? userMessage 
         : `${userMessage} (Please provide an improved, more detailed and comprehensive response than your previous answer)`;
       const newMessageId = uuidv4();
-      
-      setIsTyping((prev) => ({ ...prev, [newMessageId]: true }));
       
       const botResponse = await generateAIResponse(optimizedPrompt, selectedModel, newMessageId);
       const sessionId = currentSession?.id;
@@ -918,7 +911,6 @@ CONVERSATION PATTERNS:
       } catch (error: any) {
         console.error("Error editing message:", error);
         toast.error("Failed to edit message");
-        setIsTyping((prev) => ({ ...prev, [messageId]: false }));
       } finally {
         setEditingMessageId(null);
         setEditedMessage("");
@@ -1769,28 +1761,15 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 </AvatarFallback>
               </Avatar>
             </div>
-            {msg.response || isTyping[msg.id] ? (
+            {msg.response ? (
             <div className="flex items-start space-x-2" style={{ maxWidth: '100%' }}>
                 <div className="relative group">
                   <div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed space-y-4 ai-response">
-                    {isTyping[msg.id] ? (
-                      <TextType 
-                        text={msg.response || "Generating response..."}
-                        typingSpeed={80}
-                        pauseDuration={0}
-                        showCursor={true}
-                        cursorCharacter="|"
-                        renderAsMarkdown={true}
-                        showStopButton={false}
-                        isStopRequested={isGenerationStopped}
-                        onComplete={() => {
-                          setIsTyping((prev) => ({ ...prev, [msg.id]: false }));
-                        }}
-                        className="text-sm leading-relaxed space-y-3 ai-response"
-                      />
-                    ) : (
-                      renderResponse(msg.response)
-                    )}
+                    <TextType 
+                      text={msg.response}
+                      renderAsMarkdown={true}
+                      className="text-sm leading-relaxed ai-response"
+                    />
                   </div>
                   <div className="absolute -bottom-6 left-4 flex space-x-2 justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                     <Button
@@ -1842,17 +1821,6 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                     >
                       <RefreshCw className="h-4 w-4" />
                     </Button>
-                    {isTyping[msg.id] && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleStopResponse(msg.id)}
-                        className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6 rounded-full transition-colors duration-200"
-                        title="Stop Response"
-                      >
-                        <StopCircle className="h-4 w-4" />
-                      </Button>
-                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -1882,7 +1850,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         </div>
       );
     });
-  }, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, isTyping, copiedMessageIds]);
+  }, [user, currentSession, editingMessageId, editedMessage, isSpeaking, loading, copiedMessageIds]);
 
   return (
     <AuthGuard>
