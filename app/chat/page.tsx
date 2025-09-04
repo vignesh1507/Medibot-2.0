@@ -474,19 +474,81 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
     }
   }, [message]);
 
+  // 🔥 Helper function to extract recent health topics from user's conversation history
+  const extractRecentHealthTopics = (): string[] => {
+    if (!sessions || sessions.length === 0) return [];
+
+    const healthKeywords = [
+      "headache", "migraine", "pain", "fever", "medication", "prescription", 
+      "diet", "nutrition", "exercise", "sleep", "stress", "anxiety", "mental health",
+      "symptoms", "doctor", "treatment", "wellness", "fitness", "weight", "blood pressure",
+      "diabetes", "heart", "lung", "skin", "allergy", "infection", "vitamin", "supplement",
+      "cold", "flu", "cough", "throat", "stomach", "nausea", "fatigue", "energy"
+    ];
+
+    const topicCount: { [key: string]: number } = {};
+    
+    // Get messages from last 3 sessions
+    const recentSessions = sessions.slice(0, 3);
+    
+    recentSessions.forEach(session => {
+      session.messages.forEach(msg => {
+        if (msg.message) {
+          const lowerMessage = msg.message.toLowerCase();
+          healthKeywords.forEach(keyword => {
+            if (lowerMessage.includes(keyword)) {
+              topicCount[keyword] = (topicCount[keyword] || 0) + 1;
+            }
+          });
+        }
+      });
+    });
+
+    return Object.entries(topicCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([topic]) => topic);
+  };
+
   // 🔥 Helper function to create a concise prompt that prevents cutoffs
   const createOptimizedPrompt = (userMessage: string, contextMessages?: string) => {
-    const baseInstruction = "You are MediBot, a helpful health assistant. Respond with emoji greeting 🩺, write in clear separate paragraphs with blank lines between them, use health emojis (🏥💊🌡️❤️), and end with emoji 😊. Always complete your full response and separate paragraphs with double line breaks for better readability.";
+    // Get user's name for personalization
+    let userName = "";
+    if (userProfile?.displayName) {
+      userName = userProfile.displayName.split(' ')[0];
+    } else if (user?.displayName) {
+      userName = user.displayName.split(' ')[0];
+    } else if (user?.email) {
+      userName = user.email.split("@")[0];
+    }
+
+    const baseInstruction = `You are MediBot, a friendly and knowledgeable health assistant created by Sujay Babu Thota. 🩺
+
+PERSONALIZATION:
+${userName ? `- The user's name is ${userName}. Use their name naturally in conversation when appropriate.` : '- Learn and remember the user\'s name if they mention it.'}
+- Use conversation history to provide personalized, contextual responses
+- Reference previous discussions when relevant to show continuity
+
+RESPONSE GUIDELINES:
+- For greetings: Use their name if known, be warm and ask about health concerns
+- For health questions: Provide detailed, helpful information with appropriate disclaimers
+- For follow-up questions: Reference previous conversations and build upon them
+- For conversation history requests: Show actual previous questions/topics from their chat history
+- Always be empathetic, professional, and encouraging
+- Use 2-4 relevant health emojis per response (🩺💊❤️🏥😊💪✨👍)
+- Write in natural, conversational paragraphs
+- Always complete your responses fully
+- End with encouraging emojis like 😊, 💪, ✨, or 👍`;
     
-    if (contextMessages && contextMessages.length > 500) {
+    if (contextMessages && contextMessages.length > 800) {
       // If context is too long, use only the essential parts
-      const contextSummary = contextMessages.slice(-300) + "...";
-      return `${baseInstruction}\n\nRecent context: ${contextSummary}\n\nUser: ${userMessage}\n\nComplete response with proper paragraph spacing:`;
+      const contextSummary = contextMessages.slice(-500) + "...";
+      return `${baseInstruction}\n\nRecent context: ${contextSummary}\n\nUser: ${userMessage}\n\nRespond as MediBot with warmth, personalization, and expertise:`;
     }
     
     return contextMessages 
-      ? `${baseInstruction}\n\nContext: ${contextMessages}\n\nUser: ${userMessage}\n\nComplete response with proper paragraph spacing:`
-      : `${baseInstruction}\n\nUser: ${userMessage}\n\nComplete response with proper paragraph spacing:`;
+      ? `${baseInstruction}\n\nConversation Context: ${contextMessages}\n\nUser: ${userMessage}\n\nRespond as MediBot with warmth, personalization, and expertise:`
+      : `${baseInstruction}\n\nUser: ${userMessage}\n\nRespond as MediBot with warmth and expertise:`;
   };
 
   // 🔥 ENHANCED FUNCTION: Build comprehensive user context for personalization
@@ -896,7 +958,6 @@ CONVERSATION PATTERNS:
       }
       try {
         setLoading(true);
-        setIsTyping((prev) => ({ ...prev, [messageId]: true }));
         const botResponse = await generateAIResponse(editedMessage, selectedModel, messageId);
         const sessionId = currentSession?.id;
         if (sessionId) {
@@ -1100,9 +1161,66 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     if (!config) throw new Error(`Invalid model: ${selectedModel}`);
     if (!config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
 
-    const greetings = ["hi", "hello", "hey", "hola", "yo","hii","hi there","hlo","helloo"];
-    if (greetings.includes(userMessage.trim().toLowerCase())) {
-      return "Hi there! How can I assist you today?";
+    const greetings = ["hi", "hello", "hey", "hola", "yo", "hii", "hi there", "hlo", "helloo", "good morning", "good afternoon", "good evening", "how are you", "wassup", "what's up", "sup"];
+    const userMessageLower = userMessage.trim().toLowerCase();
+    
+    if (greetings.some(greeting => userMessageLower === greeting || userMessageLower.startsWith(greeting + " "))) {
+      // Get user's name from profile or infer from conversations
+      let userName = "";
+      if (userProfile?.displayName) {
+        userName = userProfile.displayName.split(' ')[0]; // Use first name only
+      } else if (user?.displayName) {
+        userName = user.displayName.split(' ')[0];
+      } else if (user?.email) {
+        userName = user.email.split("@")[0];
+      }
+      
+      // If no name found, try to extract from all chat sessions
+      if (!userName && sessions?.length) {
+        const nameRegex = /my name is ([A-Za-z ]+)/i;
+        outer: for (let s = sessions.length - 1; s >= 0; s--) {
+          const msgs = sessions[s].messages || [];
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            const msgText = msgs[i].message;
+            if (typeof msgText === 'string') {
+              const match = msgText.match(nameRegex);
+              if (match && match[1]) {
+                userName = match[1].trim().split(' ')[0]; // Use first name only
+                break outer;
+              }
+            }
+          }
+        }
+      }
+
+      // Check if this is the first greeting (new session or no previous messages)
+      const isFirstGreeting = !currentSession || currentSession.messages.length === 0;
+      
+      // Create personalized greeting responses
+      const personalizedResponses = userName ? [
+        `Hi ${userName}! 🩺 Great to see you again! I'm MediBot, your health assistant. How can I help you with your health concerns today? 😊`,
+        `Hello ${userName}! 🩺 Welcome back! I'm here to assist you with any health questions or concerns you might have. What's on your mind today? 😊`,
+        `Hey ${userName}! 🩺 Nice to chat with you again! I'm MediBot, ready to help with your health and wellness questions. How can I assist you today? 😊`,
+        `Hi there, ${userName}! 🩺 I'm MediBot, your personal health assistant. Feel free to ask me anything about health, medications, symptoms, or wellness tips. How can I help? 😊`
+      ] : [
+        "Hi there! 🩺 I'm MediBot, your helpful health assistant. How can I help you with your health concerns today? 😊",
+        "Hello! 🩺 Great to see you! I'm here to assist you with any health questions or concerns you might have. What's on your mind today? 😊",
+        "Hey! 🩺 I'm MediBot, ready to help you with your health and wellness questions. How can I assist you today? 😊",
+        "Hi! 🩺 Welcome! I'm your personal health assistant. Feel free to ask me anything about health, medications, symptoms, or wellness tips. How can I help? 😊"
+      ];
+
+      // For returning users with conversation history, add context
+      if (!isFirstGreeting && sessions && sessions.length > 0) {
+        const recentTopics = extractRecentHealthTopics();
+        if (recentTopics.length > 0) {
+          const contextualGreeting = userName 
+            ? `Hi ${userName}! 🩺 Welcome back! I remember we discussed ${recentTopics.slice(0, 2).join(' and ')} recently. How are you feeling today, and how can I help you further? 😊`
+            : `Hi there! 🩺 Welcome back! I see we've discussed ${recentTopics.slice(0, 2).join(' and ')} recently. How are you feeling today, and what would you like to know more about? 😊`;
+          return contextualGreeting;
+        }
+      }
+
+      return personalizedResponses[Math.floor(Math.random() * personalizedResponses.length)];
     }
 
 
@@ -1148,18 +1266,96 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       }
     }
 
-    // Always use the full current session message history as context for every new message
+    // Handle requests for conversation history/previous questions
+    const historyQuestions = [
+      "what's my previous questions", "whats my previous questions", "what did i ask before", 
+      "what were my previous questions", "show my previous questions", "my previous conversations",
+      "what did we discuss", "our previous conversation", "conversation history", "chat history",
+      "what did i ask you before", "my past questions", "previous topics", "what have we talked about"
+    ];
+    if (historyQuestions.some(q => userMessage.toLowerCase().includes(q))) {
+      // Get comprehensive conversation history
+      let historyText = "";
+      
+      if (sessions && sessions.length > 0) {
+        // Get user's questions from all sessions (excluding current session if it's new)
+        const allUserQuestions: Array<{question: string, session: string, date: string}> = [];
+        
+        sessions.slice(0, 5).forEach((session, sessionIndex) => { // Last 5 sessions
+          if (session.messages && session.messages.length > 0) {
+            session.messages.forEach((msg, msgIndex) => {
+              if (msg.message && msg.message.trim().length > 0) {
+                // Skip current greeting if it's the only message in current session
+                if (
+                  session.id === currentSession?.id &&
+                  currentSession &&
+                  currentSession.messages.length === 1
+                ) {
+                  return;
+                }
+                
+                allUserQuestions.push({
+                  question: msg.message,
+                  session: session.title || `Session ${sessionIndex + 1}`,
+                  date: ""
+                });
+              }
+            });
+          }
+        });
+
+        if (allUserQuestions.length > 0) {
+          // Limit to most recent 10 questions to avoid overwhelming response
+          const recentQuestions = allUserQuestions.slice(0, 10);
+          
+          historyText = `🩺 Here are your recent questions from our conversations:\n\n`;
+          
+          recentQuestions.forEach((item, index) => {
+            historyText += `${index + 1}. "${item.question}"\n\n`;
+          });
+          
+          historyText += `These are your most recent questions. If you'd like to revisit any of these topics or have follow-up questions, I'm here to help! 😊`;
+          
+        } else {
+          historyText = "🩺 I don't see any previous questions in our conversation history yet. This might be our first conversation, or the history might not be available. Feel free to ask me any health-related questions! 😊";
+        }
+      } else {
+        historyText = "🩺 I don't have access to any previous conversations. This appears to be our first chat! I'm here to help with any health questions you might have. 😊";
+      }
+      
+      return historyText;
+    }
+
+    // Enhanced context building: Include both current session and cross-session context
     let currentSessionContext = "";
+    let crossSessionContext = "";
+    
+    // Current session context (last 5 messages)
     if (currentSession?.messages?.length) {
-      // Limit context to last 5 messages to prevent token overflow
       const recentMessages = currentSession.messages.slice(-5);
       currentSessionContext = recentMessages
         .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
         .join("\n\n");
     }
+    
+    // Cross-session context for personalization (if this is a new session or has few messages)
+    if ((!currentSession || currentSession.messages.length < 3) && sessions && sessions.length > 1) {
+      const otherSessions = sessions.filter(s => s.id !== currentSession?.id).slice(0, 2);
+      const relevantMessages = otherSessions.flatMap(session => 
+        session.messages.slice(-2) // Last 2 messages from each of the 2 most recent other sessions
+      );
+      
+      if (relevantMessages.length > 0) {
+        crossSessionContext = `\n\nRELEVANT CONVERSATION HISTORY:\n${relevantMessages
+          .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
+          .join("\n\n")}`;
+      }
+    }
+
+    const fullContext = currentSessionContext + crossSessionContext;
 
     // Use optimized prompt to prevent cutoffs
-    const optimizedPrompt = createOptimizedPrompt(userMessage, currentSessionContext);
+    const optimizedPrompt = createOptimizedPrompt(userMessage, fullContext);
     
     // Alternative: Simple fallback prompt if needed
     const simplePrompt = `You are MediBot. Answer this health question with emoji 🩺 and complete response: ${userMessage}`;
@@ -1596,8 +1792,8 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   ) : null}
                  {editingMessageId === msg.id ? (
   <div className="flex flex-col w-full items-center">
-    <div className="w-full flex justify-center">
-      <div className="relative" style={{ width: '600px', maxWidth: '100%' }}>
+    <div className="w-full flex justify-center px-2 sm:px-4">
+      <div className="relative w-full max-w-[600px]">
         <textarea
           value={editedMessage}
           onChange={(e) => {
@@ -1618,23 +1814,24 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           onKeyDown={handleKeyPress}
           maxLength={500}
           rows={1}
-          className="chatgpt-textarea pr-28" /* add padding-right for buttons */
+          className="chatgpt-textarea pr-20 sm:pr-28" /* responsive padding-right for buttons */
           aria-label="Edit message"
           placeholder="Edit your message..."
           autoFocus
         />
 
-        {/* Buttons inside the same box */}
-        <div className="absolute bottom-2 right-2 flex gap-2">
+        {/* Buttons inside the same box - responsive layout */}
+        <div className="absolute bottom-2 right-2 flex gap-1 sm:gap-2">
           <button
             onClick={() => {
               setEditingMessageId(null);
               setEditedMessage("");
             }}
-            className="rounded-xl px-5 py-2 font-semibold bg-black text-white transition-all duration-200 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black/40 focus:ring-offset-2 shadow-sm border border-black/80"
-            style={{ minWidth: 60, borderRadius: 16, fontSize: 15, letterSpacing: 0.5 }}
+            className="rounded-xl px-3 sm:px-5 py-2 font-semibold bg-black text-white transition-all duration-200 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black/40 focus:ring-offset-2 shadow-sm border border-black/80 text-xs sm:text-sm"
+            style={{ minWidth: 50, borderRadius: 16, letterSpacing: 0.5 }}
           >
-            Cancel
+            <span className="hidden sm:inline">Cancel</span>
+            <span className="sm:hidden">✕</span>
           </button>
           <button
             onClick={() => handleEditMessage(msg.id, msg.message)}
@@ -1643,10 +1840,11 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
               editedMessage.trim() === msg.message.trim() ||
               !editedMessage.trim()
             }
-            className="rounded-xl px-5 py-2 font-semibold bg-white text-black transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black/40 focus:ring-offset-2 shadow-sm border border-black/80 disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{ minWidth: 80, borderRadius: 16, fontSize: 15, letterSpacing: 0.5 }}
+            className="rounded-xl px-3 sm:px-5 py-2 font-semibold bg-white text-black transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black/40 focus:ring-offset-2 shadow-sm border border-black/80 disabled:opacity-60 disabled:cursor-not-allowed text-xs sm:text-sm"
+            style={{ minWidth: 60, borderRadius: 16, letterSpacing: 0.5 }}
           >
-            Send
+            <span className="hidden sm:inline">Send</span>
+            <span className="sm:hidden">↗</span>
           </button>
         </div>
       </div>
