@@ -1792,8 +1792,8 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   ) : null}
                  {editingMessageId === msg.id ? (
   <div className="flex flex-col w-full items-center">
-    <div className="w-full flex justify-center px-2 sm:px-4">
-      <div className="relative w-full max-w-[600px]">
+    <div className="w-full flex justify-center">
+      <div className="relative" style={{ width: '600px', maxWidth: '100%' }}>
         <textarea
           value={editedMessage}
           onChange={(e) => {
@@ -1814,24 +1814,23 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           onKeyDown={handleKeyPress}
           maxLength={500}
           rows={1}
-          className="chatgpt-textarea pr-20 sm:pr-28" /* responsive padding-right for buttons */
+          className="chatgpt-textarea pr-28" /* add padding-right for buttons */
           aria-label="Edit message"
           placeholder="Edit your message..."
           autoFocus
         />
 
-        {/* Buttons inside the same box - responsive layout */}
-        <div className="absolute bottom-2 right-2 flex gap-1 sm:gap-2">
+        {/* Buttons inside the same box */}
+        <div className="absolute bottom-2 right-2 flex gap-2">
           <button
             onClick={() => {
               setEditingMessageId(null);
               setEditedMessage("");
             }}
-            className="rounded-xl px-3 sm:px-5 py-2 font-semibold bg-black text-white transition-all duration-200 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black/40 focus:ring-offset-2 shadow-sm border border-black/80 text-xs sm:text-sm"
-            style={{ minWidth: 50, borderRadius: 16, letterSpacing: 0.5 }}
+            className="rounded-xl px-5 py-2 font-semibold bg-black text-white transition-all duration-200 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-black/40 focus:ring-offset-2 shadow-sm border border-black/80"
+            style={{ minWidth: 60, borderRadius: 16, fontSize: 15, letterSpacing: 0.5 }}
           >
-            <span className="hidden sm:inline">Cancel</span>
-            <span className="sm:hidden">✕</span>
+            Cancel
           </button>
           <button
             onClick={() => handleEditMessage(msg.id, msg.message)}
@@ -1840,11 +1839,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
               editedMessage.trim() === msg.message.trim() ||
               !editedMessage.trim()
             }
-            className="rounded-xl px-3 sm:px-5 py-2 font-semibold bg-white text-black transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black/40 focus:ring-offset-2 shadow-sm border border-black/80 disabled:opacity-60 disabled:cursor-not-allowed text-xs sm:text-sm"
-            style={{ minWidth: 60, borderRadius: 16, letterSpacing: 0.5 }}
+            className="rounded-xl px-5 py-2 font-semibold bg-white text-black transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-black/40 focus:ring-offset-2 shadow-sm border border-black/80 disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ minWidth: 80, borderRadius: 16, fontSize: 15, letterSpacing: 0.5 }}
           >
-            <span className="hidden sm:inline">Send</span>
-            <span className="sm:hidden">↗</span>
+            Send
           </button>
         </div>
       </div>
