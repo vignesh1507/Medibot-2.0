@@ -897,13 +897,27 @@ CONVERSATION PATTERNS:
       let isNewSession = !currentSession || currentSession.messages.length === 0;
       let smartTitle = currentSession?.title || "New Chat";
       
-      // Don't create session yet - wait until we have a message to save
+      // 🔥 ENHANCED AI TITLE GENERATION WITH ERROR HANDLING
       if (isNewSession) {
-        smartTitle = message.trim() ? generateChatTitle(message) : "File Chat";
+        try {
+          const rawTitle = message.trim() ? await generateAITitle(message) : "File Chat";
+          smartTitle = validateAndSanitizeTitle(rawTitle);
+        } catch (titleError) {
+          console.warn("Failed to generate AI title for new session:", titleError);
+          smartTitle = validateAndSanitizeTitle(generateFallbackTitle(message.trim() || "File Chat"));
+        }
       } else if (currentSession?.title === "New Chat" && message.trim()) {
-        smartTitle = generateChatTitle(message);
-        await updateChatSessionTitle(sessionId!, smartTitle);
-        setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
+        try {
+          const rawTitle = await generateAITitle(message, currentSession.title);
+          smartTitle = validateAndSanitizeTitle(rawTitle);
+          await updateChatSessionTitle(sessionId!, smartTitle);
+          setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
+        } catch (titleError) {
+          console.warn("Failed to update title in database:", titleError);
+          // Use fallback title but don't fail the message send
+          smartTitle = validateAndSanitizeTitle(generateFallbackTitle(message));
+          setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
+        }
       }
       
       let fileUrl: string | null = null;
@@ -975,15 +989,34 @@ CONVERSATION PATTERNS:
       
       // Create session now that we have a message to save
       if (isNewSession && (!sessionId || sessionId.startsWith("temp-"))) {
-        console.log("💾 Creating session with first message:", smartTitle);
-        sessionId = await createChatSession(user.uid, smartTitle);
-        setLastSessionId(sessionId);
-        
-        // Update the current session with the real ID
-        setCurrentSession((prev) => {
-          if (!prev) return prev;
-          return { ...prev, id: sessionId };
-        });
+        try {
+          console.log("💾 Creating session with first message:", smartTitle);
+          sessionId = await createChatSession(user.uid, smartTitle);
+          setLastSessionId(sessionId);
+          
+          // Update the current session with the real ID
+          setCurrentSession((prev) => {
+            if (!prev) return prev;
+            return { ...prev, id: sessionId };
+          });
+        } catch (sessionError: any) {
+          console.error("Failed to create session with AI title, trying with fallback:", sessionError);
+          // Try with a safe fallback title
+          try {
+            const fallbackTitle = "Health Chat";
+            sessionId = await createChatSession(user.uid, fallbackTitle);
+            setLastSessionId(sessionId);
+            smartTitle = fallbackTitle;
+            
+            setCurrentSession((prev) => {
+              if (!prev) return prev;
+              return { ...prev, id: sessionId, title: fallbackTitle };
+            });
+          } catch (fallbackError) {
+            console.error("Failed to create session even with fallback title:", fallbackError);
+            throw new Error("Unable to create chat session");
+          }
+        }
       }
       
       const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
@@ -1273,28 +1306,131 @@ CONVERSATION PATTERNS:
     toast.success("Chat exported successfully!");
   };
 
-  const generateChatTitle = (firstMessage: string): string => {
-    const lowerMessage = firstMessage.toLowerCase().trim();
-    if (lowerMessage.length === 0) return "General Discussion";
-    const healthKeywords = [
-      { keywords: ["headache", "migraine"], title: "Headache Inquiry" },
-      { keywords: ["fever", "temperature"], title: "Fever Inquiry" },
-      { keywords: ["medication", "medicine", "prescription"], title: "Medication Inquiry" },
-      { keywords: ["diet", "nutrition", "food"], title: "Nutrition Inquiry" },
-      { keywords: ["exercise", "workout", "fitness"], title: "Exercise Inquiry" },
-      { keywords: ["sleep", "insomnia"], title: "Sleep Inquiry" },
-      { keywords: ["stress", "anxiety", "mental"], title: "Mental Health Inquiry" },
-      { keywords: ["pain"], title: "Pain Inquiry" },
-    ];
-    for (const { keywords, title } of healthKeywords) {
-      if (keywords.some((keyword) => lowerMessage.includes(keyword))) {
-        return title;
-      }
+  // 🔥 TITLE VALIDATION AND SANITIZATION
+  const validateAndSanitizeTitle = (title: string): string => {
+    if (!title || typeof title !== 'string') {
+      return "Health Chat";
     }
-    const words = lowerMessage.split(/\s+/).filter((word) => word.length > 3);
-    if (words.length === 0) return "General Discussion";
-    const keyPhrase = words.slice(0, 2).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
-    return `${keyPhrase} Discussion`;
+
+    // Sanitize the title
+    const sanitized = title
+      .trim()
+      .replace(/[<>]/g, '') // Remove HTML tags
+      .replace(/["""'']/g, '') // Remove quotes
+      .replace(/\s+/g, ' ') // Normalize spaces
+      .replace(/^\W+|\W+$/g, '') // Remove leading/trailing special chars
+      .slice(0, 50); // Max length
+
+    // Validate the sanitized title
+    if (sanitized.length === 0 || sanitized.length > 50) {
+      return "Health Chat";
+    }
+
+    // Ensure it doesn't contain only special characters
+    if (!/[a-zA-Z0-9]/.test(sanitized)) {
+      return "Health Chat";
+    }
+
+    return sanitized;
+  };
+
+  // 🔥 ENHANCED AI-POWERED TITLE GENERATION WITH RETRY LOGIC
+  const generateAITitle = async (message: string, previousTitle?: string, retryCount = 0): Promise<string> => {
+    const maxRetries = 2;
+    
+    try {
+      console.log(`🤖 Generating AI title for message (attempt ${retryCount + 1}):`, message.slice(0, 100));
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+      
+      const response = await fetch('/api/generate-title', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message.trim(),
+          previousTitle: previousTitle
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`API responded with status ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const aiTitle = data.title;
+
+      if (aiTitle && typeof aiTitle === 'string' && aiTitle.trim() && aiTitle.length <= 50) {
+        // Validate and sanitize the title
+        const validatedTitle = validateAndSanitizeTitle(aiTitle);
+        
+        if (validatedTitle && validatedTitle !== "Health Chat") {
+          console.log("✅ AI generated title:", validatedTitle);
+          return validatedTitle;
+        }
+      }
+
+      throw new Error("Invalid AI title response");
+
+    } catch (error: any) {
+      console.warn(`AI title generation attempt ${retryCount + 1} failed:`, error.message);
+      
+      // Retry logic
+      if (retryCount < maxRetries && !error.name?.includes('AbortError')) {
+        console.log(`🔄 Retrying AI title generation (${retryCount + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+        return generateAITitle(message, previousTitle, retryCount + 1);
+      }
+      
+      console.warn("All AI title generation attempts failed, using fallback");
+      return generateFallbackTitle(message);
+    }
+  };
+
+  const generateFallbackTitle = (message: string): string => {
+    try {
+      const lowerMessage = message.toLowerCase().trim();
+      
+      if (lowerMessage.length === 0) {
+        return "New Conversation";
+      }
+
+      // Enhanced health-related keyword matching
+      const healthKeywords = [
+        { keywords: ["headache", "migraine"], title: "Headache Relief" },
+        { keywords: ["fever", "temperature"], title: "Fever Management" },
+        { keywords: ["medication", "medicine", "prescription"], title: "Medication Help" },
+        { keywords: ["diet", "nutrition", "food"], title: "Nutrition Advice" },
+        { keywords: ["exercise", "workout", "fitness"], title: "Fitness Guidance" },
+        { keywords: ["sleep", "insomnia"], title: "Sleep Issues" },
+        { keywords: ["stress", "anxiety", "mental"], title: "Mental Health" },
+        { keywords: ["pain"], title: "Pain Management" },
+        { keywords: ["diabetes"], title: "Diabetes Care" },
+        { keywords: ["weight", "lose"], title: "Weight Management" },
+        { keywords: ["pregnancy", "pregnant"], title: "Pregnancy Care" },
+        { keywords: ["child", "kid", "baby"], title: "Child Health" },
+      ];
+
+      for (const { keywords, title } of healthKeywords) {
+        if (keywords.some((keyword) => lowerMessage.includes(keyword))) {
+          return title;
+        }
+      }
+
+      const words = lowerMessage.split(/\s+/).filter((word) => word.length > 3);
+      if (words.length === 0) return "Health Discussion";
+      
+      const keyPhrase = words.slice(0, 2).map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+      return `${keyPhrase} Chat`;
+    } catch (error) {
+      console.error("Error in fallback title generation:", error);
+      return "Health Chat";
+    }
   };
 
   const sendMessageNotification = (userMessage: string, botResponse: string) => {
