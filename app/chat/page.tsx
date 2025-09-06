@@ -2040,11 +2040,8 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     if (!user || !currentSession?.messages || currentSession.messages.length === 0) {
       return null;
     }
-    let lastDate: string | null = null;
+    
     return currentSession.messages.map((msg) => {
-      const messageDate = msg.timestamp.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" });
-      const showDateDivider = messageDate !== lastDate;
-      lastDate = messageDate;
       // Enhanced helper to render response with proper paragraph spacing
       const renderResponse = (response: string) => {
         const lines = response.split("\n");
@@ -2118,13 +2115,6 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       };
       return (
         <div key={msg.id}>
-          {showDateDivider && (
-            <div className="text-center my-4">
-              <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">
-                {messageDate}
-              </span>
-            </div>
-          )}
           <div className="space-y-4">
             <div className="flex justify-end items-start space-x-2 max-w-[70%] ml-auto">
               <div className="relative group">
