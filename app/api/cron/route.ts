@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 
 export async function GET(req: Request) {
   try {
@@ -11,24 +13,29 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    console.log("🚀 Cron job triggered - checking reminders...");
+    console.log("🚀 Daily cron job triggered - cleaning up old reminders...");
     
-    // Call our reminder check endpoint
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/check-reminders`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    // Clean up old reminder records (older than 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
-    const result = await response.json();
-    console.log("✅ Cron job completed:", result);
+    const remindersRef = collection(db, "scheduledReminders");
+    const oldReminders = query(
+      remindersRef, 
+      where("createdAt", "<", thirtyDaysAgo)
+    );
+    
+    const snapshot = await getDocs(oldReminders);
+    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(deletePromises);
+    
+    console.log(`🧹 Cleaned up ${snapshot.docs.length} old reminder records`);
     
     return NextResponse.json({ 
       success: true, 
       timestamp: new Date().toISOString(),
-      reminderResult: result 
+      cleanedRecords: snapshot.docs.length,
+      message: "Daily maintenance completed successfully"
     });
     
   } catch (error) {

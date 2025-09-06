@@ -137,6 +137,47 @@ export default function MedicationsPage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Handle app focus/wake up to reschedule any missed reminders
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user?.email) {
+        console.log("🔄 App focused - checking for missed reminders...");
+        
+        // Reschedule all active medications when app becomes visible
+        medications.forEach((med) => {
+          if (med.reminderTimes.length) {
+            // Cancel existing timers and reschedule
+            cancelBrowserReminders(med.id!);
+            scheduleBrowserReminders(med, user.email!);
+          }
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also handle window focus for additional reliability
+    const handleFocus = () => {
+      if (user?.email) {
+        setTimeout(() => {
+          medications.forEach((med) => {
+            if (med.reminderTimes.length) {
+              cancelBrowserReminders(med.id!);
+              scheduleBrowserReminders(med, user.email!);
+            }
+          });
+        }, 1000); // Small delay to ensure medications are loaded
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [medications, user]);
+
   const sendMobileNotification = async (userId: string, title: string, body: string) => {
   try {
     // Fetch user's FCM token from Firestore
@@ -206,9 +247,9 @@ export default function MedicationsPage() {
     if (!medication.id || !medication.reminderTimes.length || !user?.uid) return;
 
     try {
-      console.log("🔔 Scheduling server-side reminders for:", medication.name);
+      console.log("🔔 Scheduling hybrid reminders for:", medication.name);
       
-      // Use server-side scheduling instead of client-side setTimeout
+      // Store reminders in Firestore for backup/sync
       const response = await fetch("/api/schedule-reminder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -224,22 +265,90 @@ export default function MedicationsPage() {
       const result = await response.json();
       
       if (result.success) {
-        console.log("✅ Reminders scheduled successfully:", medication.name);
+        console.log("✅ Server-side backup scheduled:", medication.name);
+        
+        // Also schedule precise browser-based reminders
+        scheduleBrowserReminders(medication, email);
+        
         toast.success(`Reminders scheduled for ${medication.name}`);
       } else {
-        console.error("❌ Failed to schedule reminders:", result.error);
-        toast.error(`Failed to schedule reminders: ${result.error}`);
+        console.error("❌ Failed to schedule server backup:", result.error);
+        // Still schedule browser reminders even if server fails
+        scheduleBrowserReminders(medication, email);
+        toast.warning(`Reminders scheduled locally for ${medication.name}`);
       }
     } catch (error) {
       console.error("❌ Error scheduling reminders:", error);
-      toast.error("Failed to schedule reminders");
+      // Fallback to browser-only scheduling
+      scheduleBrowserReminders(medication, email);
+      toast.warning("Reminders scheduled locally only");
     }
+  };
+
+  const scheduleBrowserReminders = (medication: Medication, email: string) => {
+    if (!medication.id || !medication.reminderTimes.length) return;
+
+    // Cancel existing browser reminders
+    cancelBrowserReminders(medication.id);
+
+    medication.reminderTimes.forEach((time, index) => {
+      const [hours, minutes] = time.split(":").map(Number);
+      
+      const scheduleNext = () => {
+        const now = new Date();
+        const reminder = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+
+        // If time has passed today, schedule for tomorrow
+        if (reminder <= now) {
+          reminder.setDate(reminder.getDate() + 1);
+        }
+
+        const delay = reminder.getTime() - now.getTime();
+        console.log(`⏰ Next ${medication.name} reminder in ${Math.round(delay / 1000 / 60)} minutes`);
+
+        const timeoutId = setTimeout(async () => {
+          const message = `💊 Time to take your ${medication.name} (${medication.dosage})`;
+          
+          try {
+            // Send both mobile push and email notifications
+            await Promise.all([
+              sendMobileNotification(user!.uid, `Medication Reminder: ${medication.name}`, message),
+              sendEmailNotification(email, `Medication Reminder: ${medication.name}`, message),
+            ]);
+            
+            console.log("✅ Reminder notifications sent for:", medication.name);
+            
+            // Schedule next day's reminder
+            scheduleNext();
+            
+          } catch (err) {
+            console.error("❌ Error sending notifications:", err);
+            // Still schedule next reminder even if sending fails
+            scheduleNext();
+          }
+        }, delay);
+
+        reminderTimeouts.current.set(`${medication.id}-${index}`, timeoutId);
+      };
+
+      scheduleNext();
+    });
+  };
+
+  const cancelBrowserReminders = (medicationId: string) => {
+    reminderTimeouts.current.forEach((timeoutId, key) => {
+      if (key.startsWith(medicationId)) {
+        clearTimeout(timeoutId);
+        reminderTimeouts.current.delete(key);
+      }
+    });
   };
 
   const cancelReminders = async (medicationId: string) => {
     try {
-      console.log("🚫 Cancelling server-side reminders for:", medicationId);
+      console.log("🚫 Cancelling reminders for:", medicationId);
       
+      // Cancel server-side reminders
       const response = await fetch("/api/schedule-reminder", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -249,13 +358,16 @@ export default function MedicationsPage() {
       const result = await response.json();
       
       if (result.success) {
-        console.log("✅ Reminders cancelled successfully");
+        console.log("✅ Server-side reminders cancelled");
       } else {
-        console.error("❌ Failed to cancel reminders:", result.error);
+        console.error("❌ Failed to cancel server reminders:", result.error);
       }
     } catch (error) {
-      console.error("❌ Error cancelling reminders:", error);
+      console.error("❌ Error cancelling server reminders:", error);
     }
+    
+    // Always cancel browser-side reminders
+    cancelBrowserReminders(medicationId);
   };
 
   useEffect(() => {
@@ -274,7 +386,9 @@ export default function MedicationsPage() {
 
     return () => {
       unsubscribe();
-      // No need to clear timeouts since we're using server-side scheduling
+      // Clean up all browser-based timeouts
+      reminderTimeouts.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      reminderTimeouts.current.clear();
     };
   }, [user]);
 
