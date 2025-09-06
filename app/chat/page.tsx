@@ -2788,7 +2788,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   <SelectValue placeholder="Model" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-100 dark:bg-gray-800 dark:text-white text-sm border-gray-200 dark:border-gray-700">
-                  <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash</SelectItem>
+                  <SelectItem value="gemini-2.0-flash">Gemini 2.5 Flash</SelectItem>
                   <SelectItem value="gpt-4o">GPT-4o</SelectItem>
                   <SelectItem value="medibot">MediBot</SelectItem>
                 </SelectContent>
