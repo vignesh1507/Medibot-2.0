@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     }
 
     // Clear existing reminders for this medication
-    const existingReminders = query(
+    const existingReminders = query( 
       collection(db, "scheduledReminders"),
       where("medicationId", "==", medicationId)
     );
