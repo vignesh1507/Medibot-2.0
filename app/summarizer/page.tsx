@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Menu, FileText, Sparkles, Copy, Download, History, Trash2, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { addSummaryRequest, getUserSummaries, type SummaryRequest } from "@/lib/firestore";
+import { addSummaryRequest, getUserSummaries, deleteSummary, type SummaryRequest } from "@/lib/firestore";
 import { toast } from "sonner";
 import { Timestamp } from "firebase/firestore";
 
@@ -166,6 +166,21 @@ export default function SummarizerPage() {
     setInputText("");
     setSummary("");
     setCategory("general");
+  };
+
+  const deleteSummaryItem = async (summaryId: string) => {
+    if (!summaryId) return;
+    
+    try {
+      await deleteSummary(summaryId);
+      toast.success("Summary deleted successfully!");
+      
+      // Reload summaries to update the list
+      await loadSummaries();
+    } catch (error) {
+      console.error("Error deleting summary:", error);
+      toast.error("Failed to delete summary");
+    }
   };
 
   return (
@@ -327,7 +342,7 @@ export default function SummarizerPage() {
               {/* Summary History */}
               <Card className="bg-card border-border rounded-xl shadow">
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-lg">
+                  <CardTitle className="flex items-center space-x-2 text-lg text-white">
                     <History className="h-5 w-5 text-muted-foreground" />
                     <span>Recent Summaries</span>
                   </CardTitle>
@@ -355,46 +370,50 @@ export default function SummarizerPage() {
                           }}
                         >
                           <DialogTrigger asChild>
-                            <div
-                              className="bg-muted rounded-lg p-4 border border-border cursor-pointer hover:bg-purple-600/10 transition-colors"
-                              onClick={() => {
-                                setSelectedSummaryId(summary.id || index.toString());
-                                setDialogOpen(true);
-                              }}
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <Badge className="bg-purple-600 text-white">
-                                  {summary.category.charAt(0).toUpperCase() + summary.category.slice(1)}
-                                </Badge>
-                                <span className="text-muted-foreground text-xs">{formatDate(summary.createdAt)}</span>
+                            <div className="bg-muted rounded-lg p-4 border border-border hover:bg-purple-600/10 transition-colors relative group">
+                              <div 
+                                className="cursor-pointer"
+                                onClick={() => {
+                                  setSelectedSummaryId(summary.id || index.toString());
+                                  setDialogOpen(true);
+                                }}
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <Badge className="bg-purple-600 text-white">
+                                    {summary.category.charAt(0).toUpperCase() + summary.category.slice(1)}
+                                  </Badge>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-muted-foreground text-xs">{formatDate(summary.createdAt)}</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation(); // Prevent dialog from opening
+                                        if (summary.id) {
+                                          deleteSummaryItem(summary.id);
+                                        }
+                                      }}
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500 h-6 w-6"
+                                      aria-label="Delete Summary"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                <p className="text-foreground text-sm line-clamp-2 mb-2">
+                                  {summary.originalText.slice(0, 150)}...
+                                </p>
+                                <p className="text-muted-foreground text-xs">
+                                  Summary: {summary.summary.slice(0, 100)}...
+                                </p>
                               </div>
-                              <p className="text-foreground text-sm line-clamp-2 mb-2">
-                                {summary.originalText.slice(0, 150)}...
-                              </p>
-                              <p className="text-muted-foreground text-xs">
-                                Summary: {summary.summary.slice(0, 100)}...
-                              </p>
                             </div>
                           </DialogTrigger>
                           <DialogContent className="bg-card border-border text-foreground max-w-[90vw] sm:max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl p-4 sm:p-6 shadow">
                             <DialogHeader>
-                              <DialogTitle className="flex items-center justify-between text-lg">
-                                <div className="flex items-center space-x-2">
-                                  <FileText className="h-5 w-5 text-muted-foreground" />
-                                  <span>Summary Details</span>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    setSelectedSummaryId(null);
-                                    setDialogOpen(false);
-                                  }}
-                                  className="text-muted-foreground hover:text-foreground h-8 w-8"
-                                  aria-label="Close"
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
+                              <DialogTitle className="flex items-center space-x-2 text-lg">
+                                <FileText className="h-5 w-5 text-muted-foreground" />
+                                <span>Summary Details</span>
                               </DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4 sm:space-y-6">

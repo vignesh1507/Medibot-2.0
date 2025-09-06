@@ -714,6 +714,17 @@ export const getUserSummaries = async (userId: string): Promise<SummaryRequest[]
   }
 };
 
+export const deleteSummary = async (summaryId: string): Promise<void> => {
+  try {
+    const summaryRef = doc(db, "summaries", summaryId);
+    await deleteDoc(summaryRef);
+    console.log("Summary deleted successfully");
+  } catch (error) {
+    console.error("Error deleting summary:", error);
+    throw new Error("Failed to delete summary");
+  }
+};
+
 export const createNotificationSettings = async (userId: string) => {
   try {
     const settingsRef = doc(db, "notificationSettings", userId);

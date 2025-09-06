@@ -176,6 +176,7 @@ function ChatContent() {
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [copiedMessageIds, setCopiedMessageIds] = useState<Set<string>>(new Set());
   const [isGenerationStopped, setIsGenerationStopped] = useState(false);
+  const [isCreatingNewSession, setIsCreatingNewSession] = useState(false);
   
   // 🔥 ENHANCED SCROLL-TO-LATEST FUNCTIONALITY
   // Voice recording animation state
@@ -420,6 +421,80 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
     }
   };
 
+  // Function to clear session data and force new chat
+  const clearSessionData = () => {
+    if (typeof window !== "undefined" && user) {
+      localStorage.removeItem(`lastSessionId_${user.uid}`);
+      localStorage.setItem(`appClosed_${user.uid}`, Date.now().toString());
+    }
+  };
+
+  // Function to check if app was closed/reopened
+  const wasAppClosed = (): boolean => {
+    if (typeof window !== "undefined" && user) {
+      const lastCloseTime = localStorage.getItem(`appClosed_${user.uid}`);
+      const sessionStart = sessionStorage.getItem(`sessionStart_${user.uid}`);
+      const lastNewSessionTime = localStorage.getItem(`lastNewSession_${user.uid}`);
+      
+      // If no session start time, this is a new session
+      if (!sessionStart) {
+        sessionStorage.setItem(`sessionStart_${user.uid}`, Date.now().toString());
+        
+        // Check if we recently created a new session (within last 5 seconds)
+        if (lastNewSessionTime) {
+          const timeSinceLastSession = Date.now() - parseInt(lastNewSessionTime);
+          if (timeSinceLastSession < 5000) {
+            console.log("🚫 Skipping new session - recently created");
+            return false;
+          }
+        }
+        
+        return !!lastCloseTime; // Return true if there was a previous close
+      }
+      
+      return false;
+    }
+    return false;
+  };
+
+  // Function to create a new chat session
+  const createNewChatSession = async () => {
+    if (!user || isCreatingNewSession) return;
+    
+    try {
+      setIsCreatingNewSession(true);
+      console.log("🔄 Creating new temporary chat session...");
+      
+      // Create only a temporary session in memory - don't save to database until first message
+      const tempSessionId = "temp-" + uuidv4();
+      const newSession: ProcessedChatSession = {
+        id: tempSessionId,
+        userId: user.uid,
+        title: "New Chat",
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      setCurrentSession(newSession);
+      // Don't set lastSessionId yet - wait until first message is saved
+      
+      // Clear the app closed flag and record new session time
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(`appClosed_${user.uid}`);
+        localStorage.setItem(`lastNewSession_${user.uid}`, Date.now().toString());
+      }
+      
+      console.log("✅ New temporary chat session created:", tempSessionId);
+      toast.success("Started a new conversation!");
+    } catch (error) {
+      console.error("Error creating new session:", error);
+      toast.error("Failed to start new conversation");
+    } finally {
+      setIsCreatingNewSession(false);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -427,6 +502,10 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
       setSessions([]);
       return;
     }
+
+    // Check if app was closed and reopened
+    const shouldCreateNewSession = wasAppClosed();
+
     let unsubscribe: () => void;
     const fetchSessions = async () => {
       try {
@@ -435,16 +514,26 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
           const normalizedSessions = userSessions
             .map(normalizeSession)
             .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-          setSessions(normalizedSessions);
+          
+          // Filter out any sessions that don't have messages (shouldn't happen with new logic, but safety check)
+          const sessionsWithMessages = normalizedSessions.filter(session => session.messages && session.messages.length > 0);
+          setSessions(sessionsWithMessages);
+          
+          // If app was closed, create new session instead of loading previous one
+          if (shouldCreateNewSession && !isCreatingNewSession) {
+            createNewChatSession();
+            return;
+          }
+          
           const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
           const lastSessionId = getLastSessionId();
           let selectedSession: ProcessedChatSession | undefined;
           if (sessionIdFromUrl) {
-            selectedSession = normalizedSessions.find((s) => s.id === sessionIdFromUrl);
+            selectedSession = sessionsWithMessages.find((s) => s.id === sessionIdFromUrl);
           } else if (lastSessionId) {
-            selectedSession = normalizedSessions.find((s) => s.id === lastSessionId);
-          } else if (normalizedSessions.length > 0) {
-            selectedSession = normalizedSessions[0];
+            selectedSession = sessionsWithMessages.find((s) => s.id === lastSessionId);
+          } else if (sessionsWithMessages.length > 0) {
+            selectedSession = sessionsWithMessages[0];
           }
           if (selectedSession) {
             setCurrentSession(selectedSession);
@@ -473,6 +562,55 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [message]);
+
+  // Add event listeners for detecting app close/reopen
+  useEffect(() => {
+    if (!user) return;
+
+    let visibilityTimeout: NodeJS.Timeout;
+    let isHandlingVisibilityChange = false;
+
+    // Handle page unload (browser tab close, navigate away, etc.)
+    const handleBeforeUnload = () => {
+      clearSessionData();
+    };
+
+    // Handle visibility change (mobile app backgrounding/foregrounding)
+    const handleVisibilityChange = () => {
+      if (isHandlingVisibilityChange) return;
+      
+      if (document.hidden) {
+        // App is going to background - mark as closed
+        clearSessionData();
+        console.log("📱 App went to background");
+      } else {
+        // App is coming to foreground - check if we should create new session
+        isHandlingVisibilityChange = true;
+        
+        // Use timeout to debounce rapid visibility changes
+        clearTimeout(visibilityTimeout);
+        visibilityTimeout = setTimeout(() => {
+          const wasClosedPreviously = wasAppClosed();
+          if (wasClosedPreviously && !isCreatingNewSession) {
+            console.log("📱 App returned to foreground - creating new session");
+            createNewChatSession();
+          }
+          isHandlingVisibilityChange = false;
+        }, 500); // 500ms debounce
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup event listeners
+    return () => {
+      clearTimeout(visibilityTimeout);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user]);
 
   // 🔥 Helper function to extract recent health topics from user's conversation history
   const extractRecentHealthTopics = (): string[] => {
@@ -639,9 +777,10 @@ CONVERSATION PATTERNS:
       return;
     }
     try {
-      const sessionId = await createChatSession(user.uid, "New Chat");
+      // Create only a temporary session in memory - don't save to database until first message
+      const tempSessionId = "temp-" + uuidv4();
       const newSession: ProcessedChatSession = {
-        id: sessionId,
+        id: tempSessionId,
         userId: user.uid,
         title: "New Chat",
         messages: [],
@@ -649,12 +788,18 @@ CONVERSATION PATTERNS:
         updatedAt: new Date(),
       };
       setCurrentSession(newSession);
-      setLastSessionId(sessionId);
-      setSessions((prev) => [newSession, ...prev]);
+      // Don't set lastSessionId yet - wait until first message is saved
       setMessage("");
       setSelectedFile(null);
       setFileName("");
       setMessageCount(0); // Reset message count for new session
+      
+      // Clear the app closed flag when manually starting new chat
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(`appClosed_${user.uid}`);
+        sessionStorage.setItem(`sessionStart_${user.uid}`, Date.now().toString());
+      }
+      
       // Update URL with session id
       router.replace(`/chat?session=${sessionId}`);
     } catch (error: any) {
@@ -719,31 +864,34 @@ CONVERSATION PATTERNS:
       let sessionId = currentSession?.id;
       let isNewSession = !currentSession || currentSession.messages.length === 0;
       let smartTitle = currentSession?.title || "New Chat";
+      
+      // Don't create session yet - wait until we have a message to save
       if (isNewSession) {
         smartTitle = message.trim() ? generateChatTitle(message) : "File Chat";
-        if (!currentSession) {
-          sessionId = await createChatSession(user.uid, smartTitle);
-          const newSession: ProcessedChatSession = {
-            id: sessionId,
-            userId: user.uid,
-            title: smartTitle,
-            messages: [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-          setCurrentSession(newSession);
-          setLastSessionId(sessionId);
-          setSessions((prev) => [newSession, ...prev]);
-        }
       } else if (currentSession?.title === "New Chat" && message.trim()) {
         smartTitle = generateChatTitle(message);
         await updateChatSessionTitle(sessionId!, smartTitle);
         setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
       }
+      
       let fileUrl: string | null = null;
       if (selectedFile) {
         fileUrl = await uploadImageToCloudinary(selectedFile);
       }
+      
+      // For new sessions, create a temporary in-memory session to show the message immediately
+      if (isNewSession && !currentSession) {
+        const tempSession: ProcessedChatSession = {
+          id: "temp-" + uuidv4(), // Temporary ID
+          userId: user.uid,
+          title: smartTitle,
+          messages: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        setCurrentSession(tempSession);
+      }
+      
       const tempMessage: ProcessedChatSession["messages"][0] = {
         id: messageId,
         userId: user.uid,
@@ -793,6 +941,19 @@ CONVERSATION PATTERNS:
         };
       });
       
+      // Create session now that we have a message to save
+      if (isNewSession && (!sessionId || sessionId.startsWith("temp-"))) {
+        console.log("💾 Creating session with first message:", smartTitle);
+        sessionId = await createChatSession(user.uid, smartTitle);
+        setLastSessionId(sessionId);
+        
+        // Update the current session with the real ID
+        setCurrentSession((prev) => {
+          if (!prev) return prev;
+          return { ...prev, id: sessionId };
+        });
+      }
+      
       const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
       setCurrentSession((prev) => {
         if (!prev) return prev;
@@ -815,27 +976,51 @@ CONVERSATION PATTERNS:
           title: smartTitle,
         };
       });
-      setSessions((prev) =>
-        prev.map((session) =>
-          session.id === sessionId
-            ? {
-                ...session,
-                messages: [
-                  ...session.messages,
-                  {
-                    ...newMessage,
-                    timestamp:
-                      newMessage.timestamp instanceof Date
-                        ? newMessage.timestamp
-                        : (newMessage.timestamp as any)?.toDate?.() || new Date(),
-                  },
-                ],
-                updatedAt: new Date(),
-                title: smartTitle,
-              }
-            : session
-        )
-      );
+      
+      // Update sessions list
+      setSessions((prev) => {
+        const existingSessionIndex = prev.findIndex(session => session.id === sessionId);
+        
+        if (existingSessionIndex >= 0) {
+          // Update existing session
+          return prev.map((session) =>
+            session.id === sessionId
+              ? {
+                  ...session,
+                  messages: [
+                    ...session.messages,
+                    {
+                      ...newMessage,
+                      timestamp:
+                        newMessage.timestamp instanceof Date
+                          ? newMessage.timestamp
+                          : (newMessage.timestamp as any)?.toDate?.() || new Date(),
+                    },
+                  ],
+                  updatedAt: new Date(),
+                  title: smartTitle,
+                }
+              : session
+          );
+        } else {
+          // Add new session to the list (for sessions created during message sending)
+          const newSessionForList: ProcessedChatSession = {
+            id: sessionId!,
+            userId: user.uid,
+            title: smartTitle,
+            messages: [{
+              ...newMessage,
+              timestamp:
+                newMessage.timestamp instanceof Date
+                  ? newMessage.timestamp
+                  : (newMessage.timestamp as any)?.toDate?.() || new Date(),
+            }],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          return [newSessionForList, ...prev];
+        }
+      });
       sendMessageNotification(userMessage, botResponse);
       toast.success("Message sent successfully");
     } catch (error: any) {
