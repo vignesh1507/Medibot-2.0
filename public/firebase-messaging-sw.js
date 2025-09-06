@@ -38,9 +38,48 @@ messaging.onBackgroundMessage(function(payload) {
 });
 
 self.addEventListener('notificationclick', function(event) {
-  const medicineName = event.notification.data?.medicineName;
-  if (medicineName && 'speechSynthesis' in self) {
-    const utterance = new SpeechSynthesisUtterance(`Time to take ${medicineName}`);
-    self.speechSynthesis.speak(utterance);
+  console.log('[SW] Notification clicked:', event.notification.data);
+  
+  event.notification.close();
+  
+  const action = event.action;
+  const medicationData = event.notification.data;
+  
+  if (action === 'taken') {
+    // Log medication taken
+    console.log('[SW] Medication marked as taken:', medicationData?.medicationName);
+    
+    // You can add analytics or logging here
+    if (medicationData?.medicationName) {
+      // Speak confirmation (if supported)
+      if ('speechSynthesis' in self) {
+        const utterance = new SpeechSynthesisUtterance(`${medicationData.medicationName} marked as taken`);
+        self.speechSynthesis.speak(utterance);
+      }
+    }
+  } else if (action === 'dismiss') {
+    console.log('[SW] Medication reminder dismissed');
+  } else {
+    // Default click action - open the app
+    event.waitUntil(
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+        // If app is already open, focus it
+        for (let i = 0; i < clientList.length; i++) {
+          const client = clientList[i];
+          if (client.url.includes('/medications') && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        // If app is not open, open it
+        if (clients.openWindow) {
+          return clients.openWindow('/medications');
+        }
+      })
+    );
   }
+});
+
+// Handle notification close event
+self.addEventListener('notificationclose', function(event) {
+  console.log('[SW] Notification closed:', event.notification.data);
 });

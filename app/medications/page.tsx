@@ -202,46 +202,60 @@ export default function MedicationsPage() {
     }
   };
 
-  const scheduleReminders = (medication: Medication, email: string) => {
-    if (!medication.id || !medication.reminderTimes.length) return;
+  const scheduleReminders = async (medication: Medication, email: string) => {
+    if (!medication.id || !medication.reminderTimes.length || !user?.uid) return;
 
-    cancelReminders(medication.id);
+    try {
+      console.log("🔔 Scheduling server-side reminders for:", medication.name);
+      
+      // Use server-side scheduling instead of client-side setTimeout
+      const response = await fetch("/api/schedule-reminder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.uid,
+          medicationId: medication.id,
+          reminderTimes: medication.reminderTimes,
+          medicationName: medication.name,
+          dosage: medication.dosage
+        }),
+      });
 
-    medication.reminderTimes.forEach((time, index) => {
-      const [hours, minutes] = time.split(":").map(Number);
-      const now = new Date();
-      const reminder = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
-
-      if (reminder <= now) {
-        reminder.setDate(reminder.getDate() + 1);
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log("✅ Reminders scheduled successfully:", medication.name);
+        toast.success(`Reminders scheduled for ${medication.name}`);
+      } else {
+        console.error("❌ Failed to schedule reminders:", result.error);
+        toast.error(`Failed to schedule reminders: ${result.error}`);
       }
-
-      const delay = reminder.getTime() - now.getTime();
-
-      const timeoutId = setTimeout(async () => {
-        const message = `It's time to take your ${medication.name} (${medication.dosage}) at ${time}.`;
-        try {
-          await Promise.all([
-            sendMobileNotification(user!.uid, `Medication Reminder: ${medication.name}`, message),
-            sendEmailNotification(email, `Medication Reminder: ${medication.name}`, message),
-          ]);
-        } catch (err) {
-          console.error("Error sending notifications:", err);
-        }
-        scheduleReminders(medication, email);
-      }, delay);
-
-      reminderTimeouts.current.set(`${medication.id}-${index}`, timeoutId);
-    });
+    } catch (error) {
+      console.error("❌ Error scheduling reminders:", error);
+      toast.error("Failed to schedule reminders");
+    }
   };
 
-  const cancelReminders = (medicationId: string) => {
-    reminderTimeouts.current.forEach((timeoutId, key) => {
-      if (key.startsWith(medicationId)) {
-        clearTimeout(timeoutId);
-        reminderTimeouts.current.delete(key);
+  const cancelReminders = async (medicationId: string) => {
+    try {
+      console.log("🚫 Cancelling server-side reminders for:", medicationId);
+      
+      const response = await fetch("/api/schedule-reminder", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ medicationId }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log("✅ Reminders cancelled successfully");
+      } else {
+        console.error("❌ Failed to cancel reminders:", result.error);
       }
-    });
+    } catch (error) {
+      console.error("❌ Error cancelling reminders:", error);
+    }
   };
 
   useEffect(() => {
@@ -260,8 +274,7 @@ export default function MedicationsPage() {
 
     return () => {
       unsubscribe();
-      reminderTimeouts.current.forEach((timeoutId) => clearTimeout(timeoutId));
-      reminderTimeouts.current.clear();
+      // No need to clear timeouts since we're using server-side scheduling
     };
   }, [user]);
 
