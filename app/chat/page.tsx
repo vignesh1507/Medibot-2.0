@@ -801,7 +801,7 @@ CONVERSATION PATTERNS:
       }
       
       // Update URL with session id
-      router.replace(`/chat?session=${sessionId}`);
+      router.replace(`/chat?session=${newSession.id}`);
     } catch (error: any) {
       console.error("Error starting new chat:", error);
       toast.error("Failed to start new chat");
