@@ -185,6 +185,7 @@ function ChatContent() {
   const [hasNewMessages, setHasNewMessages] = useState(false);
   const [messageCount, setMessageCount] = useState(0);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [manualNewChatStarted, setManualNewChatStarted] = useState(false);
   
   const { user, userProfile } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -503,6 +504,12 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
       return;
     }
 
+    // Don't run if manual new chat was just started
+    if (manualNewChatStarted) {
+      console.log("🔄 Skipping useEffect - manual new chat in progress");
+      return;
+    }
+
     // Check if app was closed and reopened
     const shouldCreateNewSession = wasAppClosed();
 
@@ -528,6 +535,13 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
           const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
           const lastSessionId = getLastSessionId();
           let selectedSession: ProcessedChatSession | undefined;
+          
+          // Don't override if we already have a temporary session
+          if (currentSession && currentSession.id && currentSession.id.startsWith('temp-')) {
+            console.log("🔄 Keeping temporary session, not overriding");
+            return;
+          }
+          
           if (sessionIdFromUrl) {
             selectedSession = sessionsWithMessages.find((s) => s.id === sessionIdFromUrl);
           } else if (lastSessionId) {
@@ -554,7 +568,7 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
     };
     fetchSessions();
     return () => unsubscribe?.();
-  }, [user, searchParams]);
+  }, [user, searchParams, manualNewChatStarted]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -777,6 +791,11 @@ CONVERSATION PATTERNS:
       return;
     }
     try {
+      console.log("🆕 Starting new chat...");
+      
+      // Set flag to prevent useEffect from interfering
+      setManualNewChatStarted(true);
+      
       // Create only a temporary session in memory - don't save to database until first message
       const tempSessionId = "temp-" + uuidv4();
       const newSession: ProcessedChatSession = {
@@ -787,24 +806,37 @@ CONVERSATION PATTERNS:
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      setCurrentSession(newSession);
-      // Don't set lastSessionId yet - wait until first message is saved
+      
+      // Clear existing state first
+      setCurrentSession(null);
       setMessage("");
       setSelectedFile(null);
       setFileName("");
-      setMessageCount(0); // Reset message count for new session
+      setMessageCount(0);
       
-      // Clear the app closed flag when manually starting new chat
+      // Clear localStorage session tracking
       if (typeof window !== "undefined") {
+        localStorage.removeItem(`lastSessionId_${user.uid}`);
         localStorage.removeItem(`appClosed_${user.uid}`);
         sessionStorage.setItem(`sessionStart_${user.uid}`, Date.now().toString());
       }
       
-      // Update URL with session id
-      router.replace(`/chat?session=${newSession.id}`);
+      // Set the new temporary session
+      setTimeout(() => {
+        setCurrentSession(newSession);
+        console.log("✅ New temporary chat started:", tempSessionId);
+        toast.success("New chat started!");
+        // Reset flag after session is set
+        setManualNewChatStarted(false);
+      }, 100);
+      
+      // Don't update URL with temporary session ID - just go to base chat page
+      router.replace('/chat');
+      
     } catch (error: any) {
       console.error("Error starting new chat:", error);
       toast.error("Failed to start new chat");
+      setManualNewChatStarted(false);
     }
   };
 
