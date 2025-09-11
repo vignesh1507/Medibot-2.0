@@ -19,7 +19,18 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar";
-import { Menu, User, Palette, Bell, Shield, Database, Camera } from "lucide-react";
+import { Menu, User, Palette, Bell, Shield, Database, Camera, AlertCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { updateUserProfile, type UserProfile as FirestoreUserProfile } from "@/lib/firestore";
 import { toast } from "sonner";
@@ -58,6 +69,7 @@ export default function ProfilePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const { user, userProfile } = useAuth() as {
     user: any;
     userProfile: ExtendedUserProfile | null;
@@ -723,37 +735,74 @@ export default function ProfilePage() {
                   <CardContent>
                     <p className="text-muted-foreground mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
                     <div className="flex gap-3">
-                      <Button
-                        variant="destructive"
-                        onClick={async () => {
-                          if (!user) {
-                            toast.error('No authenticated user')
-                            return
-                          }
-                          const confirmed = window.confirm('Are you sure you want to permanently delete your account? This cannot be undone.')
-                          if (!confirmed) return
-                          try {
-                            // delete Firestore user doc
-                            const userRef = doc(db, 'users', user.uid)
-                            await deleteDoc(userRef)
-                            // delete Firebase Auth user
-                            await deleteUser(user)
-                            toast.success('Account deleted — redirecting to home')
-                            window.location.href = '/'
-                          } catch (err: any) {
-                            console.error('Failed to delete account', err)
-                            // Common reason: recent login required
-                            if (err.code === 'auth/requires-recent-login') {
-                              toast.error('Please sign in again and retry account deletion')
-                            } else {
-                              toast.error(err.message || 'Failed to delete account')
-                            }
-                          }
-                        }}
-                        aria-label="Delete account"
-                      >
-                        Delete my account
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            aria-label="Delete account"
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            Delete my account
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <div className="flex items-center space-x-3">
+                              <AlertCircle className="w-6 h-6 text-red-600" />
+                              <AlertDialogTitle>Delete account</AlertDialogTitle>
+                            </div>
+                            <AlertDialogDescription>
+                              This will permanently delete your account and all associated data. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+
+                          <div className="mt-4">
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Type "delete my account" to confirm.
+                            </p>
+                            <Input
+                              value={deleteConfirmText}
+                              onChange={(e) => setDeleteConfirmText(e.target.value)}
+                              placeholder='Type: delete my account'
+                              aria-label="Type to confirm account deletion"
+                              className="w-full"
+                            />
+                          </div>
+
+                          <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setDeleteConfirmText("")}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              disabled={deleteConfirmText.trim().toLowerCase() !== "delete my account"}
+                              onClick={async () => {
+                                if (!user) {
+                                  toast.error("No authenticated user")
+                                  return
+                                }
+                                try {
+                                  // delete Firestore user doc
+                                  const userRef = doc(db, "users", user.uid)
+                                  await deleteDoc(userRef)
+                                  // delete Firebase Auth user
+                                  await deleteUser(user)
+                                  setDeleteConfirmText("")
+                                  toast.success("Account deleted — redirecting to home")
+                                  window.location.href = "/"
+                                } catch (err: any) {
+                                  console.error("Failed to delete account", err)
+                                  if (err?.code === "auth/requires-recent-login") {
+                                    // Inform user reauth is required
+                                    toast.error("Account deletion failed: recent authentication required. Please sign in again and retry.")
+                                  } else {
+                                    toast.error(err?.message || "Failed to delete account")
+                                  }
+                                }
+                              }}
+                            >
+                              Delete account
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </CardContent>
                 </Card>
