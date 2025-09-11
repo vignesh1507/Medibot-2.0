@@ -192,11 +192,15 @@ const signUp = async (
 };
 
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (rememberMe: boolean = false) => {
+    const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth');
+    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
     return signInWithPopup(auth, googleProvider);
   };
 
-  const signInWithFacebook = async () => {
+  const signInWithFacebook = async (rememberMe: boolean = false) => {
+    const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth');
+    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
     return signInWithPopup(auth, facebookProvider);
   };
 

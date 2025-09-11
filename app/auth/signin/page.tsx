@@ -17,7 +17,13 @@ export default function SignInPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const [rememberMe, setRememberMe] = useState(() => {
+    try {
+      return localStorage.getItem('medibot_remember') === 'true'
+    } catch {
+      return false
+    }
+  })
   const [showVerifiedMessage, setShowVerifiedMessage] = useState(false)
   const { signIn, signInWithGoogle, signInWithFacebook } = useAuth()
   const router = useRouter()
@@ -45,7 +51,9 @@ export default function SignInPage() {
     setLoading(true)
 
     try {
-      await signIn(email, password, rememberMe)
+  await signIn(email, password, rememberMe)
+  // persist remember choice
+  try { localStorage.setItem('medibot_remember', rememberMe ? 'true' : 'false') } catch {}
       toast.success("Signed in successfully!", {
         position: "top-center",
         style: {

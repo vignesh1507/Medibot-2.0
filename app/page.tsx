@@ -26,8 +26,25 @@ import { useInView } from "react-intersection-observer";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, addDoc } from "firebase/firestore";
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function HomePage() {
+  const router = useRouter()
+  const { user, loading } = useAuth()
+
+  // Redirect remembered or authenticated users to dashboard
+  useEffect(() => {
+    try {
+      const remembered = typeof window !== 'undefined' && localStorage.getItem('medibot_remember') === 'true'
+      if (!loading && (user || remembered)) {
+        // if user is not logged in but remembered is true, let auth hook handle persistence; otherwise redirect
+        router.push('/dashboard')
+      }
+    } catch (err) {
+      // ignore localStorage errors
+    }
+  }, [user, loading, router])
   // Medibot-like theme variables
   const primaryColor = "bg-[#0E7490]";
   const primaryHover = "hover:bg-[#0C6A83]";

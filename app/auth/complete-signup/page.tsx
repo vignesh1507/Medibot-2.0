@@ -52,6 +52,15 @@ export default function CompleteSignupPage() {
   const completeSignup = async (userEmail: string, userName: string, url: string) => {
     setProcessing(true)
     try {
+      // Apply persistence according to stored preference
+      try {
+        const remember = sessionStorage.getItem('signup_remember') === 'true'
+        const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth')
+        await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence)
+      } catch (err) {
+        console.warn('Failed to set persistence, falling back to default:', err)
+      }
+
       // Sign in with the email link
       const result = await signInWithEmailLink(auth, userEmail, url)
       
@@ -68,6 +77,7 @@ export default function CompleteSignupPage() {
       sessionStorage.removeItem('signup_email')
       sessionStorage.removeItem('signup_password')
       sessionStorage.removeItem('signup_name')
+  sessionStorage.removeItem('signup_remember')
 
   toast.success('Account created and verified. Redirecting...')
   router.push('/dashboard')

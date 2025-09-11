@@ -51,6 +51,8 @@ export default function SignUpPage() {
       // store ephemeral signup data to complete signup after verification
       sessionStorage.setItem('signup_email', formData.email)
       sessionStorage.setItem('signup_name', formData.name || '')
+  // store remember preference so completion can apply persistence
+  sessionStorage.setItem('signup_remember', formData.rememberMe ? 'true' : 'false')
 
       toast.success('Verification link sent. Check your inbox to complete signup.')
       router.push('/verify-email')
