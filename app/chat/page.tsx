@@ -3038,7 +3038,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
   
   {user && (
     <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
-      <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-md mx-auto">
+    <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white w-[520px] max-w-full mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg">
             <RotateCcw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
