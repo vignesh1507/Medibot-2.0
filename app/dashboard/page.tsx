@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { AuthGuard } from "@/components/auth-guard"
 import { Button } from "@/components/ui/button"
@@ -96,13 +96,18 @@ export default function DashboardPage() {
     }
   }, [user])
 
-  const totalMessages = chatSessions.reduce((total, session) => {
+  // Only consider sessions that actually have messages
+  const nonEmptyChatSessions = useMemo(() => {
+    return chatSessions.filter((s) => Array.isArray(s.messages) && s.messages.length > 0);
+  }, [chatSessions]);
+
+  const totalMessages = nonEmptyChatSessions.reduce((total, session) => {
     return total + (session.messages && Array.isArray(session.messages) ? session.messages.length : 0)
   }, 0)
 
   const activeMedications = medications.filter((med) => med.isActive).length
 
-  const recentActivity = chatSessions
+  const recentActivity = nonEmptyChatSessions
     .flatMap((session) =>
       session.messages && Array.isArray(session.messages)
         ? session.messages.map((msg) => ({
@@ -121,7 +126,7 @@ export default function DashboardPage() {
 
   const calculateHealthScore = () => {
     let score = 50
-    if (chatSessions.length > 0) score += 20
+  if (nonEmptyChatSessions.length > 0) score += 20
     if (medications.length > 0) score += 15
     if (healthRecords.length > 0) score += 15
     return Math.min(score, 100)
@@ -183,7 +188,7 @@ export default function DashboardPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-5 pt-0">
-                    <div className="text-3xl font-bold text-primary mb-1 animate-fadeIn">{chatSessions.length}</div>
+                    <div className="text-3xl font-bold text-primary mb-1 animate-fadeIn">{nonEmptyChatSessions.length}</div>
                     <div className="text-xs text-muted-foreground">{totalMessages} total messages</div>
                   </CardContent>
                 </Card>
