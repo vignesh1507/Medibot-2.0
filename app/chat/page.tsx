@@ -2700,9 +2700,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   
                   {/* Welcome text */}
                   <div className="space-y-3">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-teal-600 bg-clip-text text-transparent">
-                      Welcome to MediBot
-                    </h1>
+                    <h1 className="text-5xl font-extrabold tracking-wide bg-gradient-to-r from-blue-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent drop-shadow-sm">
+  Welcome to MediBot
+</h1>
+
                     <p className="text-gray-600 dark:text-gray-300 text-lg max-w-md mx-auto">
                       Your AI-powered health companion ready to answer medical questions and provide health guidance.
                     </p>
