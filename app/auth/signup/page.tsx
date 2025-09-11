@@ -9,46 +9,54 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { AuthGuard } from "@/components/auth-guard"
-import { ArrowLeft, Eye, EyeOff } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
+import { sendSignInLinkToEmail } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 import { toast } from "sonner"
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    password: "",
-    confirmPassword: "",
     agreeToTerms: false,
     rememberMe: false,
   })
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { signUp, signInWithGoogle, signInWithFacebook } = useAuth()
+  const { signInWithGoogle, signInWithFacebook } = useAuth()
   const router = useRouter()
+
+  const actionCodeSettings = {
+    url: (typeof window !== 'undefined' ? `${window.location.origin}/auth/complete-signup?email=${encodeURIComponent(formData.email)}` : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/complete-signup`),
+    handleCodeInApp: true,
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords don't match")
-      return
-    }
 
     if (!formData.agreeToTerms) {
       toast.error("Please agree to the terms and conditions")
       return
     }
 
-    setLoading(true)
+    if (!formData.email) {
+      toast.error('Please provide your email')
+      return
+    }
 
+    setLoading(true)
     try {
-      await signUp(formData.email, formData.password, formData.name)
-      toast.success("Account created successfully!")
-      router.push("/profile-setup")
+      // send email sign-in link; account will be created when the user clicks the link
+      await sendSignInLinkToEmail(auth, formData.email, actionCodeSettings)
+      // store ephemeral signup data to complete signup after verification
+      sessionStorage.setItem('signup_email', formData.email)
+      sessionStorage.setItem('signup_name', formData.name || '')
+
+      toast.success('Verification link sent. Check your inbox to complete signup.')
+      router.push('/verify-email')
     } catch (error: any) {
-      toast.error(error.message || "Failed to create account")
+      console.error('sendSignInLinkToEmail error', error)
+      toast.error(error.message || 'Failed to send verification link')
     } finally {
       setLoading(false)
     }
@@ -154,52 +162,6 @@ export default function SignUpPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-white font-medium mb-1 text-sm">Password</label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Create a password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="bg-slate-800/50 border-slate-700 text-white h-10 rounded-lg pr-12 focus:ring-2 focus:ring-purple-500/50"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white h-6 w-6"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                </Button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-white font-medium mb-1 text-sm">Confirm Password</label>
-              <div className="relative">
-                <Input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="bg-slate-800/50 border-slate-700 text-white h-10 rounded-lg pr-12 focus:ring-2 focus:ring-purple-500/50"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white h-6 w-6"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                </Button>
-              </div>
-            </div>
-
             {/* Remember Me Checkbox */}
             <div className="flex items-center mb-2">
               <input
@@ -236,7 +198,7 @@ export default function SignUpPage() {
               disabled={loading}
               className="w-full h-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg shadow-lg font-medium transition-all duration-200"
             >
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? "Sending Verification..." : "Send Verification Link"}
             </Button>
 
             <div className="relative my-4">

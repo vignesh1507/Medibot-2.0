@@ -23,6 +23,9 @@ import { Menu, User, Palette, Bell, Shield, Database, Camera } from "lucide-reac
 import { useAuth } from "@/hooks/useAuth";
 import { updateUserProfile, type UserProfile as FirestoreUserProfile } from "@/lib/firestore";
 import { toast } from "sonner";
+import { deleteUser } from 'firebase/auth'
+import { doc, deleteDoc } from 'firebase/firestore'
+import { auth, db } from '@/lib/firebase'
 
 // 🔒 Type Definitions
 type ExtendedPreferences = {
@@ -709,6 +712,49 @@ export default function ProfilePage() {
                     <p className="text-muted-foreground">
                       Export your data to keep a backup, or clear all your data to start fresh.
                     </p>
+                  </CardContent>
+                </Card>
+                {/* Delete Account */}
+                <Card className="bg-card border-border rounded-xl shadow">
+                  <CardHeader className="flex flex-row items-center space-y-0 pb-4">
+                    <User className="h-5 w-5 text-muted-foreground mr-2" />
+                    <CardTitle className="text-foreground">Delete Account</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-4">Permanently delete your account and all associated data. This action cannot be undone.</p>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="destructive"
+                        onClick={async () => {
+                          if (!user) {
+                            toast.error('No authenticated user')
+                            return
+                          }
+                          const confirmed = window.confirm('Are you sure you want to permanently delete your account? This cannot be undone.')
+                          if (!confirmed) return
+                          try {
+                            // delete Firestore user doc
+                            const userRef = doc(db, 'users', user.uid)
+                            await deleteDoc(userRef)
+                            // delete Firebase Auth user
+                            await deleteUser(user)
+                            toast.success('Account deleted — redirecting to home')
+                            window.location.href = '/'
+                          } catch (err: any) {
+                            console.error('Failed to delete account', err)
+                            // Common reason: recent login required
+                            if (err.code === 'auth/requires-recent-login') {
+                              toast.error('Please sign in again and retry account deletion')
+                            } else {
+                              toast.error(err.message || 'Failed to delete account')
+                            }
+                          }
+                        }}
+                        aria-label="Delete account"
+                      >
+                        Delete my account
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </div>

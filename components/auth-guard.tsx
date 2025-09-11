@@ -25,6 +25,11 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
         if (pathname !== "/profile-setup") {
           router.push("/dashboard")
         }
+      } else if (requireAuth && user && !user.emailVerified) {
+        // Redirect unverified users to verification page (except if already there)
+        if (pathname !== "/verify-email" && pathname !== "/auth/verify-email") {
+          router.push("/verify-email")
+        }
       }
     }
   }, [user, loading, requireAuth, router, pathname])

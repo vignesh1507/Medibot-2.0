@@ -1,14 +1,14 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AuthGuard } from "@/components/auth-guard"
-import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, Loader2, CheckCircle } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { toast } from "sonner"
 
@@ -18,8 +18,27 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
+  const [showVerifiedMessage, setShowVerifiedMessage] = useState(false)
   const { signIn, signInWithGoogle, signInWithFacebook } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Check if user just verified their email
+  useEffect(() => {
+    const verified = searchParams?.get('verified')
+    if (verified === 'true') {
+      setShowVerifiedMessage(true)
+      toast.success("Email verified successfully! You can now sign in.", {
+        position: "top-center",
+        duration: 5000,
+        style: {
+          background: '#0f172a',
+          color: '#ffffff',
+          border: '1px solid #1e293b'
+        }
+      })
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,14 +56,31 @@ export default function SignInPage() {
       })
       router.push("/dashboard")
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign in", {
-        position: "top-center",
-        style: {
-          background: '#0f172a',
-          color: '#ffffff',
-          border: '1px solid #1e293b'
-        }
-      })
+      // Check if it's an email verification error
+      if (error.message.includes("verify your email")) {
+        toast.error(error.message, {
+          position: "top-center",
+          duration: 6000,
+          style: {
+            background: '#dc2626',
+            color: '#ffffff',
+            border: '1px solid #991b1b'
+          },
+          action: {
+            label: 'Verify Email',
+            onClick: () => router.push('/verify-email')
+          }
+        })
+      } else {
+        toast.error(error.message || "Failed to sign in", {
+          position: "top-center",
+          style: {
+            background: '#0f172a',
+            color: '#ffffff',
+            border: '1px solid #1e293b'
+          }
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -164,6 +200,19 @@ export default function SignInPage() {
             <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Welcome Back</h1>
             <p className="text-slate-400 text-sm">Sign in to access your dashboard</p>
           </div>
+
+          {/* Email Verification Success Message */}
+          {showVerifiedMessage && (
+            <div className="mb-6 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="text-green-400 font-medium">Email Verified Successfully!</p>
+                  <p className="text-green-300/80">You can now sign in to your account.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">

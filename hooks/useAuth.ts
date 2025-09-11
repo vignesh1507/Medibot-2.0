@@ -11,6 +11,8 @@ import {
   sendPasswordResetEmail,
   updateProfile,
   signInWithPopup,
+  sendEmailVerification,
+  reload,
 } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db, googleProvider, facebookProvider } from "@/lib/firebase";
@@ -137,7 +139,16 @@ export function useAuth() {
     // Set persistence based on rememberMe
     const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth');
     await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
-    return signInWithEmailAndPassword(auth, email, password);
+    
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    
+    // Check if email is verified
+    if (!result.user.emailVerified) {
+      await signOut(auth); // Sign out unverified user
+      throw new Error("Please verify your email before logging in. Check your inbox for the verification link.");
+    }
+    
+    return result;
   };
 
 
@@ -155,6 +166,12 @@ const signUp = async (
     await updateProfile(user, { displayName });
   }
 
+  // Send email verification
+  await sendEmailVerification(user, {
+    url: `${window.location.origin}/auth/signin`, // Redirect URL after verification
+    handleCodeInApp: false,
+  });
+
   // Save additional user data to Firestore
   await setDoc(doc(db, "users", user.uid), {
     displayName: displayName || "",
@@ -168,6 +185,7 @@ const signUp = async (
       conditions: ["none"],
     },
     preferences: {},
+    emailVerified: false, // Track verification status
   });
 
   return result;
@@ -192,6 +210,22 @@ const signUp = async (
     return sendPasswordResetEmail(auth, email);
   };
 
+  const resendVerificationEmail = async () => {
+    if (!user) throw new Error("No user logged in");
+    
+    await sendEmailVerification(user, {
+      url: `${window.location.origin}/auth/signin`,
+      handleCodeInApp: false,
+    });
+  };
+
+  const checkEmailVerified = async () => {
+    if (!user) return false;
+    
+    await reload(user);
+    return user.emailVerified;
+  };
+
   return {
     user,
     userProfile,
@@ -203,5 +237,7 @@ const signUp = async (
     logout,
     resetPassword,
     refreshProfile,
+    resendVerificationEmail,
+    checkEmailVerified,
   };
 }

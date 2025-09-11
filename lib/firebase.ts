@@ -1,6 +1,14 @@
 
 import { initializeApp } from "firebase/app"
-import { getAuth, GoogleAuthProvider, FacebookAuthProvider } from "firebase/auth"
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  FacebookAuthProvider,
+  sendEmailVerification,
+  applyActionCode,
+  verifyPasswordResetCode,
+  confirmPasswordReset
+} from "firebase/auth"
 import { getFirestore } from "firebase/firestore"
 import { getStorage } from "firebase/storage"
 import { getMessaging } from "firebase/messaging"
@@ -43,5 +51,29 @@ googleProvider.setCustomParameters({
 facebookProvider.setCustomParameters({
   display: "popup",
 })
+
+// Email verification functions
+export const sendVerificationEmail = async (user: any) => {
+  try {
+    await sendEmailVerification(user, {
+      url: `${window.location.origin}/auth/signin`, // Redirect URL after verification
+      handleCodeInApp: false,
+    });
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error sending verification email:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const verifyEmailAction = async (actionCode: string) => {
+  try {
+    await applyActionCode(auth, actionCode);
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error verifying email:", error);
+    return { success: false, error: error.message };
+  }
+};
 
 export default app
