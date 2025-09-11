@@ -2683,28 +2683,53 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             </div>
           </div>
         ) : (!currentSession || currentSession.messages.length === 0) ? (
-          <div className="flex flex-1 flex-col min-h-[60vh]">
-            <div className="flex-1 flex items-center justify-center">
-              <div className="w-full max-w-md mx-auto text-center space-y-8 flex flex-col items-center justify-center">
+          <div className="flex flex-1 flex-col min-h-[70vh]">
+            {/* Welcome Header */}
+            <div className="flex-1 flex items-center justify-center py-8">
+              <div className="w-full max-w-2xl mx-auto text-center space-y-8 flex flex-col items-center justify-center">
                 <div className="flex flex-col items-center space-y-6">
-                  <div className="w-20 h-20 relative">
-                    <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
+                  {/* Logo with enhanced styling */}
+                  <div className="relative">
+                    <div className="w-24 h-24 relative">
+                      <Image src="/logo.png" alt="MediBot Logo" width={96} height={96} className="rounded-full shadow-lg" />
+                    </div>
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                      <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                    </div>
                   </div>
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Start a conversation below or try these suggestions:</p>
+                  
+                  {/* Welcome text */}
+                  <div className="space-y-3">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-teal-600 bg-clip-text text-transparent">
+                      Welcome to MediBot
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-300 text-lg max-w-md mx-auto">
+                      Your AI-powered health companion ready to answer medical questions and provide health guidance.
+                    </p>
+                   
                   </div>
                 </div>
               </div>
             </div>
-            <div className="pb-4">
-              <AISuggestions 
-                onSuggestionClick={(suggestion) => {
-                  setMessage(suggestion);
-                  setTimeout(() => handleSendMessage(), 100);
-                }}
-                disabled={loading}
-              />
+            
+            {/* Enhanced Pre-Questions Section */}
+            <div className="pb-6 px-2">
+              <div className="max-w-4xl mx-auto">
+                <AISuggestions 
+                  onSuggestionClick={(suggestion) => {
+                    setMessage(suggestion);
+                    setTimeout(() => handleSendMessage(), 100);
+                  }}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+            
+            {/* Quick action hint */}
+            <div className="text-center pb-4">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                💡 You can also type your own question in the chat box below
+              </p>
             </div>
           </div>
         ) : (

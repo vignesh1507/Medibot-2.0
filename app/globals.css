@@ -135,4 +135,63 @@ body {
   .animate-spin-slow {
     animation: spin-slow 3s linear infinite;
   }
+
+  /* Enhanced animations for AI suggestions */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200px 0;
+    }
+    100% {
+      background-position: calc(200px + 100%) 0;
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out forwards;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+    background-size: 200px 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Staggered animation delays for suggestion cards */
+  .suggestion-card-0 { animation-delay: 0s; }
+  .suggestion-card-1 { animation-delay: 0.1s; }
+  .suggestion-card-2 { animation-delay: 0.2s; }
+  .suggestion-card-3 { animation-delay: 0.3s; }
+  .suggestion-card-4 { animation-delay: 0.4s; }
+  .suggestion-card-5 { animation-delay: 0.5s; }
 }
