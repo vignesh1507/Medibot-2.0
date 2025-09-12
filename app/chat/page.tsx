@@ -68,6 +68,7 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { useSearchParams, useRouter } from 'next/navigation';
+import ClientOnly from "@/components/ClientOnly";
 // Removed PaymentDialog import (PhonePe/Stripe integration)
 
 declare global {
@@ -179,7 +180,6 @@ function ChatContent() {
   const [isCreatingNewSession, setIsCreatingNewSession] = useState(false);
   const [isAnySessionCreationInProgress, setIsAnySessionCreationInProgress] = useState(false);
   const [lastToastTime, setLastToastTime] = useState<number>(0);
-  const [mounted, setMounted] = useState(false);
   
   // 🔥 ENHANCED SCROLL-TO-LATEST FUNCTIONALITY
   // Voice recording animation state
@@ -198,11 +198,6 @@ function ChatContent() {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
-
-  // Prevent hydration mismatch by ensuring component is mounted
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecording }: { onResult: (text: string) => void; disabled?: boolean; onStartRecording?: () => void; onStopRecording?: () => void }) => {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -3175,8 +3170,9 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
   )}
 
   {/* Additional dialogs and components */}
-  {mounted && user && (
-    <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
+  <ClientOnly>
+    {user && (
+      <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
       <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg">
@@ -3329,9 +3325,11 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         )}
       </DialogContent>
     </Dialog>
-  )}
+    )}
+  </ClientOnly>
   
-  {mounted && user && (
+  <ClientOnly>
+    {user && (
     <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
     <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white w-[520px] max-w-full mx-auto">
         <DialogHeader>
@@ -3418,7 +3416,8 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         </div>
       </DialogContent>
     </Dialog>
-  )}
+    )}
+  </ClientOnly>
 </div>
       </div>
     </AuthGuard>
