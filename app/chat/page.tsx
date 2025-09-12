@@ -177,6 +177,9 @@ function ChatContent() {
   const [copiedMessageIds, setCopiedMessageIds] = useState<Set<string>>(new Set());
   const [isGenerationStopped, setIsGenerationStopped] = useState(false);
   const [isCreatingNewSession, setIsCreatingNewSession] = useState(false);
+  const [isAnySessionCreationInProgress, setIsAnySessionCreationInProgress] = useState(false);
+  const [lastToastTime, setLastToastTime] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
   
   // 🔥 ENHANCED SCROLL-TO-LATEST FUNCTIONALITY
   // Voice recording animation state
@@ -195,6 +198,11 @@ function ChatContent() {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Prevent hydration mismatch by ensuring component is mounted
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecording }: { onResult: (text: string) => void; disabled?: boolean; onStartRecording?: () => void; onStopRecording?: () => void }) => {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -460,10 +468,11 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
 
   // Function to create a new chat session
   const createNewChatSession = async () => {
-    if (!user || isCreatingNewSession) return;
+    if (!user || isCreatingNewSession || isAnySessionCreationInProgress) return;
     
     try {
       setIsCreatingNewSession(true);
+      setIsAnySessionCreationInProgress(true);
       console.log("🔄 Creating new temporary chat session...");
       
       // Create only a temporary session in memory - don't save to database until first message
@@ -493,6 +502,7 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
       toast.error("Failed to start new conversation");
     } finally {
       setIsCreatingNewSession(false);
+      setIsAnySessionCreationInProgress(false);
     }
   };
 
@@ -527,7 +537,7 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
           setSessions(sessionsWithMessages);
           
           // If app was closed, create new session instead of loading previous one
-          if (shouldCreateNewSession && !isCreatingNewSession) {
+          if (shouldCreateNewSession && !isCreatingNewSession && !isAnySessionCreationInProgress) {
             createNewChatSession();
             return;
           }
@@ -582,6 +592,7 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
     if (!user) return;
 
     let visibilityTimeout: NodeJS.Timeout;
+    let hiddenStartTime: number | null = null;
     let isHandlingVisibilityChange = false;
 
     // Handle page unload (browser tab close, navigate away, etc.)
@@ -594,23 +605,41 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
       if (isHandlingVisibilityChange) return;
       
       if (document.hidden) {
-        // App is going to background - mark as closed
-        clearSessionData();
+        // App is going to background - record the time but don't immediately mark as closed
+        hiddenStartTime = Date.now();
         console.log("📱 App went to background");
-      } else {
-        // App is coming to foreground - check if we should create new session
-        isHandlingVisibilityChange = true;
         
-        // Use timeout to debounce rapid visibility changes
+        // Only mark as closed after being hidden for a significant amount of time (30 seconds)
         clearTimeout(visibilityTimeout);
         visibilityTimeout = setTimeout(() => {
-          const wasClosedPreviously = wasAppClosed();
-          if (wasClosedPreviously && !isCreatingNewSession) {
-            console.log("📱 App returned to foreground - creating new session");
-            createNewChatSession();
+          if (document.hidden && hiddenStartTime) {
+            clearSessionData();
+            console.log("📱 App marked as closed after extended background time");
           }
-          isHandlingVisibilityChange = false;
-        }, 500); // 500ms debounce
+        }, 30000); // 30 seconds - much longer delay to avoid false positives
+      } else {
+        // App is coming to foreground
+        const hiddenDuration = hiddenStartTime ? Date.now() - hiddenStartTime : 0;
+        hiddenStartTime = null;
+        clearTimeout(visibilityTimeout);
+        
+        // Only create new session if app was hidden for more than 2 minutes
+        // AND we don't already have an active session with recent activity
+        if (hiddenDuration > 120000) { // 2 minutes
+          isHandlingVisibilityChange = true;
+          
+          setTimeout(() => {
+            const wasClosedPreviously = wasAppClosed();
+            const hasRecentActivity = currentSession && currentSession.messages.length > 0 && 
+              currentSession.updatedAt && (Date.now() - currentSession.updatedAt.getTime()) < 600000; // 10 minutes
+            
+            if (wasClosedPreviously && !isCreatingNewSession && !isAnySessionCreationInProgress && !hasRecentActivity && !loading) {
+              console.log("📱 App returned after extended absence - creating new session");
+              createNewChatSession();
+            }
+            isHandlingVisibilityChange = false;
+          }, 1000); // 1 second debounce
+        }
       }
     };
 
@@ -624,7 +653,7 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [user]);
+  }, [user, currentSession, loading]);
 
   // 🔥 Helper function to extract recent health topics from user's conversation history
   const extractRecentHealthTopics = (): string[] => {
@@ -786,8 +815,10 @@ CONVERSATION PATTERNS:
   };
 
   const startNewChat = async () => {
-    if (!user) {
-      toast.error("Please log in to start a new chat");
+    if (!user || isAnySessionCreationInProgress) {
+      if (!user) {
+        toast.error("Please log in to start a new chat");
+      }
       return;
     }
     try {
@@ -795,6 +826,7 @@ CONVERSATION PATTERNS:
       
       // Set flag to prevent useEffect from interfering
       setManualNewChatStarted(true);
+      setIsAnySessionCreationInProgress(true);
       
       // Create only a temporary session in memory - don't save to database until first message
       const tempSessionId = "temp-" + uuidv4();
@@ -828,15 +860,17 @@ CONVERSATION PATTERNS:
         toast.success("New chat started!");
         // Reset flag after session is set
         setManualNewChatStarted(false);
+        setIsAnySessionCreationInProgress(false);
       }, 100);
       
-      // Don't update URL with temporary session ID - just go to base chat page
-      router.replace('/chat');
+      // Don't navigate - this can cause useEffect cycles
+      // router.replace('/chat');
       
     } catch (error: any) {
       console.error("Error starting new chat:", error);
       toast.error("Failed to start new chat");
       setManualNewChatStarted(false);
+      setIsAnySessionCreationInProgress(false);
     }
   };
 
@@ -873,6 +907,234 @@ CONVERSATION PATTERNS:
       console.error("Error uploading to Cloudinary:", error);
       toast.error(`Failed to upload file: ${error.message || "Unknown error"}`);
       return null;
+    }
+  };
+
+  // Function to handle sending message with specific text (for pre-questions)
+  const handleSendMessageWithText = async (messageText: string) => {
+    if (!user) {
+      toast.error("Please log in to send messages");
+      return;
+    }
+    if (!messageText.trim()) {
+      toast.error("Please enter a message or upload a file");
+      return;
+    }
+    
+    // Reset generation stopped state when starting new message
+    setIsGenerationStopped(false);
+    
+    const userMessage = messageText.trim();
+    const messageId = uuidv4();
+    setLoading(true);
+    try {
+      let sessionId = currentSession?.id;
+      let isNewSession = !currentSession || currentSession.messages.length === 0;
+      let smartTitle = currentSession?.title || "New Chat";
+      
+      // 🔥 ENHANCED AI TITLE GENERATION WITH ERROR HANDLING
+      if (isNewSession) {
+        try {
+          const rawTitle = messageText.trim() ? await generateAITitle(messageText) : "File Chat";
+          smartTitle = validateAndSanitizeTitle(rawTitle);
+        } catch (titleError) {
+          console.warn("Failed to generate AI title for new session:", titleError);
+          smartTitle = validateAndSanitizeTitle(generateFallbackTitle(messageText.trim() || "File Chat"));
+        }
+      } else if (currentSession?.title === "New Chat" && messageText.trim()) {
+        try {
+          const rawTitle = await generateAITitle(messageText, currentSession.title);
+          smartTitle = validateAndSanitizeTitle(rawTitle);
+          await updateChatSessionTitle(sessionId!, smartTitle);
+          setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
+        } catch (titleError) {
+          console.warn("Failed to update title in database:", titleError);
+          // Use fallback title but don't fail the message send
+          smartTitle = validateAndSanitizeTitle(generateFallbackTitle(messageText));
+          setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
+        }
+      }
+      
+      // For new sessions, create a temporary in-memory session to show the message immediately
+      if (isNewSession && !currentSession) {
+        const tempSession: ProcessedChatSession = {
+          id: "temp-" + uuidv4(), // Temporary ID
+          userId: user.uid,
+          title: smartTitle,
+          messages: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        setCurrentSession(tempSession);
+      }
+      
+      const tempMessage: ProcessedChatSession["messages"][0] = {
+        id: messageId,
+        userId: user.uid,
+        message: userMessage,
+        response: "",
+        timestamp: new Date(),
+        type: "chat",
+        image: null,
+      };
+      setCurrentSession((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: [...prev.messages, tempMessage],
+          updatedAt: new Date(),
+          title: smartTitle,
+        };
+      });
+      
+      // Clear the message input
+      setMessage("");
+      setSelectedFile(null);
+      setFileName("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      
+      let botResponse = "";
+      if (messageText.trim()) {
+        botResponse = await generateAIResponse(userMessage, selectedModel, messageId);
+      }
+      
+      // Update the message with the full response
+      setCurrentSession((prev) => {
+        if (!prev) return prev;
+        const updatedMessages = prev.messages.map((msg) =>
+          msg.id === messageId
+            ? { ...msg, response: botResponse }
+            : msg
+        );
+        return {
+          ...prev,
+          messages: updatedMessages,
+          updatedAt: new Date(),
+          title: smartTitle,
+        };
+      });
+      
+      // Create session now that we have a message to save
+      if (isNewSession && (!sessionId || sessionId.startsWith("temp-"))) {
+        try {
+          console.log("💾 Creating session with first message:", smartTitle);
+          sessionId = await createChatSession(user.uid, smartTitle);
+          setLastSessionId(sessionId);
+          
+          // Update the current session with the real ID
+          setCurrentSession((prev) => {
+            if (!prev) return prev;
+            return { ...prev, id: sessionId };
+          });
+        } catch (sessionError: any) {
+          console.error("Failed to create session with AI title, trying with fallback:", sessionError);
+          // Try with a safe fallback title
+          try {
+            const fallbackTitle = "Health Chat";
+            sessionId = await createChatSession(user.uid, fallbackTitle);
+            setLastSessionId(sessionId);
+            smartTitle = fallbackTitle;
+            
+            setCurrentSession((prev) => {
+              if (!prev) return prev;
+              return { ...prev, id: sessionId, title: fallbackTitle };
+            });
+          } catch (fallbackError) {
+            console.error("Failed to create session even with fallback title:", fallbackError);
+            throw new Error("Unable to create chat session");
+          }
+        }
+      }
+      
+      const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", null);
+      setCurrentSession((prev) => {
+        if (!prev) return prev;
+        const updatedMessages = prev.messages.map((msg) =>
+          msg.id === messageId
+            ? {
+                ...newMessage,
+                id: newMessage.id || uuidv4(),
+                timestamp: newMessage.timestamp instanceof Date
+                  ? newMessage.timestamp
+                  : (newMessage.timestamp as any).toDate(),
+                image: newMessage.image ?? null,
+              }
+            : msg
+        );
+        return {
+          ...prev,
+          messages: updatedMessages,
+          updatedAt: new Date(),
+          title: smartTitle,
+        };
+      });
+      
+      // Update sessions list
+      setSessions((prev) => {
+        const existingSessionIndex = prev.findIndex(session => session.id === sessionId);
+        
+        if (existingSessionIndex >= 0) {
+          // Update existing session
+          return prev.map((session) =>
+            session.id === sessionId
+              ? {
+                  ...session,
+                  messages: [
+                    ...session.messages,
+                    {
+                      ...newMessage,
+                      timestamp:
+                        newMessage.timestamp instanceof Date
+                          ? newMessage.timestamp
+                          : (newMessage.timestamp as any)?.toDate?.() || new Date(),
+                    },
+                  ],
+                  updatedAt: new Date(),
+                  title: smartTitle,
+                }
+              : session
+          );
+        } else {
+          // Add new session to the list (for sessions created during message sending)
+          const newSessionForList: ProcessedChatSession = {
+            id: sessionId!,
+            userId: user.uid,
+            title: smartTitle,
+            messages: [{
+              ...newMessage,
+              timestamp:
+                newMessage.timestamp instanceof Date
+                  ? newMessage.timestamp
+                  : (newMessage.timestamp as any)?.toDate?.() || new Date(),
+            }],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          return [newSessionForList, ...prev];
+        }
+      });
+      sendMessageNotification(userMessage, botResponse);
+      
+      // Debounce success toast to prevent duplicates
+      const now = Date.now();
+      if (now - lastToastTime > 2000) { // Only show if last toast was more than 2 seconds ago
+        toast.success("Message sent successfully");
+        setLastToastTime(now);
+      }
+    } catch (error: any) {
+      console.error("Error sending message:", error);
+      toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
+      setMessage(userMessage);
+      setCurrentSession((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: prev.messages.filter((msg) => msg.id !== messageId),
+        };
+      });
+    } finally {
+      setLoading(false);
+      setAbortController(null);
     }
   };
 
@@ -1087,7 +1349,13 @@ CONVERSATION PATTERNS:
         }
       });
       sendMessageNotification(userMessage, botResponse);
-      toast.success("Message sent successfully");
+      
+      // Debounce success toast to prevent duplicates
+      const now = Date.now();
+      if (now - lastToastTime > 2000) { // Only show if last toast was more than 2 seconds ago
+        toast.success("Message sent successfully");
+        setLastToastTime(now);
+      }
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
@@ -2719,7 +2987,8 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 <AISuggestions 
                   onSuggestionClick={(suggestion) => {
                     setMessage(suggestion);
-                    setTimeout(() => handleSendMessage(), 100);
+                    // Call handleSendMessage with the suggestion directly to avoid state timing issues
+                    handleSendMessageWithText(suggestion);
                   }}
                   disabled={loading}
                 />
@@ -2906,7 +3175,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
   )}
 
   {/* Additional dialogs and components */}
-  {user && (
+  {mounted && user && (
     <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
       <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
         <DialogHeader>
@@ -3062,7 +3331,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     </Dialog>
   )}
   
-  {user && (
+  {mounted && user && (
     <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
     <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white w-[520px] max-w-full mx-auto">
         <DialogHeader>

@@ -12,16 +12,8 @@ const AISuggestions: React.FC<AISuggestionsProps> = ({ onSuggestionClick, disabl
   const popularQuestions = [
     "🌡️ What are the symptoms of flu?",
     "💊 How to manage high blood pressure?",
-    "🏃‍♀️ Best exercises for heart health",
     "🥗 Healthy meal planning for busy schedules",
-    "😴 How to improve sleep quality naturally?",
-    "🧠 Tips for managing stress and anxiety",
-    "🩺 When should I see a doctor?",
-    "💉 Tell me about vaccination schedules",
-    "🍎 Best foods for immune system support",
-    "⏰ What's the ideal sleep schedule?",
-    "💓 What are heart palpitations?",
-    "🧂 How much salt is too much?"
+    "😴 How to improve sleep quality naturally?"
   ];
 
   return (
@@ -29,7 +21,7 @@ const AISuggestions: React.FC<AISuggestionsProps> = ({ onSuggestionClick, disabl
       {/* Header */}
       <div className="text-center space-y-2 animate-fade-in-up">
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Click any question below to get started
+          Click any question below to get started...
         </p>
       </div>
 
