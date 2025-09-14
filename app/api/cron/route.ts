@@ -13,29 +13,59 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    console.log("🚀 Daily cron job triggered - cleaning up old reminders...");
+    const now = new Date();
+    console.log(`🚀 Cron job triggered at ${now.toISOString()}`);
     
-    // Clean up old reminder records (older than 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // 1. Check and send due medication reminders
+    console.log("📱 Checking for due medication reminders...");
+    let reminderResults;
+    try {
+      const reminderResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/check-reminders`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      reminderResults = await reminderResponse.json();
+      console.log("💊 Reminder check results:", reminderResults);
+    } catch (reminderError) {
+      console.error("❌ Error checking reminders:", reminderError);
+      reminderResults = { success: false, error: String(reminderError) };
+    }
     
-    const remindersRef = collection(db, "scheduledReminders");
-    const oldReminders = query(
-      remindersRef, 
-      where("createdAt", "<", thirtyDaysAgo)
-    );
+    // 2. Clean up old reminder records (older than 30 days) - run once daily (at midnight)
+    const currentHour = now.getHours();
+    let cleanupResults = { cleanedRecords: 0 };
     
-    const snapshot = await getDocs(oldReminders);
-    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-    await Promise.all(deletePromises);
-    
-    console.log(`🧹 Cleaned up ${snapshot.docs.length} old reminder records`);
+    if (currentHour === 0) { // Only run cleanup at midnight
+      console.log("🧹 Running daily cleanup of old reminder records...");
+      try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const remindersRef = collection(db, "scheduledReminders");
+        const oldReminders = query(
+          remindersRef, 
+          where("createdAt", "<", thirtyDaysAgo)
+        );
+        
+        const snapshot = await getDocs(oldReminders);
+        const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+        
+        cleanupResults.cleanedRecords = snapshot.docs.length;
+        console.log(`🧹 Cleaned up ${snapshot.docs.length} old reminder records`);
+      } catch (cleanupError) {
+        console.error("❌ Error during cleanup:", cleanupError);
+      }
+    }
     
     return NextResponse.json({ 
       success: true, 
-      timestamp: new Date().toISOString(),
-      cleanedRecords: snapshot.docs.length,
-      message: "Daily maintenance completed successfully"
+      timestamp: now.toISOString(),
+      reminderCheck: reminderResults,
+      cleanup: cleanupResults,
+      message: `Cron job completed at ${now.toLocaleTimeString()}`
     });
     
   } catch (error) {

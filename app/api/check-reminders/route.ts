@@ -21,10 +21,12 @@ export async function GET() {
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes(); // Minutes since midnight
     
-    // Query for active reminders that are due (within 1 minute window)
+    // Query for active reminders that are due (within 5 minute window for more reliability)
     const remindersRef = collection(db, "scheduledReminders");
     const activeReminders = query(remindersRef, where("active", "==", true));
     const snapshot = await getDocs(activeReminders);
+    
+    console.log(`🔍 Checking ${snapshot.docs.length} active reminders at ${now.toLocaleTimeString()}`);
     
     const dueReminders: any[] = [];
     
@@ -32,20 +34,33 @@ export async function GET() {
       const reminder = doc.data();
       const reminderTime = reminder.hours * 60 + reminder.minutes;
       
-      // Check if reminder is due (within 1-minute window)
+      // Check if reminder is due (within 5-minute window for more reliability)
       const timeDiff = Math.abs(currentTime - reminderTime);
-      const isWithinWindow = timeDiff <= 1 || timeDiff >= (24 * 60 - 1); // Handle midnight rollover
+      const isWithinWindow = timeDiff <= 5 || timeDiff >= (24 * 60 - 5); // Handle midnight rollover
       
       // Check if we haven't sent this reminder today
       const lastSent = reminder.lastSent?.toDate();
       const isToday = lastSent && lastSent.toDateString() === now.toDateString();
       
       if (isWithinWindow && !isToday) {
+        console.log(`📅 Due reminder found: ${reminder.medicationName} at ${reminder.time} (last sent: ${lastSent ? lastSent.toDateString() : 'never'})`);
         dueReminders.push({ id: doc.id, ...reminder });
+      } else if (isWithinWindow && isToday) {
+        console.log(`⏭️ Skipping already sent today: ${reminder.medicationName} at ${reminder.time}`);
       }
     });
     
-    console.log(`Found ${dueReminders.length} due reminders`);
+    console.log(`Found ${dueReminders.length} due reminders out of ${snapshot.docs.length} total active reminders`);
+    
+    if (dueReminders.length === 0) {
+      return NextResponse.json({ 
+        success: true, 
+        processed: 0,
+        message: "No due reminders at this time",
+        currentTime: now.toLocaleTimeString(),
+        totalActiveReminders: snapshot.docs.length
+      });
+    }
     
     // Send notifications for due reminders
     const notificationPromises = dueReminders.map(async (reminder) => {
@@ -94,23 +109,47 @@ export async function GET() {
           
           // Send FCM notification
           const response = await admin.messaging().send(message);
-          console.log(`✅ Notification sent for ${reminder.medicationName}:`, response);
+          console.log(`✅ Notification sent for ${reminder.medicationName} to user ${reminder.userId}:`, response);
           
-          // Update lastSent timestamp
+          // Update lastSent timestamp and track successful sends
           await updateDoc(doc(db, "scheduledReminders", reminder.id), {
             lastSent: now,
-            nextScheduled: getNextScheduledTime(reminder.hours, reminder.minutes)
+            nextScheduled: getNextScheduledTime(reminder.hours, reminder.minutes),
+            totalSent: (reminder.totalSent || 0) + 1
           });
           
-          return { success: true, medicationName: reminder.medicationName };
+          return { 
+            success: true, 
+            medicationName: reminder.medicationName,
+            time: reminder.time,
+            userId: reminder.userId
+          };
         } else {
           console.log(`❌ No FCM token for user ${reminder.userId}`);
-          return { success: false, error: "No FCM token", medicationName: reminder.medicationName };
+          return { 
+            success: false, 
+            error: "No FCM token", 
+            medicationName: reminder.medicationName,
+            time: reminder.time,
+            userId: reminder.userId
+          };
         }
       } catch (error) {
         console.error(`❌ Error sending notification for ${reminder.medicationName}:`, error);
         const errorMessage = error instanceof Error ? error.message : String(error);
-        return { success: false, error: errorMessage, medicationName: reminder.medicationName };
+        
+        // Log detailed error information for debugging
+        if (error instanceof Error && error.message.includes('registration-token-not-registered')) {
+          console.log(`🗑️ Invalid FCM token for user ${reminder.userId}, should cleanup`);
+        }
+        
+        return { 
+          success: false, 
+          error: errorMessage, 
+          medicationName: reminder.medicationName,
+          time: reminder.time,
+          userId: reminder.userId
+        };
       }
     });
     
@@ -120,12 +159,23 @@ export async function GET() {
     
     console.log(`📊 Notification results: ${successful} successful, ${failed} failed`);
     
+    // Log individual results for debugging
+    results.filter(r => r.success).forEach(r => {
+      console.log(`✅ Sent: ${r.medicationName} at ${r.time} to user ${r.userId}`);
+    });
+    
+    results.filter(r => !r.success).forEach(r => {
+      console.log(`❌ Failed: ${r.medicationName} at ${r.time} to user ${r.userId} - ${r.error}`);
+    });
+    
     return NextResponse.json({ 
       success: true, 
       processed: dueReminders.length,
       successful,
       failed,
-      results 
+      results,
+      timestamp: now.toISOString(),
+      currentTime: now.toLocaleTimeString()
     });
     
   } catch (error) {
