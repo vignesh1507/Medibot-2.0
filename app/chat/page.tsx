@@ -68,7 +68,6 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { useSearchParams, useRouter } from 'next/navigation';
-import ClientOnly from "@/components/ClientOnly";
 // Removed PaymentDialog import (PhonePe/Stripe integration)
 
 declare global {
@@ -902,234 +901,6 @@ CONVERSATION PATTERNS:
       console.error("Error uploading to Cloudinary:", error);
       toast.error(`Failed to upload file: ${error.message || "Unknown error"}`);
       return null;
-    }
-  };
-
-  // Function to handle sending message with specific text (for pre-questions)
-  const handleSendMessageWithText = async (messageText: string) => {
-    if (!user) {
-      toast.error("Please log in to send messages");
-      return;
-    }
-    if (!messageText.trim()) {
-      toast.error("Please enter a message or upload a file");
-      return;
-    }
-    
-    // Reset generation stopped state when starting new message
-    setIsGenerationStopped(false);
-    
-    const userMessage = messageText.trim();
-    const messageId = uuidv4();
-    setLoading(true);
-    try {
-      let sessionId = currentSession?.id;
-      let isNewSession = !currentSession || currentSession.messages.length === 0;
-      let smartTitle = currentSession?.title || "New Chat";
-      
-      // 🔥 ENHANCED AI TITLE GENERATION WITH ERROR HANDLING
-      if (isNewSession) {
-        try {
-          const rawTitle = messageText.trim() ? await generateAITitle(messageText) : "File Chat";
-          smartTitle = validateAndSanitizeTitle(rawTitle);
-        } catch (titleError) {
-          console.warn("Failed to generate AI title for new session:", titleError);
-          smartTitle = validateAndSanitizeTitle(generateFallbackTitle(messageText.trim() || "File Chat"));
-        }
-      } else if (currentSession?.title === "New Chat" && messageText.trim()) {
-        try {
-          const rawTitle = await generateAITitle(messageText, currentSession.title);
-          smartTitle = validateAndSanitizeTitle(rawTitle);
-          await updateChatSessionTitle(sessionId!, smartTitle);
-          setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
-        } catch (titleError) {
-          console.warn("Failed to update title in database:", titleError);
-          // Use fallback title but don't fail the message send
-          smartTitle = validateAndSanitizeTitle(generateFallbackTitle(messageText));
-          setCurrentSession((prev) => (prev ? { ...prev, title: smartTitle } : prev));
-        }
-      }
-      
-      // For new sessions, create a temporary in-memory session to show the message immediately
-      if (isNewSession && !currentSession) {
-        const tempSession: ProcessedChatSession = {
-          id: "temp-" + uuidv4(), // Temporary ID
-          userId: user.uid,
-          title: smartTitle,
-          messages: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        setCurrentSession(tempSession);
-      }
-      
-      const tempMessage: ProcessedChatSession["messages"][0] = {
-        id: messageId,
-        userId: user.uid,
-        message: userMessage,
-        response: "",
-        timestamp: new Date(),
-        type: "chat",
-        image: null,
-      };
-      setCurrentSession((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          messages: [...prev.messages, tempMessage],
-          updatedAt: new Date(),
-          title: smartTitle,
-        };
-      });
-      
-      // Clear the message input
-      setMessage("");
-      setSelectedFile(null);
-      setFileName("");
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      
-      let botResponse = "";
-      if (messageText.trim()) {
-        botResponse = await generateAIResponse(userMessage, selectedModel, messageId);
-      }
-      
-      // Update the message with the full response
-      setCurrentSession((prev) => {
-        if (!prev) return prev;
-        const updatedMessages = prev.messages.map((msg) =>
-          msg.id === messageId
-            ? { ...msg, response: botResponse }
-            : msg
-        );
-        return {
-          ...prev,
-          messages: updatedMessages,
-          updatedAt: new Date(),
-          title: smartTitle,
-        };
-      });
-      
-      // Create session now that we have a message to save
-      if (isNewSession && (!sessionId || sessionId.startsWith("temp-"))) {
-        try {
-          console.log("💾 Creating session with first message:", smartTitle);
-          sessionId = await createChatSession(user.uid, smartTitle);
-          setLastSessionId(sessionId);
-          
-          // Update the current session with the real ID
-          setCurrentSession((prev) => {
-            if (!prev) return prev;
-            return { ...prev, id: sessionId };
-          });
-        } catch (sessionError: any) {
-          console.error("Failed to create session with AI title, trying with fallback:", sessionError);
-          // Try with a safe fallback title
-          try {
-            const fallbackTitle = "Health Chat";
-            sessionId = await createChatSession(user.uid, fallbackTitle);
-            setLastSessionId(sessionId);
-            smartTitle = fallbackTitle;
-            
-            setCurrentSession((prev) => {
-              if (!prev) return prev;
-              return { ...prev, id: sessionId, title: fallbackTitle };
-            });
-          } catch (fallbackError) {
-            console.error("Failed to create session even with fallback title:", fallbackError);
-            throw new Error("Unable to create chat session");
-          }
-        }
-      }
-      
-      const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", null);
-      setCurrentSession((prev) => {
-        if (!prev) return prev;
-        const updatedMessages = prev.messages.map((msg) =>
-          msg.id === messageId
-            ? {
-                ...newMessage,
-                id: newMessage.id || uuidv4(),
-                timestamp: newMessage.timestamp instanceof Date
-                  ? newMessage.timestamp
-                  : (newMessage.timestamp as any).toDate(),
-                image: newMessage.image ?? null,
-              }
-            : msg
-        );
-        return {
-          ...prev,
-          messages: updatedMessages,
-          updatedAt: new Date(),
-          title: smartTitle,
-        };
-      });
-      
-      // Update sessions list
-      setSessions((prev) => {
-        const existingSessionIndex = prev.findIndex(session => session.id === sessionId);
-        
-        if (existingSessionIndex >= 0) {
-          // Update existing session
-          return prev.map((session) =>
-            session.id === sessionId
-              ? {
-                  ...session,
-                  messages: [
-                    ...session.messages,
-                    {
-                      ...newMessage,
-                      timestamp:
-                        newMessage.timestamp instanceof Date
-                          ? newMessage.timestamp
-                          : (newMessage.timestamp as any)?.toDate?.() || new Date(),
-                    },
-                  ],
-                  updatedAt: new Date(),
-                  title: smartTitle,
-                }
-              : session
-          );
-        } else {
-          // Add new session to the list (for sessions created during message sending)
-          const newSessionForList: ProcessedChatSession = {
-            id: sessionId!,
-            userId: user.uid,
-            title: smartTitle,
-            messages: [{
-              ...newMessage,
-              timestamp:
-                newMessage.timestamp instanceof Date
-                  ? newMessage.timestamp
-                  : (newMessage.timestamp as any)?.toDate?.() || new Date(),
-            }],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-          return [newSessionForList, ...prev];
-        }
-      });
-      sendMessageNotification(userMessage, botResponse);
-      
-      // Debounce success toast to prevent duplicates
-      const now = Date.now();
-      if (now - lastToastTime > 2000) { // Only show if last toast was more than 2 seconds ago
-        toast.success("Message sent successfully");
-        setLastToastTime(now);
-      }
-    } catch (error: any) {
-      console.error("Error sending message:", error);
-      toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
-      setMessage(userMessage);
-      setCurrentSession((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          messages: prev.messages.filter((msg) => msg.id !== messageId),
-        };
-      });
-    } finally {
-      setLoading(false);
-      setAbortController(null);
     }
   };
 
@@ -2306,75 +2077,107 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     
     return currentSession.messages.map((msg) => {
       // Enhanced helper to render response with proper paragraph spacing
+      // Enhanced AI response rendering: subheadings, bullets, numbers, paragraphs, and dot-list formatting
       const renderResponse = (response: string) => {
-        const lines = response.split("\n");
-        // Detect if there are any headings (lines starting with #)
-        const hasHeadings = lines.some(line => /^#\s+/.test(line));
+        if (!response) return null;
         
-        if (hasHeadings) {
-          // Render as sections with headings
-          type Section = { heading: string | null; content: string[] };
-          const sections: Section[] = [];
-          let current: Section = { heading: null, content: [] };
-          for (let line of lines) {
-            const headingMatch = line.match(/^#\s*(.+)/);
-            if (headingMatch) {
-              if (current.heading || current.content.length) sections.push(current);
-              current = { heading: headingMatch[1].trim(), content: [] };
-            } else {
-              current.content.push(line);
-            }
-          }
-          if (current.heading || current.content.length) sections.push(current);
+        // Split by lines first to analyze content structure
+        let lines = response.split(/\r?\n/).filter(line => line.trim() !== "");
+        
+        // Helper functions for content detection
+        const isSubheading = (line: string) => {
+          return /^(\*\*|##)\s?(.+?)(\*\*|)$/.test(line.trim()) || /^[A-Z][^.!?]*:$/.test(line.trim());
+        };
+        
+        const isBulletPoint = (line: string) => {
+          return /^\s*([-*•])\s+/.test(line);
+        };
+        
+        const isNumberedPoint = (line: string) => {
+          return /^\s*\d+\./.test(line);
+        };
+        
+        // If multiple lines exist, render with proper formatting
+        if (lines.length > 1) {
           return (
-            <div className="space-y-6">
-              {sections.map((sec, idx) =>
-                sec.heading ? (
-                  <div key={idx} className="mb-6">
-                    <h3 className="font-semibold text-base mb-4">{sec.heading}</h3>
-                    {sec.content.map((line, i) => line.trim() && 
-                      <p key={i} className="mb-4 leading-relaxed text-gray-800 dark:text-gray-200">
-                        {line.replace(/\*\*|\*/g, "")}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div key={idx} className="mb-5 leading-relaxed text-gray-800 dark:text-gray-200">
-                    {sec.content.join(" ").replace(/\*\*|\*/g, "")}
-                  </div>
-                )
-              )}
+            <div className="ai-response space-y-3">
+              {lines.map((line, idx) => {
+                // Subheading: **Title** or ## Title or Title:
+                if (isSubheading(line)) {
+                  const text = line.replace(/^(\*\*|##)\s?/, '').replace(/(\*\*|)$|:$/g, '').trim();
+                  return (
+                    <div key={idx} className="font-bold text-lg mt-4 mb-2 text-blue-700 dark:text-blue-300 border-b border-blue-200 dark:border-blue-700 pb-1">
+                      {text}
+                    </div>
+                  );
+                }
+                // Bullet point: - or * or •
+                if (isBulletPoint(line)) {
+                  return (
+                    <div key={idx} className="pl-4 mb-2 flex items-start">
+                      <span className="mr-3 text-blue-600 dark:text-blue-400 text-lg leading-6 select-none">•</span>
+                      <span className="text-gray-800 dark:text-gray-200">{line.replace(/^\s*([-*•])\s+/, '')}</span>
+                    </div>
+                  );
+                }
+                // Numbered point: 1. 2. etc
+                if (isNumberedPoint(line)) {
+                  return (
+                    <div key={idx} className="pl-4 mb-2 flex items-start">
+                      <span className="mr-3 text-blue-600 dark:text-blue-400 text-base font-semibold select-none">{line.match(/^\s*\d+\./)?.[0]}</span>
+                      <span className="text-gray-800 dark:text-gray-200">{line.replace(/^\s*\d+\.\s*/, '')}</span>
+                    </div>
+                  );
+                }
+                // Regular paragraph
+                return (
+                  <p key={idx} className="mb-3 text-gray-800 dark:text-gray-200 leading-relaxed">{line}</p>
+                );
+              })}
             </div>
           );
+        }
+        
+        // Single line: try to split into points for dot-list rendering
+        const singleLine = lines[0];
+        let points = [];
+        
+        // Split by emoji
+        const emojiPointRegex = /([\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}])\s*/gu;
+        let splitByEmoji = singleLine.split(emojiPointRegex).filter(Boolean).map(s => s.trim()).filter(Boolean);
+        if (splitByEmoji.length > 2) {
+          // Group as [text+emoji] pairs
+          for (let i = 0; i < splitByEmoji.length; i += 2) {
+            const text = splitByEmoji[i]?.trim();
+            const emoji = splitByEmoji[i+1]?.trim();
+            if (text && emoji) points.push(text + ' ' + emoji);
+            else if (text) points.push(text);
+          }
         } else {
-          // Enhanced paragraph rendering with proper spacing
-          const paragraphs = response.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-          
-          if (paragraphs.length === 1) {
-            // Single paragraph - split by sentences for better readability
-            const sentences = paragraphs[0].split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
-            return (
-              <div className="space-y-4">
-                {sentences.map((sentence, i) => (
-                  <p key={i} className="leading-relaxed text-gray-800 dark:text-gray-200 mb-3">
-                    {sentence.trim().replace(/\*\*|\*/g, "")}
-                  </p>
-                ))}
-              </div>
-            );
-          } else {
-            // Multiple paragraphs
-            return (
-              <div className="space-y-5">
-                {paragraphs.map((paragraph, i) => (
-                  <p key={i} className="leading-relaxed text-gray-800 dark:text-gray-200 mb-4">
-                    {paragraph.trim().replace(/\*\*|\*/g, "")}
-                  </p>
-                ))}
-              </div>
-            );
+          // Fallback: split by sentence
+          points = singleLine.split(/(?<=[.!?])\s+(?=[A-Z])/).filter(Boolean);
+          // If still only one, try comma
+          if (points.length === 1) {
+            points = singleLine.split(/,\s+/).filter(Boolean);
           }
         }
+        
+        // If we have multiple points, render as dot-list
+        if (points.length > 1) {
+          return (
+            <div className="ai-response space-y-2">
+              {points.map((point, idx) => (
+                <div key={idx} className="pl-4 flex items-start">
+                  <span className="mr-3 text-blue-600 dark:text-blue-400 text-lg leading-6 select-none">•</span>
+                  <span className="text-gray-800 dark:text-gray-200">{point}</span>
+                </div>
+              ))}
+            </div>
+          );
+        }
+        
+        // Single point/paragraph
+        return <p className="ai-response text-gray-800 dark:text-gray-200 leading-relaxed">{singleLine}</p>;
       };
       return (
         <div key={msg.id}>
@@ -2982,8 +2785,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 <AISuggestions 
                   onSuggestionClick={(suggestion) => {
                     setMessage(suggestion);
-                    // Call handleSendMessage with the suggestion directly to avoid state timing issues
-                    handleSendMessageWithText(suggestion);
+                    setTimeout(() => handleSendMessage(), 100);
                   }}
                   disabled={loading}
                 />
@@ -3170,9 +2972,8 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
   )}
 
   {/* Additional dialogs and components */}
-  <ClientOnly>
-    {user && (
-      <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
+  {user && (
+    <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
       <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg">
@@ -3325,11 +3126,9 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         )}
       </DialogContent>
     </Dialog>
-    )}
-  </ClientOnly>
+  )}
   
-  <ClientOnly>
-    {user && (
+  {user && (
     <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
     <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white w-[520px] max-w-full mx-auto">
         <DialogHeader>
@@ -3416,8 +3215,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         </div>
       </DialogContent>
     </Dialog>
-    )}
-  </ClientOnly>
+  )}
 </div>
       </div>
     </AuthGuard>

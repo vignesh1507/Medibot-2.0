@@ -10,6 +10,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
+    // Validate time format (HH:MM) and filter invalid entries
+    const validTimes = (reminderTimes || []).filter((t: string) => {
+      if (typeof t !== 'string') return false;
+      const match = t.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+      return !!match;
+    });
+
+    if (!validTimes.length) {
+      return NextResponse.json({ success: false, error: "No valid reminder times provided" }, { status: 400 });
+    }
+
     // Clear existing reminders for this medication
     const existingReminders = query( 
       collection(db, "scheduledReminders"),
@@ -19,7 +30,7 @@ export async function POST(req: Request) {
     await Promise.all(snapshot.docs.map(doc => deleteDoc(doc.ref)));
 
     // Schedule new reminders for each time
-    const schedulePromises = reminderTimes.map(async (time: string) => {
+    const schedulePromises = validTimes.map(async (time: string) => {
       const [hours, minutes] = time.split(":").map(Number);
       
       // Create reminder document
@@ -41,7 +52,7 @@ export async function POST(req: Request) {
       await setDoc(doc(db, "scheduledReminders", reminderId), reminderData);
     });
 
-    await Promise.all(schedulePromises);
+  await Promise.all(schedulePromises);
 
     return NextResponse.json({ success: true, message: "Reminders scheduled successfully" });
   } catch (error) {

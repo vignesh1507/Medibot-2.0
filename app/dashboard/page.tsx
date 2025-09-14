@@ -261,12 +261,7 @@ export default function DashboardPage() {
                     <span className="text-xs sm:text-sm font-semibold text-foreground">Medical Info</span>
                   </Button>
                 </Link>
-                <Link href="/appointments" className="group">
-                  <Button variant="outline" className="w-full h-16 flex flex-col items-center justify-center gap-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all rounded-xl shadow-sm">
-                    <Calendar className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
-                    <span className="text-xs sm:text-sm font-semibold text-foreground">Appointments</span>
-                  </Button>
-                </Link>
+                {/* Appointments feature temporarily disabled */}
               </div>
 
               {/* Recent Activity - Modern Card */}

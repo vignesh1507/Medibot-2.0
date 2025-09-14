@@ -193,7 +193,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </Head>
-      <body className={`${inter.className} bg-background text-foreground min-h-screen fade-in`} suppressHydrationWarning>
+  <body suppressHydrationWarning className={`${inter.className} bg-background text-foreground min-h-screen fade-in`} style={{ zIndex: 0 }}>
   <LoadingProvider>
         <ThemeProvider
           attribute="class"
