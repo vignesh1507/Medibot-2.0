@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { doc, setDoc, collection, query, where, getDocs, deleteDoc } from "firebase/firestore";
+import admin from "firebase-admin";
+
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    }),
+  });
+}
+
+const db = admin.firestore();
 
 export async function POST(req: Request) {
   try {
@@ -22,12 +34,12 @@ export async function POST(req: Request) {
     }
 
     // Clear existing reminders for this medication
-    const existingReminders = query( 
-      collection(db, "scheduledReminders"),
-      where("medicationId", "==", medicationId)
-    );
-    const snapshot = await getDocs(existingReminders);
-    await Promise.all(snapshot.docs.map(doc => deleteDoc(doc.ref)));
+    const existingReminders = await db.collection("scheduledReminders")
+      .where("medicationId", "==", medicationId)
+      .get();
+    
+    const deletePromises = existingReminders.docs.map(doc => doc.ref.delete());
+    await Promise.all(deletePromises);
 
     // Schedule new reminders for each time
     const schedulePromises = validTimes.map(async (time: string) => {
@@ -49,7 +61,7 @@ export async function POST(req: Request) {
       };
 
       const reminderId = `${medicationId}_${time.replace(":", "")}`;
-      await setDoc(doc(db, "scheduledReminders", reminderId), reminderData);
+      await db.collection("scheduledReminders").doc(reminderId).set(reminderData);
     });
 
   await Promise.all(schedulePromises);
@@ -89,12 +101,12 @@ export async function DELETE(req: Request) {
     }
 
     // Delete all reminders for this medication
-    const reminders = query(
-      collection(db, "scheduledReminders"),
-      where("medicationId", "==", medicationId)
-    );
-    const snapshot = await getDocs(reminders);
-    await Promise.all(snapshot.docs.map(doc => deleteDoc(doc.ref)));
+    const reminders = await db.collection("scheduledReminders")
+      .where("medicationId", "==", medicationId)
+      .get();
+    
+    const deletePromises = reminders.docs.map(doc => doc.ref.delete());
+    await Promise.all(deletePromises);
 
     return NextResponse.json({ success: true, message: "Reminders cancelled successfully" });
   } catch (error) {
