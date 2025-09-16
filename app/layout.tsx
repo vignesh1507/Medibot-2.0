@@ -6,7 +6,7 @@ import Head from "next/head";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 
 
 
@@ -206,7 +206,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </React.Suspense>
           </SmoothNavigator>
-          <Toaster position="top-right" richColors />
+          <Toaster position="top-right" />
         </ThemeProvider>
   </LoadingProvider>
       </body>
