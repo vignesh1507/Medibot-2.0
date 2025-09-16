@@ -56,8 +56,14 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, message: "Reminders scheduled successfully" });
   } catch (error) {
+    let errorMessage = "Unknown error";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    }
     console.error("Error scheduling reminder:", error);
-    return NextResponse.json({ success: false, error: "Failed to schedule reminder" }, { status: 500 });
+    return NextResponse.json({ success: false, error: `Failed to schedule reminder: ${errorMessage}` }, { status: 500 });
   }
 }
 
