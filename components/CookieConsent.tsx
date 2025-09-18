@@ -26,14 +26,60 @@ export default function CookieConsent() {
   });
 
   useEffect(() => {
-    const consent = localStorage.getItem('medibot-cookie-consent');
-    if (!consent) {
-      setShowConsent(true);
-    }
+    const checkCookieConsent = () => {
+      const consent = localStorage.getItem('medibot-cookie-consent');
+      const consentTimestamp = localStorage.getItem('medibot-cookie-consent-timestamp');
+      const lastShown = localStorage.getItem('medibot-cookie-last-shown');
+      const currentTime = Date.now();
+
+      // If no consent ever given, show popup
+      if (!consent) {
+        setShowConsent(true);
+        localStorage.setItem('medibot-cookie-last-shown', currentTime.toString());
+        return;
+      }
+
+      // If consent exists but no timestamp (legacy), treat as recent
+      if (!consentTimestamp) {
+        localStorage.setItem('medibot-cookie-consent-timestamp', currentTime.toString());
+        return;
+      }
+
+      const consentTime = parseInt(consentTimestamp);
+      const daysSinceConsent = (currentTime - consentTime) / (1000 * 60 * 60 * 24);
+
+      // Show popup again after 30 days if they haven't made a choice recently
+      if (daysSinceConsent > 30) {
+        // Check if we showed it recently (don't spam)
+        if (!lastShown || (currentTime - parseInt(lastShown)) > (1000 * 60 * 60 * 24)) { // 24 hours
+          setShowConsent(true);
+          localStorage.setItem('medibot-cookie-last-shown', currentTime.toString());
+        }
+        return;
+      }
+
+      // If user cleared cookies recently (consent exists but timestamp is very old)
+      if (daysSinceConsent < 0) {
+        setShowConsent(true);
+        localStorage.setItem('medibot-cookie-last-shown', currentTime.toString());
+        return;
+      }
+    };
+
+    // Check immediately
+    checkCookieConsent();
+
+    // Also check when user becomes active (page focus)
+    const handleFocus = () => checkCookieConsent();
+    window.addEventListener('focus', handleFocus);
+
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const handleAcceptAll = () => {
+    const timestamp = Date.now();
     localStorage.setItem('medibot-cookie-consent', 'accepted');
+    localStorage.setItem('medibot-cookie-consent-timestamp', timestamp.toString());
     localStorage.setItem('medibot-cookie-preferences', JSON.stringify({
       necessary: true,
       analytics: true,
@@ -45,20 +91,31 @@ export default function CookieConsent() {
   };
 
   const handleSavePreferences = () => {
+    const timestamp = Date.now();
     localStorage.setItem('medibot-cookie-consent', 'customized');
+    localStorage.setItem('medibot-cookie-consent-timestamp', timestamp.toString());
     localStorage.setItem('medibot-cookie-preferences', JSON.stringify(preferences));
     setShowConsent(false);
     setShowDetails(false);
   };
 
   const handleAcceptNecessary = () => {
+    const timestamp = Date.now();
     localStorage.setItem('medibot-cookie-consent', 'necessary-only');
+    localStorage.setItem('medibot-cookie-consent-timestamp', timestamp.toString());
     localStorage.setItem('medibot-cookie-preferences', JSON.stringify({
       necessary: true,
       analytics: false,
       marketing: false,
       functional: false
     }));
+    setShowConsent(false);
+    setShowDetails(false);
+  };
+
+  const handleRemindLater = () => {
+    const timestamp = Date.now();
+    localStorage.setItem('medibot-cookie-last-shown', timestamp.toString());
     setShowConsent(false);
     setShowDetails(false);
   };
@@ -149,6 +206,15 @@ export default function CookieConsent() {
                           Privacy Policy
                         </Link>
                       </motion.div>
+
+                      <motion.div 
+                        initial={{ y: 15, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.35, duration: 0.4 }}
+                        className="text-xs text-gray-500 text-center"
+                      >
+                        💡 This popup will appear again in 30 days if you haven't made a choice
+                      </motion.div>
                     </div>
                     
                     <motion.div 
@@ -167,22 +233,30 @@ export default function CookieConsent() {
                           <span className="relative z-10">Accept All Cookies</span>
                         </Button>
                         
-                        <div className="flex gap-3">
+                        <div className="flex gap-2">
                           <Button
                             onClick={() => setShowDetails(true)}
                             variant="outline"
-                            className="flex-1 border-2 border-[#0E7490]/40 text-[#0E7490] hover:bg-gradient-to-r hover:from-[#0E7490]/10 hover:to-[#0891B2]/10 hover:border-[#0E7490]/60 px-4 py-2.5 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 group"
+                            className="flex-1 border-2 border-[#0E7490]/40 text-[#0E7490] hover:bg-gradient-to-r hover:from-[#0E7490]/10 hover:to-[#0891B2]/10 hover:border-[#0E7490]/60 px-3 py-2.5 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-1 group text-sm"
                           >
-                            <Settings className="w-4 h-4 transition-transform group-hover:rotate-45" />
+                            <Settings className="w-3 h-3 transition-transform group-hover:rotate-45" />
                             Customize
                           </Button>
                           
                           <Button
                             onClick={handleAcceptNecessary}
                             variant="outline"
-                            className="flex-1 border-2 border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 px-4 py-2.5 rounded-xl font-medium transition-all duration-200"
+                            className="flex-1 border-2 border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 px-3 py-2.5 rounded-xl font-medium transition-all duration-200 text-sm"
                           >
                             Necessary Only
+                          </Button>
+
+                          <Button
+                            onClick={handleRemindLater}
+                            variant="ghost"
+                            className="flex-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 px-3 py-2.5 rounded-xl font-medium transition-all duration-200 text-sm"
+                          >
+                            Remind Later
                           </Button>
                         </div>
                       </div>
@@ -259,21 +333,37 @@ export default function CookieConsent() {
                       </div>
                     </div>
 
-                    <div className="flex gap-3 pt-3">
+                    <div className="flex gap-2 pt-3">
                       <Button
                         onClick={handleSavePreferences}
-                        className="flex-1 bg-gradient-to-r from-[#0E7490] to-[#0891B2] hover:from-[#0C6A83] hover:to-[#0E7490] text-white font-semibold py-2.5"
+                        className="flex-1 bg-gradient-to-r from-[#0E7490] to-[#0891B2] hover:from-[#0C6A83] hover:to-[#0E7490] text-white font-semibold py-2.5 text-sm"
                       >
                         Save Preferences
                       </Button>
                       <Button
                         onClick={handleAcceptAll}
                         variant="outline"
-                        className="border-[#0E7490] text-[#0E7490] hover:bg-[#0E7490]/10 py-2.5"
+                        className="flex-1 border-[#0E7490] text-[#0E7490] hover:bg-[#0E7490]/10 py-2.5 text-sm"
                       >
                         Accept All
                       </Button>
+                      <Button
+                        onClick={handleRemindLater}
+                        variant="ghost"
+                        className="flex-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 py-2.5 text-sm"
+                      >
+                        Remind Later
+                      </Button>
                     </div>
+
+                    <motion.div 
+                      initial={{ y: 15, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.5, duration: 0.4 }}
+                      className="text-xs text-gray-500 text-center mt-3"
+                    >
+                      💡 You can change your preferences anytime from our cookie settings
+                    </motion.div>
                   </div>
                 )}
               </CardContent>
