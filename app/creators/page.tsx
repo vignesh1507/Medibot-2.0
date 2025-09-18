@@ -44,7 +44,7 @@ export default function CreatorsPage() {
         "Created intelligent medication management",
         "Designed user-friendly healthcare UX"
       ]
-    }
+    } 
   ];
 
   const fadeInUp = {
