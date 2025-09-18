@@ -27,6 +27,7 @@ export interface UserProfile {
   dateOfBirth?: string;
   gender?: string;
   phoneNumber?: string;
+  plan?: 'base' | 'premium'; // Subscription plan
   emergencyContact?: {
     name: string;
     phone: string;
@@ -158,6 +159,7 @@ export const createUserProfile = async (
       email,
       displayName: displayName || email.split("@")[0],
       photoURL,
+      plan: 'base', // Default to base plan for new users
       ...additionalData,
       createdAt: serverTimestamp() as Timestamp,
       updatedAt: serverTimestamp() as Timestamp,

@@ -166,7 +166,7 @@ function ChatContent() {
   const [analyzingPrescription, setAnalyzingPrescription] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editedMessage, setEditedMessage] = useState("");
-  const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash");
+  const [selectedModel, setSelectedModel] = useState("llama-3.3-70b");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -197,7 +197,68 @@ function ChatContent() {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
-const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecording }: { onResult: (text: string) => void; disabled?: boolean; onStartRecording?: () => void; onStopRecording?: () => void }) => {
+
+  // Auto-switch to free model if user downgrades to base plan
+  useEffect(() => {
+    // Define modelMap here or move this block below the modelMap definition
+    const modelMap: Record<string, { api: string; model: string; key: string; plan: 'free' | 'premium' }> = {
+      "llama-3.3-70b": {
+        api: "groq",
+        model: "llama-3.3-70b-versatile",
+        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        plan: "free"
+      },
+      "llama-3.1-8b": {
+        api: "groq",
+        model: "llama-3.1-8b-instant",
+        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        plan: "free"
+      },
+      "mixtral-8x7b": {
+        api: "groq",
+        model: "mixtral-8x7b-32768",
+        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        plan: "free"
+      },
+      "gemma-7b": {
+        api: "groq",
+        model: "gemma-7b-it",
+        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        plan: "free"
+      },
+      "gemini-2.0-flash": {
+        api: "gemini",
+        model: "gemini-2.0-flash-exp",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM",
+        plan: "premium"
+      },
+      "gpt-4o": {
+        api: "openai",
+        model: "gpt-4o",
+        key: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
+        plan: "premium"
+      },
+      "claude-3-sonnet": {
+        api: "anthropic",
+        model: "claude-3-sonnet-20240229",
+        key: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || "",
+        plan: "premium"
+      },
+      "medibot": {
+        api: "groq",
+        model: "llama-3.3-70b-versatile",
+        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        plan: "free"
+      },
+    };
+
+    const currentModel = modelMap[selectedModel];
+    if (currentModel?.plan === 'premium' && userProfile?.plan === 'base') {
+      setSelectedModel('llama-3.3-70b'); // Switch to default free model
+      toast("Model Changed: Switched to Llama 3.3 70B as premium models require a PRO subscription.");
+    }
+  }, [userProfile?.plan, selectedModel]);
+const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecording, isPremiumFeature = false }: { onResult: (text: string) => void; disabled?: boolean; onStartRecording?: () => void; onStopRecording?: () => void; isPremiumFeature?: boolean }) => {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -314,7 +375,7 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
         onClick={listening ? stopListening : startListening}
         disabled={disabled}
         aria-label={listening ? 'Stop voice input' : 'Start voice input'}
-        className={`h-8 w-8 flex items-center justify-center rounded-full border-none bg-transparent text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition ${listening ? 'animate-pulse bg-blue-200 dark:bg-blue-900/40' : ''}`}
+        className={`h-8 w-8 flex items-center justify-center rounded-full border-none bg-transparent text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition ${listening ? 'animate-pulse bg-blue-200 dark:bg-blue-900/40' : ''} ${isPremiumFeature ? 'opacity-50' : ''}`}
         style={{ outline: 'none' }}
       >
         {listening ? (
@@ -326,6 +387,11 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
           </>
         )}
       </button>
+      {isPremiumFeature && (
+        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
+          PRO
+        </div>
+      )}
       {error && (
         <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-red-100 text-red-700 text-xs rounded shadow p-2 z-50">
           {error}
@@ -990,12 +1056,22 @@ CONVERSATION PATTERNS:
       if (fileInputRef.current) fileInputRef.current.value = "";
       let botResponse = "";
       if (message.trim()) {
-        botResponse = await generateAIResponse(userMessage, selectedModel, messageId);
+        botResponse = await generateAIResponse(userMessage, selectedModel, messageId, selectedPlan);
       }
       if (fileUrl) {
-        const analysis = await analyzePrescription(selectedFile!);
-        const analysisText = `**Prescription Analysis**:\n- **Medications**: ${analysis.medications.join(", ")}\n- **Dosages**: ${analysis.dosages.join(", ")}\n- **Instructions**: ${analysis.instructions}${analysis.warnings.length ? "\n- **Warnings**: " + analysis.warnings.join(", ") : ""}`;
-        botResponse = botResponse ? `${botResponse}\n\n${analysisText}` : analysisText;
+        // Check if user has premium plan for prescription analysis
+        if (userProfile?.plan === 'base') {
+          toast.error("Prescription analysis is a premium feature. Redirecting to upgrade page...");
+          setTimeout(() => {
+            router.push('/pricing');
+          }, 1500);
+          // Still allow the file to be uploaded but don't analyze it
+          botResponse = botResponse ? `${botResponse}\n\n📄 File uploaded successfully! Upgrade to PRO to analyze prescriptions automatically.` : "📄 File uploaded successfully! Upgrade to PRO to analyze prescriptions automatically.";
+        } else {
+          const analysis = await analyzePrescription(selectedFile!);
+          const analysisText = `**Prescription Analysis**:\n- **Medications**: ${analysis.medications.join(", ")}\n- **Dosages**: ${analysis.dosages.join(", ")}\n- **Instructions**: ${analysis.instructions}${analysis.warnings.length ? "\n- **Warnings**: " + analysis.warnings.join(", ") : ""}`;
+          botResponse = botResponse ? `${botResponse}\n\n${analysisText}` : analysisText;
+        }
       }
       
       // Update the message with the full response and set typing to true
@@ -1189,7 +1265,7 @@ CONVERSATION PATTERNS:
         : `${userMessage} (Please provide an improved, more detailed and comprehensive response than your previous answer)`;
       const newMessageId = uuidv4();
       
-      const botResponse = await generateAIResponse(optimizedPrompt, selectedModel, newMessageId);
+      const botResponse = await generateAIResponse(optimizedPrompt, selectedModel, newMessageId, selectedPlan);
       const sessionId = currentSession?.id;
       
       if (sessionId) {
@@ -1242,7 +1318,7 @@ CONVERSATION PATTERNS:
       }
       try {
         setLoading(true);
-        const botResponse = await generateAIResponse(editedMessage, selectedModel, messageId);
+        const botResponse = await generateAIResponse(editedMessage, selectedModel, messageId, selectedPlan);
         const sessionId = currentSession?.id;
         if (sessionId) {
           const existingMessage = currentSession!.messages.find((msg) => msg.id === messageId);
@@ -1300,6 +1376,16 @@ CONVERSATION PATTERNS:
       toast.error("Text-to-speech not supported in this browser");
       return;
     }
+    
+    // Check if user has premium plan for speech-to-speech
+    if (userProfile?.plan === 'base') {
+      toast.error("Speech-to-speech is a premium feature. Redirecting to upgrade page...");
+      setTimeout(() => {
+        router.push('/pricing');
+      }, 1500);
+      return;
+    }
+    
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
@@ -1479,7 +1565,7 @@ CONVERSATION PATTERNS:
 
   // 🔥 ENHANCED FUNCTION: AI Response with comprehensive personalization
 
-const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string): Promise<string> => {
+const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string, userPlan: string = 'free'): Promise<string> => {
     // Handle "what's my age" and similar questions
     const ageQuestions = [
       "what's my age", "whats my age", "what is my age", "do you know my age", "tell me my age", "how old am i"
@@ -1526,27 +1612,68 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     const controller = new AbortController();
     setAbortController(controller);
 
-    const modelMap: Record<string, { api: string; model: string; key: string }> = {
+    const modelMap: Record<string, { api: string; model: string; key: string; plan: 'free' | 'premium' }> = {
+      // Free models (Open Source)
+      "llama-3.3-70b": {
+        api: "groq",
+        model: "llama-3.3-70b-versatile",
+        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        plan: "free"
+      },
+      "llama-3.1-8b": {
+        api: "groq",
+        model: "llama-3.1-8b-instant",
+        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        plan: "free"
+      },
+      "mixtral-8x7b": {
+        api: "groq",
+        model: "mixtral-8x7b-32768",
+        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        plan: "free"
+      },
+      "gemma-7b": {
+        api: "groq",
+        model: "gemma-7b-it",
+        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        plan: "free"
+      },
+      // Premium models (Paid APIs)
       "gemini-2.0-flash": {
         api: "gemini",
         model: "gemini-2.0-flash-exp",
         key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM",
+        plan: "premium"
       },
       "gpt-4o": {
         api: "openai",
         model: "gpt-4o",
         key: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
+        plan: "premium"
       },
+      "claude-3-sonnet": {
+        api: "anthropic",
+        model: "claude-3-sonnet-20240229",
+        key: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || "",
+        plan: "premium"
+      },
+      // Legacy support - this will be the default free model
       "medibot": {
         api: "groq",
         model: "llama-3.3-70b-versatile",
         key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        plan: "free"
       },
     };
 
     const config = modelMap[selectedModel];
     if (!config) throw new Error(`Invalid model: ${selectedModel}`);
     if (!config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
+
+    // Check if user has access to this model based on their plan
+    if (config.plan === 'premium' && userPlan !== 'premium') {
+      throw new Error(`This model requires a Premium subscription. Please upgrade to access ${selectedModel}.`);
+    }
 
     const greetings = ["hi", "hello", "hey", "hola", "yo", "hii", "hi there", "hlo", "helloo", "good morning", "good afternoon", "good evening", "how are you", "wassup", "what's up", "sup"];
     const userMessageLower = userMessage.trim().toLowerCase();
@@ -1791,6 +1918,41 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       }
     }
 
+    // ✅ Anthropic Claude API Integration
+    else if (config.api === "anthropic") {
+      const response = await fetch(
+        `https://api.anthropic.com/v1/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": config.key,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: config.model,
+            max_tokens: 8192,
+            temperature: 0.7,
+            messages: [
+              {
+                role: "user",
+                content: optimizedPrompt,
+              },
+            ],
+          }),
+          signal: controller.signal,
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      content = data.content?.[0]?.text;
+    }
+
     // ✅ OpenAI / Groq
     else {
       const url = config.api === "groq"
@@ -2013,6 +2175,16 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       toast.error("Please log in to analyze prescriptions");
       return;
     }
+    
+    // Check if user has premium plan for prescription analysis
+    if (userProfile?.plan === 'base') {
+      toast.error("Prescription analysis is a premium feature. Redirecting to upgrade page...");
+      setTimeout(() => {
+        router.push('/pricing');
+      }, 1500);
+      return;
+    }
+    
     setPrescriptionDialogOpen(true);
     setAnalysisResult(null);
   };
@@ -2022,6 +2194,16 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       toast.error("Please log in to upload files");
       return;
     }
+    
+    // Check if user has premium plan for file upload (prescription analysis)
+    if (userProfile?.plan === 'base') {
+      toast.error("File upload with prescription analysis is a premium feature. Redirecting to upgrade page...");
+      setTimeout(() => {
+        router.push('/pricing');
+      }, 1500);
+      return;
+    }
+    
     fileInputRef.current?.click();
   };
 
@@ -2075,7 +2257,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       return null;
     }
     
-    return currentSession.messages.map((msg) => {
+    return currentSession.messages.map((msg, messageIndex) => {
       // Enhanced helper to render response with proper paragraph spacing
       // Enhanced AI response rendering: subheadings, bullets, numbers, paragraphs, and dot-list formatting
       const renderResponse = (response: string) => {
@@ -2106,7 +2288,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 if (isSubheading(line)) {
                   const text = line.replace(/^(\*\*|##)\s?/, '').replace(/(\*\*|)$|:$/g, '').trim();
                   return (
-                    <div key={idx} className="font-bold text-lg mt-4 mb-2 text-blue-700 dark:text-blue-300 border-b border-blue-200 dark:border-blue-700 pb-1">
+                    <div key={`msg-${messageIndex}-subheading-${idx}`} className="font-bold text-lg mt-4 mb-2 text-blue-700 dark:text-blue-300 border-b border-blue-200 dark:border-blue-700 pb-1">
                       {text}
                     </div>
                   );
@@ -2114,7 +2296,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 // Bullet point: - or * or •
                 if (isBulletPoint(line)) {
                   return (
-                    <div key={idx} className="pl-4 mb-2 flex items-start">
+                    <div key={`msg-${messageIndex}-bullet-${idx}`} className="pl-4 mb-2 flex items-start">
                       <span className="mr-3 text-blue-600 dark:text-blue-400 text-lg leading-6 select-none">•</span>
                       <span className="text-gray-800 dark:text-gray-200">{line.replace(/^\s*([-*•])\s+/, '')}</span>
                     </div>
@@ -2123,7 +2305,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 // Numbered point: 1. 2. etc
                 if (isNumberedPoint(line)) {
                   return (
-                    <div key={idx} className="pl-4 mb-2 flex items-start">
+                    <div key={`msg-${messageIndex}-numbered-${idx}`} className="pl-4 mb-2 flex items-start">
                       <span className="mr-3 text-blue-600 dark:text-blue-400 text-base font-semibold select-none">{line.match(/^\s*\d+\./)?.[0]}</span>
                       <span className="text-gray-800 dark:text-gray-200">{line.replace(/^\s*\d+\.\s*/, '')}</span>
                     </div>
@@ -2131,7 +2313,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 }
                 // Regular paragraph
                 return (
-                  <p key={idx} className="mb-3 text-gray-800 dark:text-gray-200 leading-relaxed">{line}</p>
+                  <p key={`msg-${messageIndex}-paragraph-${idx}`} className="mb-3 text-gray-800 dark:text-gray-200 leading-relaxed">{line}</p>
                 );
               })}
             </div>
@@ -2167,7 +2349,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           return (
             <div className="ai-response space-y-2">
               {points.map((point, idx) => (
-                <div key={idx} className="pl-4 flex items-start">
+                <div key={`msg-${messageIndex}-point-${idx}`} className="pl-4 flex items-start">
                   <span className="mr-3 text-blue-600 dark:text-blue-400 text-lg leading-6 select-none">•</span>
                   <span className="text-gray-800 dark:text-gray-200">{point}</span>
                 </div>
@@ -2180,7 +2362,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         return <p className="ai-response text-gray-800 dark:text-gray-200 leading-relaxed">{singleLine}</p>;
       };
       return (
-        <div key={msg.id}>
+        <div key={`message-${msg.id}-${messageIndex}`}>
           <div className="space-y-4">
             <div className="flex justify-end items-start space-x-2 max-w-[70%] ml-auto">
               <div className="relative group">
@@ -2390,15 +2572,23 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                         <Copy className="h-4 w-4" />
                       )}
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleSpeakResponse(msg.response)}
-                      className={`text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 rounded-full transition-colors duration-200 ${isSpeaking ? "animate-pulse bg-gray-500/20" : ""}`}
-                      title={isSpeaking ? "Stop Speaking" : "Speak Response"}
-                    >
-                      <Volume2 className="h-4 w-4" />
-                    </Button>
+                    <div className="relative">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleSpeakResponse(msg.response)}
+                        className={`text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 rounded-full transition-colors duration-200 ${isSpeaking ? "animate-pulse bg-gray-500/20" : ""} ${userProfile?.plan === 'base' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={userProfile?.plan === 'base' ? "Speech-to-Speech (PRO Feature)" : (isSpeaking ? "Stop Speaking" : "Speak Response")}
+                        disabled={userProfile?.plan === 'base'}
+                      >
+                        <Volume2 className="h-4 w-4" />
+                      </Button>
+                      {userProfile?.plan === 'base' && (
+                        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
+                          PRO
+                        </div>
+                      )}
+                    </div>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -2647,10 +2837,16 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             onClick={handlePrescriptionAnalysis} 
             variant="ghost" 
             size="icon" 
-            className="group relative bg-gradient-to-br from-blue-500/10 via-blue-600/15 to-cyan-500/10 hover:from-blue-500/20 hover:via-blue-600/25 hover:to-cyan-500/20 dark:from-blue-400/10 dark:via-blue-500/15 dark:to-cyan-400/10 dark:hover:from-blue-400/20 dark:hover:via-blue-500/25 dark:hover:to-cyan-400/20 text-blue-600 dark:text-blue-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:-rotate-6 hover:shadow-lg hover:shadow-blue-500/20 border border-blue-200/30 dark:border-blue-400/20"
-            title="Analyze Prescription"
+            className={`group relative bg-gradient-to-br from-blue-500/10 via-blue-600/15 to-cyan-500/10 hover:from-blue-500/20 hover:via-blue-600/25 hover:to-cyan-500/20 dark:from-blue-400/10 dark:via-blue-500/15 dark:to-cyan-400/10 dark:hover:from-blue-400/20 dark:hover:via-blue-500/25 dark:hover:to-cyan-400/20 text-blue-600 dark:text-blue-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:-rotate-6 hover:shadow-lg hover:shadow-blue-500/20 border border-blue-200/30 dark:border-blue-400/20 ${userProfile?.plan === 'base' ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={userProfile?.plan === 'base' ? "Prescription Analysis (PRO Feature)" : "Analyze Prescription"}
+            disabled={userProfile?.plan === 'base'}
           >
             <Camera className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 transition-transform duration-300" />
+            {userProfile?.plan === 'base' && (
+              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
+                PRO
+              </div>
+            )}
             <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-400/0 via-blue-500/0 to-cyan-500/0 group-hover:from-blue-400/10 group-hover:via-blue-500/5 group-hover:to-cyan-500/10 transition-all duration-300"></div>
             <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
           </Button>
@@ -2880,9 +3076,78 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   <SelectValue placeholder="Model" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-100 dark:bg-gray-800 dark:text-white text-sm border-gray-200 dark:border-gray-700">
-                  <SelectItem value="gemini-2.0-flash">Gemini 2.5 Flash</SelectItem>
-                  <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                  <SelectItem value="medibot">MediBot</SelectItem>
+                  {/* Free Models - Open Source */}
+                  <div className="px-2 py-1 text-xs font-semibold text-green-600 dark:text-green-400 border-b border-gray-200 dark:border-gray-600">
+                    🆓 Free Models (Open Source)
+                  </div>
+                  <SelectItem value="llama-3.3-70b" className="pl-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">●</span>
+                      Llama 3.3 70B (Recommended)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="mixtral-8x7b" className="pl-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">●</span>
+                      Mixtral 8x7B
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="llama-3.1-8b" className="pl-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">●</span>
+                      Llama 3.1 8B (Fast)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="gemma-7b" className="pl-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-green-500">●</span>
+                      Gemma 7B
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="medibot" className="pl-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-500">●</span>
+                      MediBot (Legacy)
+                    </div>
+                  </SelectItem>
+                  
+                  {/* Premium Models - Paid APIs */}
+                  <div className="px-2 py-1 text-xs font-semibold text-yellow-600 dark:text-yellow-400 border-b border-gray-200 dark:border-gray-600 mt-2">
+                    👑 Premium Models
+                  </div>
+                  <SelectItem 
+                    value="gemini-2.0-flash" 
+                    className="pl-4"
+                    disabled={selectedPlan !== 'premium'}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-500">●</span>
+                      Gemini 2.0 Flash
+                      {selectedPlan !== 'premium' && <span className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded">PRO</span>}
+                    </div>
+                  </SelectItem>
+                  <SelectItem 
+                    value="gpt-4o" 
+                    className="pl-4"
+                    disabled={selectedPlan !== 'premium'}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-500">●</span>
+                      GPT-4o
+                      {selectedPlan !== 'premium' && <span className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded">PRO</span>}
+                    </div>
+                  </SelectItem>
+                  <SelectItem 
+                    value="claude-3-sonnet" 
+                    className="pl-4"
+                    disabled={selectedPlan !== 'premium'}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-500">●</span>
+                      Claude 3 Sonnet
+                      {selectedPlan !== 'premium' && <span className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded">PRO</span>}
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -2904,12 +3169,21 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
               {/* Voice input button */}
               <VoiceInputButton
                 onResult={(text) => {
+                  // Check premium access for voice input
+                  if (userProfile?.plan === 'base') {
+                    toast.error("Voice input is a premium feature. Redirecting to upgrade page...");
+                    setTimeout(() => {
+                      router.push('/pricing');
+                    }, 1500);
+                    return;
+                  }
                   setMessage(text);
                   setTimeout(() => handleSendMessage(), 100);
                 }}
-                disabled={loading}
+                disabled={loading || userProfile?.plan === 'base'}
                 onStartRecording={() => setIsRecording(true)}
                 onStopRecording={() => setIsRecording(false)}
+                isPremiumFeature={userProfile?.plan === 'base'}
               />
             </div>
 

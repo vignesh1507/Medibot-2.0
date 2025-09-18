@@ -37,25 +37,25 @@ export default function HomePage() {
       router.push('/dashboard')
     }
   }, [user, loading, router])
-  // Medibot-like theme variables
-  const primaryColor = "bg-[#0E7490]";
-  const primaryHover = "hover:bg-[#0C6A83]";
-  const primaryBorder = "border-[#0E7490]";
-  const primaryText = "text-[#0E7490]";
+  // Updated color scheme to match chat page - blue/violet theme
+  const primaryColor = "bg-[#6366F1]";
+  const primaryHover = "hover:bg-[#5B21B6]";
+  const primaryBorder = "border-[#6366F1]";
+  const primaryText = "text-[#6366F1]";
 
-  const secondaryColor = "bg-[#F0F9FF]";
-  const secondaryHover = "hover:bg-[#E0F2FE]";
-  const secondaryBorder = "border-[#BAE6FD]";
-  const secondaryText = "text-[#0369A1]";
+  const secondaryColor = "bg-[#F8FAFC]";
+  const secondaryHover = "hover:bg-[#F1F5F9]";
+  const secondaryBorder = "border-[#E2E8F0]";
+  const secondaryText = "text-[#475569]";
 
-  const accentColor = "bg-[#0D9488]";
-  const accentHover = "hover:bg-[#0F766E]";
-  const accentBorder = "border-[#0D9488]";
-  const accentText = "text-[#0D9488]";
+  const accentColor = "bg-[#8B5CF6]";
+  const accentHover = "hover:bg-[#7C3AED]";
+  const accentBorder = "border-[#8B5CF6]";
+  const accentText = "text-[#8B5CF6]";
 
-  const buttonClasses = `h-10 px-6 ${primaryColor} text-white border ${primaryBorder} rounded-lg text-base font-medium shadow-none ${primaryHover} hover:border-[#0C6A83] hover:text-white`;
-  const secondaryButtonClasses = `h-10 px-6 ${secondaryColor} ${secondaryText} border ${secondaryBorder} rounded-lg text-base font-medium shadow-none ${secondaryHover} hover:border-[#7DD3FC] hover:text-[#0369A1]`;
-  const accentButtonClasses = `h-10 px-6 ${accentColor} text-white border ${accentBorder} rounded-lg text-base font-medium shadow-none ${accentHover} hover:border-[#0F766E] hover:text-white`;
+  const buttonClasses = `h-10 px-6 ${primaryColor} text-white border ${primaryBorder} rounded-lg text-base font-medium shadow-none ${primaryHover} hover:border-[#5B21B6] hover:text-white`;
+  const secondaryButtonClasses = `h-10 px-6 ${secondaryColor} ${secondaryText} border ${secondaryBorder} rounded-lg text-base font-medium shadow-none ${secondaryHover} hover:border-[#CBD5E1] hover:text-[#475569]`;
+  const accentButtonClasses = `h-10 px-6 ${accentColor} text-white border ${accentBorder} rounded-lg text-base font-medium shadow-none ${accentHover} hover:border-[#7C3AED] hover:text-white`;
 
   // Animation controls
   const controls = useAnimation();
@@ -335,7 +335,7 @@ export default function HomePage() {
       </Head>
       
       <div
-        className={`min-h-screen bg-gradient-to-br from-[#F0F9FF] via-white to-[#ECFDF5] text-[#0F766E] flex flex-col items-center justify-start overflow-x-hidden`}
+        className={`min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#EDE9FE] text-[#475569] flex flex-col items-center justify-start overflow-x-hidden`}
       >
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -423,11 +423,11 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="text-4xl font-extrabold tracking-tight text-[#0F766E] sm:text-5xl md:text-6xl"
+              className="text-4xl font-extrabold tracking-tight text-[#475569] sm:text-5xl md:text-6xl"
               id="hero-heading"
             >
               Transform Your Health with{" "}
-              <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
                 MediBot
               </span>
             </motion.h1>
@@ -435,7 +435,7 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="mt-6 max-w-2xl mx-auto text-xl text-[#0F766E]"
+              className="mt-6 max-w-2xl mx-auto text-xl text-[#64748B]"
               aria-describedby="hero-heading"
             >
               Your AI-powered health companion that simplifies medication management,
@@ -449,7 +449,7 @@ export default function HomePage() {
             >
               <Button
                 asChild
-                className={`inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-[#0E7490] to-[#0D9488] hover:from-[#0C6A83] hover:to-[#0F766E] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0E7490]`}
+                className={`inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] hover:from-[#5B21B6] hover:to-[#7C3AED] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#6366F1]`}
               >
                 <Link href="/auth/signup">Get Started Free</Link>
               </Button>
@@ -497,17 +497,17 @@ export default function HomePage() {
 
         <motion.div variants={item} className="text-center mb-16">
           <span
-            className={`inline-block px-4 py-2 bg-[#CFFAFE] text-[#0E7490] rounded-lg text-sm font-medium mb-4`}
+            className={`inline-block px-4 py-2 bg-[#EDE9FE] text-[#6366F1] rounded-lg text-sm font-medium mb-4`}
           >
             Powerful Features
           </span>
-          <h2 id="features-heading" className="text-4xl md:text-5xl font-bold text-[#0F766E]">
+          <h2 id="features-heading" className="text-4xl md:text-5xl font-bold text-[#475569]">
             Take Control of Your{" "}
-            <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
               Health
             </span>
           </h2>
-          <p className="mt-4 text-lg text-[#0F766E] max-w-2xl mx-auto">
+          <p className="mt-4 text-lg text-[#64748B] max-w-2xl mx-auto">
             MediBot combines cutting-edge technology with intuitive design to
             revolutionize your health management.
           </p>
@@ -516,42 +516,42 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[
             {
-              icon: <Pill className="h-6 w-6 text-[#0E7490]" />,
+              icon: <Pill className="h-6 w-6 text-[#6366F1]" />,
               title: "Smart Medication Tracking",
               description:
                 "Easily log and track your medications with our intuitive interface. Set up schedules, view history, and get insights into your adherence.",
               image: "/healthtrack.png",
             },
             {
-              icon: <MessageCircle className="h-6 w-6 text-[#0E7490]" />,
+              icon: <MessageCircle className="h-6 w-6 text-[#6366F1]" />,
               title: "AI-Powered Health Chat",
               description:
                 "Ask MediBot anything about your health or prescriptions. Our AI provides accurate, personalized advice to support your wellness journey.",
               image: "/chat.png",
             },
             {
-              icon: <Clock className="h-6 w-6 text-[#0E7490]" />,
+              icon: <Clock className="h-6 w-6 text-[#6366F1]" />,
               title: "Timely Reminders",
               description:
                 "Receive customized reminders via email, WhatsApp, or push notifications to stay on top of your medication schedule.",
               image: "/medication.png",
             },
             {
-              icon: <Calendar className="h-6 w-6 text-[#0E7490]" />,
+              icon: <Calendar className="h-6 w-6 text-[#6366F1]" />,
               title: "Medical Information Summarizer",
               description:
                 "Visualize your medication and appointment schedules in a sleek, interactive calendar to plan your health routine effectively.",
               image: "/summarize.webp",
             },
             {
-              icon: <Activity className="h-6 w-6 text-[#0E7490]" />,
+              icon: <Activity className="h-6 w-6 text-[#6366F1]" />,
               title: "Prescription Analysis",
               description:
                 "Get tailored health tips and analytics based on your medication adherence and health data to optimize your well-being.",
               image: "/prescription.webp",
             },
             {
-              icon: <Shield className="h-6 w-6 text-[#0E7490]" />,
+              icon: <Shield className="h-6 w-6 text-[#6366F1]" />,
               title: "Secure & Private",
               description:
                 "Your data is protected with state-of-the-art encryption, ensuring your health information remains private and secure.",
@@ -628,13 +628,13 @@ export default function HomePage() {
               >
                 Mobile Friendly
               </span>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#0F766E] mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold text-[#475569] mb-6">
                 Health Management{" "}
-                <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
                   On The Go
                 </span>
               </h2>
-              <p className="text-lg text-[#0F766E] mb-6">
+              <p className="text-lg text-[#64748B] mb-6">
                 Access your medication schedules, health insights, and AI assistant from
                 anywhere with our beautifully designed mobile interface. Join{" "}
                 {isLoading ? "many" : `${downloadCount.toLocaleString()}+`} users who
@@ -704,17 +704,17 @@ export default function HomePage() {
               className="lg:w-1/2"
             >
               <span
-                className={`inline-block px-4 py-2 bg-[#CFFAFE] text-[#0E7490] rounded-lg text-sm font-medium mb-4`}
+                className={`inline-block px-4 py-2 bg-[#EDE9FE] text-[#6366F1] rounded-lg text-sm font-medium mb-4`}
               >
                 AI Assistant
               </span>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#0F766E] mb-6">
+              <h2 className="text-3xl md:text-4xl font-bold text-[#475569] mb-6">
                 Your Personal{" "}
-                <span className="bg-gradient-to-r from-[#0D9488] to-[#0E7490] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] bg-clip-text text-transparent">
                   Health Companion
                 </span>
               </h2>
-              <p className="text-lg text-[#0F766E] mb-6">
+              <p className="text-lg text-[#64748B] mb-6">
                 MediBot's AI assistant learns your health patterns and provides
                 personalized recommendations to optimize your medication routine.
               </p>
@@ -741,7 +741,7 @@ export default function HomePage() {
 
       {/* Stats Section */}
       <section
-        className={`w-full py-20 bg-gradient-to-br from-[#F0F9FF] via-[#ECFDF5] to-[#E0F2FE]`}
+        className={`w-full py-20 bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#EDE9FE]`}
       >
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
@@ -785,10 +785,10 @@ export default function HomePage() {
                 className="p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-200 shadow-md"
               >
                 <div className="flex justify-center mb-3">{stat.icon}</div>
-                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent mb-2">
+                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent mb-2">
                   {stat.number}
                 </div>
-                <div className="text-[#0F766E] text-lg">{stat.label}</div>
+                <div className="text-[#64748B] text-lg">{stat.label}</div>
               </motion.div>
             ))}
           </motion.div>
@@ -818,13 +818,13 @@ export default function HomePage() {
           >
             Pricing Plans
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#0F766E]">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#475569]">
             Choose Your{" "}
-            <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
               Plan
             </span>
           </h2>
-          <p className="mt-4 text-lg text-[#0F766E] max-w-2xl mx-auto">
+          <p className="mt-4 text-lg text-[#64748B] max-w-2xl mx-auto">
             Select the perfect plan to suit your health management needs with MediBot's
             flexible pricing options.
           </p>
@@ -916,7 +916,7 @@ export default function HomePage() {
                     asChild
                     className={`${
                       plan.highlighted
-                        ? "bg-gradient-to-r from-[#0E7490] to-[#0D9488] text-white hover:from-[#0C6A83] hover:to-[#0F766E]"
+                        ? "bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] text-white hover:from-[#5B21B6] hover:to-[#7C3AED]"
                         : buttonClasses
                     } w-full`}
                   >
@@ -939,17 +939,17 @@ export default function HomePage() {
           className="text-center mb-16"
         >
           <span
-            className={`inline-block px-4 py-2 bg-[#D1FAE5] text-[#065F46] rounded-lg text-sm font-medium mb-4`}
+            className={`inline-block px-4 py-2 bg-[#EDE9FE] text-[#6366F1] rounded-lg text-sm font-medium mb-4`}
           >
             Partnerships
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#0F766E]">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#475569]">
             Trusted{" "}
-            <span className="bg-gradient-to-r from-[#0D9488] to-[#0E7490] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] bg-clip-text text-transparent">
               Collaborations
             </span>
           </h2>
-          <p className="mt-4 text-lg text-[#0F766E] max-w-2xl mx-auto">
+          <p className="mt-4 text-lg text-[#64748B] max-w-2xl mx-auto">
             We collaborate with distinguished healthcare professionals and researchers like Dr. Saikat Gochhait to advance evidence-based digital health innovation.
           </p>
         </motion.div>
@@ -957,19 +957,19 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {[
             {
-              icon: <Stethoscope className="h-8 w-8 text-[#0D9488]" />,
+              icon: <Stethoscope className="h-8 w-8 text-[#8B5CF6]" />,
               title: "Healthcare Experts",
               description: "Collaborating with distinguished healthcare professionals like Dr. Saikat Gochhait (Honoris Causa) to integrate evidence-based practices.",
               count: "1"
             },
             {
-              icon: <Shield className="h-8 w-8 text-[#0E7490]" />,
+              icon: <Shield className="h-8 w-8 text-[#6366F1]" />,
               title: "Active Partnerships",
               description: "Strategic collaborations focused on clinical decision support and AI-powered health management systems.",
               count: "1"
             },
             {
-              icon: <Activity className="h-8 w-8 text-[#0E7490]" />,
+              icon: <Activity className="h-8 w-8 text-[#6366F1]" />,
               title: "Patients Reached",
               description: "Healthcare professionals and patients benefiting from our collaborative research and development initiatives.",
               count: isLoading ? "Loading..." : `${userCount.toLocaleString()}+`
@@ -983,17 +983,17 @@ export default function HomePage() {
               viewport={{ once: true }}
               whileHover={{ y: -5 }}
             >
-              <Card className="bg-white rounded-xl border border-gray-200 shadow-lg shadow-[#CFFAFE]/30 hover:shadow-[#CFFAFE]/50 transition-all h-full p-6 text-center">
-                <div className={`inline-flex p-4 bg-[#D1FAE5] rounded-lg mb-4`}>
+              <Card className="bg-white rounded-xl border border-gray-200 shadow-lg shadow-[#EDE9FE]/30 hover:shadow-[#EDE9FE]/50 transition-all h-full p-6 text-center">
+                <div className={`inline-flex p-4 bg-[#EDE9FE] rounded-lg mb-4`}>
                   {collab.icon}
                 </div>
-                <div className="text-3xl font-bold bg-gradient-to-r from-[#0D9488] to-[#0E7490] bg-clip-text text-transparent mb-2">
+                <div className="text-3xl font-bold bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] bg-clip-text text-transparent mb-2">
                   {collab.count}
                 </div>
-                <h3 className="text-xl font-semibold text-[#0F766E] mb-3">
+                <h3 className="text-xl font-semibold text-[#475569] mb-3">
                   {collab.title}
                 </h3>
-                <p className="text-[#0F766E] text-base">
+                <p className="text-[#64748B] text-base">
                   {collab.description}
                 </p>
               </Card>
@@ -1021,13 +1021,13 @@ export default function HomePage() {
       <section className="w-full max-w-4xl mx-auto px-6 py-20">
         <div className="text-center mb-16">
           <span
-            className={`inline-block px-4 py-2 bg-[#E0F2FE] text-[#0E7490] rounded-lg text-sm font-medium mb-4`}
+            className={`inline-block px-4 py-2 bg-[#EDE9FE] text-[#6366F1] rounded-lg text-sm font-medium mb-4`}
           >
             Need Help?
           </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#0F766E]">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#475569]">
             Frequently Asked{" "}
-            <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
               Questions
             </span>
           </h2>
@@ -1116,7 +1116,7 @@ export default function HomePage() {
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.8 }}
-        className={`w-full py-32 bg-gradient-to-br from-[#F0F9FF] via-[#ECFDF5] to-[#E0F2FE] relative overflow-hidden`}
+        className={`w-full py-32 bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#EDE9FE] relative overflow-hidden`}
       >
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 w-full h-full opacity-10">
@@ -1138,26 +1138,26 @@ export default function HomePage() {
             whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="inline-block p-4 bg-[#CFFAFE] rounded-lg mb-6"
+            className="inline-block p-4 bg-[#EDE9FE] rounded-lg mb-6"
           >
-            <Heart className="h-8 w-8 text-[#0E7490]" />
+            <Heart className="h-8 w-8 text-[#6366F1]" />
           </motion.div>
 
-          <h2 className="text-4xl md:text-5xl font-bold text-[#0F766E] mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#475569] mb-6">
             Ready to Transform Your{" "}
-            <span className="bg-gradient-to-r from-[#0E7490] to-[#0D9488] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
               Healthcare
             </span>
             ?
           </h2>
-          <p className="text-[#0F766E] text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-[#64748B] text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
             Join {isLoading ? "many" : `${userCount.toLocaleString()}+`} patients and
             healthcare professionals who trust MediBot for better health outcomes.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <Link href="/auth/signup">
               <Button
-                className={`${buttonClasses} w-60 h-14 text-lg bg-gradient-to-r from-[#0E7490] to-[#0D9488] hover:from-[#0C6A83] hover:to-[#0F766E] text-white`}
+                className={`${buttonClasses} w-60 h-14 text-lg bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] hover:from-[#5B21B6] hover:to-[#7C3AED] text-white`}
               >
                 Get Started Free
               </Button>
@@ -1280,6 +1280,14 @@ export default function HomePage() {
                       className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >
                      Refund Policy
+                    </Link>
+                  </li>
+                   <li>
+                    <Link
+                      href="/creators"
+                      className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
+                    >
+                     Developers
                     </Link>
                   </li>
                   

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,8 @@ export default function SummarizerPage() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [selectedSummaryId, setSelectedSummaryId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
+  const router = useRouter();
 
   // Utility to format Firestore Timestamp or Date
   const formatDate = (createdAt: Date | Timestamp | undefined): string => {
@@ -59,6 +61,15 @@ export default function SummarizerPage() {
   const generateSummary = async () => {
     if (!inputText.trim() || !user) {
       toast.error("Please enter some text to summarize");
+      return;
+    }
+
+    // Check if user has premium plan for info-summarizer
+    if (userProfile?.plan === 'base') {
+      toast.error("Info-summarizer is a premium feature. Redirecting to upgrade page...");
+      setTimeout(() => {
+        router.push('/pricing');
+      }, 1500);
       return;
     }
 
@@ -261,9 +272,14 @@ export default function SummarizerPage() {
                     <div className="flex space-x-3">
                       <Button
                         onClick={generateSummary}
-                        disabled={loading || !inputText.trim()}
-                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl"
+                        disabled={loading || !inputText.trim() || userProfile?.plan === 'base'}
+                        className={`flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl relative ${userProfile?.plan === 'base' ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
+                        {userProfile?.plan === 'base' && (
+                          <div className="absolute -top-2 -right-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[8px] px-1.5 py-0.5 rounded font-bold">
+                            PRO ONLY
+                          </div>
+                        )}
                         {loading ? (
                           <>
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -272,7 +288,7 @@ export default function SummarizerPage() {
                         ) : (
                           <>
                             <Sparkles className="mr-2 h-4 w-4" />
-                            Generate Summary
+                            {userProfile?.plan === 'base' ? 'Upgrade to Generate Summary' : 'Generate Summary'}
                           </>
                         )}
                       </Button>

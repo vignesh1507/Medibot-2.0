@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/sidebar";
 import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,8 @@ export default function MedicationsPage() {
   });
   const [search, setSearch] = useState("");
   const [isMobile, setIsMobile] = useState(false);
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
+  const router = useRouter();
   const reminderTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // FCM token collection and saving logic
@@ -272,6 +274,15 @@ export default function MedicationsPage() {
 
   const scheduleReminders = async (medication: Medication, email: string) => {
     if (!medication.id || !medication.reminderTimes.length || !user?.uid) return;
+
+    // Check if user has premium plan for medication reminders
+    if (userProfile?.plan === 'base') {
+      toast.error("Medication reminders are a premium feature. Redirecting to upgrade page...");
+      setTimeout(() => {
+        router.push('/pricing');
+      }, 1500);
+      return;
+    }
 
     try {
       console.log("🔔 Scheduling hybrid reminders for:", medication.name);
