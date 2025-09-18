@@ -17,8 +17,8 @@ export default function CreatorsPage() {
     {
       id: 1,
       name: creatorName,
-      role: "Lead Developer & Founder",
-      avatar: "/logo.png", // Using the MediBot logo as placeholder
+      role: "Lead Developer ",
+      avatar: "/sujay.png", // Developer profile picture
       bio: "Full-stack developer passionate about healthcare technology and AI. Creator of MediBot, dedicated to making healthcare more accessible through innovative technology solutions.",
       contributions: [
         "AI Chat System Architecture",

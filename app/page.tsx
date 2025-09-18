@@ -24,8 +24,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, useAnimation } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc } from "firebase/firestore";
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -33,16 +31,10 @@ export default function HomePage() {
   const router = useRouter()
   const { user, loading } = useAuth()
 
-  // Redirect remembered or authenticated users to dashboard
+  // Redirect authenticated users to dashboard
   useEffect(() => {
-    try {
-      const remembered = typeof window !== 'undefined' && localStorage.getItem('medibot_remember') === 'true'
-      if (!loading && (user || remembered)) {
-        // if user is not logged in but remembered is true, let auth hook handle persistence; otherwise redirect
-        router.push('/dashboard')
-      }
-    } catch (err) {
-      // ignore localStorage errors
+    if (!loading && user) {
+      router.push('/dashboard')
     }
   }, [user, loading, router])
   // Medibot-like theme variables
@@ -83,42 +75,35 @@ export default function HomePage() {
       controls.start("visible");
     }
 
-    // Fetch user count and download count from Firebase
+    // Fetch user count and download count from API route (using Admin SDK)
     const fetchData = async () => {
       try {
         setIsLoading(true);
 
-        // Fetch user count
-        const usersCollection = collection(db, "users");
-        console.log("Querying users collection:", usersCollection.path);
-        const usersSnapshot = await getDocs(usersCollection);
-        const userCount = usersSnapshot.size;
-        console.log(
-          `Fetched ${userCount} users. Document IDs:`,
-          usersSnapshot.docs.map((doc) => doc.id)
-        );
-        if (userCount !== 23) {
-          console.warn(
-            `Expected 23 users, but found ${userCount}. Verify collection data or rules.`
-          );
+        // Fetch stats from API route which uses Admin SDK
+        console.log("Fetching app statistics from API...");
+        const response = await fetch('/api/stats');
+        const result = await response.json();
+        
+        if (result.success) {
+          const { userCount, downloadCount } = result.data;
+          console.log(`📈 Fetched ${userCount} users and ${downloadCount} downloads`);
+          
+          if (userCount !== 23) {
+            console.warn(
+              `Expected 23 users, but found ${userCount}. Verify collection data or rules.`
+            );
+          }
+          
+          setUserCount(userCount);
+          setDownloadCount(downloadCount);
+        } else {
+          console.error("API error:", result.error);
+          setUserCount(0);
+          setDownloadCount(0);
         }
-        setUserCount(userCount);
-
-        // Fetch download count
-        const downloadsCollection = collection(db, "downloads");
-        console.log("Querying downloads collection:", downloadsCollection.path);
-        const downloadsSnapshot = await getDocs(downloadsCollection);
-        const downloadCount = downloadsSnapshot.size;
-        console.log(
-          `Fetched ${downloadCount} downloads. Document IDs:`,
-          downloadsSnapshot.docs.map((doc) => doc.id)
-        );
-        setDownloadCount(downloadCount);
       } catch (error) {
         console.error("Error fetching data:", error);
-        if ((error as { code?: string }).code === "permission-denied") {
-          console.error("Check Firestore rules: Read access may be restricted.");
-        }
         setUserCount(0);
         setDownloadCount(0);
       } finally {
@@ -129,24 +114,35 @@ export default function HomePage() {
     fetchData();
   }, [controls, inView]);
 
-  // Handle download click and record to Firebase
+  // Handle download click and record via API
   const handleDownload = async () => {
     try {
       setDownloadError(null);
-      console.log("Recording download to Firebase...");
-      await addDoc(collection(db, "downloads"), {
-        timestamp: new Date().toISOString(),
-        userId: "anonymous", // Replace with auth.currentUser?.uid if authenticated
+      console.log("Recording download via API...");
+      
+      const response = await fetch('/api/downloads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user?.uid || "anonymous"
+        })
       });
-      console.log("Download recorded successfully");
-      // Optimistically update download count
-      setDownloadCount((prev) => prev + 1);
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log("Download recorded successfully:", result.downloadId);
+        // Optimistically update download count
+        setDownloadCount((prev) => prev + 1);
+      } else {
+        console.error("API error:", result.error);
+        setDownloadError("Failed to record download. Please try again.");
+      }
     } catch (error) {
       console.error("Error recording download:", error);
       setDownloadError("Failed to record download. Please try again.");
-      if ((error as { code?: string }).code === "permission-denied") {
-        console.error("Check Firestore rules: Write access may be restricted.");
-      }
     }
   };
 

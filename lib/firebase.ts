@@ -35,6 +35,10 @@ try {
 }
 
 export const auth = getAuth(app)
+
+// Configure auth persistence to survive browser restart by default
+auth.useDeviceLanguage();
+
 export const db = getFirestore(app)
 export const storage = getStorage(app)
 export const messaging = typeof window !== "undefined" ? getMessaging(app) : null

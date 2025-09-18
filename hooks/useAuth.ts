@@ -48,6 +48,23 @@ export function useAuth() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Initialize auth persistence on mount
+  useEffect(() => {
+    const initializePersistence = async () => {
+      try {
+        const { browserLocalPersistence, setPersistence } = await import('firebase/auth');
+        await setPersistence(auth, browserLocalPersistence);
+        console.log("Auth persistence set to LOCAL");
+      } catch (error) {
+        console.error("Failed to set auth persistence:", error);
+      }
+    };
+    
+    if (typeof window !== "undefined") {
+      initializePersistence();
+    }
+  }, []);
+
   const refreshProfile = useCallback(async (uid: string) => {
     try {
       const profile = await getUserProfile(uid);
@@ -135,10 +152,17 @@ export function useAuth() {
   }, [user, refreshProfile]);
 
   // Auth functions
-  const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
-    // Set persistence based on rememberMe
-    const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth');
-    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+  const signIn = async (email: string, password: string, rememberMe: boolean = true) => {
+    try {
+      // Set persistence based on user choice
+      const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth');
+      const persistenceType = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+      await setPersistence(auth, persistenceType);
+      console.log(`Auth persistence set to: ${rememberMe ? 'LOCAL' : 'SESSION'}`);
+    } catch (error) {
+      console.error("Error setting persistence:", error);
+      // Continue with sign-in even if persistence setting fails
+    }
     
     const result = await signInWithEmailAndPassword(auth, email, password);
     
@@ -192,15 +216,25 @@ const signUp = async (
 };
 
 
-  const signInWithGoogle = async (rememberMe: boolean = false) => {
-    const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth');
-    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+  const signInWithGoogle = async (rememberMe: boolean = true) => {
+    try {
+      const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth');
+      const persistenceType = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+      await setPersistence(auth, persistenceType);
+    } catch (error) {
+      console.error("Error setting persistence for Google sign-in:", error);
+    }
     return signInWithPopup(auth, googleProvider);
   };
 
-  const signInWithFacebook = async (rememberMe: boolean = false) => {
-    const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth');
-    await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+  const signInWithFacebook = async (rememberMe: boolean = true) => {
+    try {
+      const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth');
+      const persistenceType = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+      await setPersistence(auth, persistenceType);
+    } catch (error) {
+      console.error("Error setting persistence for Facebook sign-in:", error);
+    }
     return signInWithPopup(auth, facebookProvider);
   };
 
