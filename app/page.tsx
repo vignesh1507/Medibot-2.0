@@ -1268,6 +1268,14 @@ export default function HomePage() {
                   </li>
                   <li>
                     <Link
+                      href="/cookies"
+                      className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
+                    >
+                      Cookie Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
                       href="/refund"
                       className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >

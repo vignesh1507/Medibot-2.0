@@ -178,6 +178,33 @@ export default function MedicationsPage() {
     };
   }, [medications, user]);
 
+  // Periodic reminder checker - runs every 5 minutes when app is open
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const checkForDueReminders = async () => {
+      try {
+        console.log("🔔 Client-side reminder check...");
+        const response = await fetch('/api/check-reminders');
+        const result = await response.json();
+        
+        if (result.success && result.processed > 0) {
+          console.log(`✅ Processed ${result.processed} reminders from client`);
+        }
+      } catch (error) {
+        console.error("Client-side reminder check failed:", error);
+      }
+    };
+
+    // Check immediately when component mounts
+    checkForDueReminders();
+    
+    // Then check every 5 minutes while app is open
+    const intervalId = setInterval(checkForDueReminders, 5 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [user?.uid]);
+
   const sendMobileNotification = async (userId: string, title: string, body: string) => {
   try {
     // Fetch user's FCM token from Firestore

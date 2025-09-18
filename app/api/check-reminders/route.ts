@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
 import admin from "firebase-admin";
 
 // Initialize Firebase Admin SDK (only once)
@@ -21,10 +19,11 @@ export async function GET() {
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes(); // Minutes since midnight
     
-    // Query for active reminders that are due (within 5 minute window for more reliability)
-    const remindersRef = collection(db, "scheduledReminders");
-    const activeReminders = query(remindersRef, where("active", "==", true));
-    const snapshot = await getDocs(activeReminders);
+    // Query for active reminders using Admin SDK
+    const db = admin.firestore();
+    const remindersRef = db.collection("scheduledReminders");
+    const activeReminders = remindersRef.where("active", "==", true);
+    const snapshot = await activeReminders.get();
     
     console.log(`🔍 Checking ${snapshot.docs.length} active reminders at ${now.toLocaleTimeString()}`);
     
@@ -39,7 +38,7 @@ export async function GET() {
       const isWithinWindow = timeDiff <= 5 || timeDiff >= (24 * 60 - 5); // Handle midnight rollover
       
       // Check if we haven't sent this reminder today
-      const lastSent = reminder.lastSent?.toDate();
+      const lastSent = reminder.lastSent?.toDate ? reminder.lastSent.toDate() : reminder.lastSent;
       const isToday = lastSent && lastSent.toDateString() === now.toDateString();
       
       if (isWithinWindow && !isToday) {
@@ -65,8 +64,9 @@ export async function GET() {
     // Send notifications for due reminders
     const notificationPromises = dueReminders.map(async (reminder) => {
       try {
-        // Get user's FCM token
-        const userDoc = await getDoc(doc(db, "users", reminder.userId));
+        // Get user's FCM token using Admin SDK
+        const userDocRef = db.collection("users").doc(reminder.userId);
+        const userDoc = await userDocRef.get();
         const fcmToken = userDoc.data()?.fcmToken;
         
         if (fcmToken) {
@@ -111,8 +111,9 @@ export async function GET() {
           const response = await admin.messaging().send(message);
           console.log(`✅ Notification sent for ${reminder.medicationName} to user ${reminder.userId}:`, response);
           
-          // Update lastSent timestamp and track successful sends
-          await updateDoc(doc(db, "scheduledReminders", reminder.id), {
+          // Update lastSent timestamp and track successful sends using Admin SDK
+          const reminderDocRef = db.collection("scheduledReminders").doc(reminder.id);
+          await reminderDocRef.update({
             lastSent: now,
             nextScheduled: getNextScheduledTime(reminder.hours, reminder.minutes),
             totalSent: (reminder.totalSent || 0) + 1

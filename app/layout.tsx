@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import React from "react";
 import { SmoothNavigator, GlobalSkeletonLoader } from "../components/SmoothNavigator";
 import { LoadingProvider } from "@/components/LoadingContext";
+import CookieConsent from "@/components/CookieConsent";
 import Head from "next/head";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "next-themes";
@@ -207,6 +208,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </React.Suspense>
           </SmoothNavigator>
           <Toaster position="top-right" />
+          <CookieConsent />
         </ThemeProvider>
   </LoadingProvider>
       </body>
