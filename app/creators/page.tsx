@@ -11,7 +11,7 @@ import { SystemUtils } from "@/lib/system-utils";
 
 export default function CreatorsPage() {
   const systemData = SystemUtils.getSystemData();
-  const creatorName = systemData.systemOwner;
+  const creatorName = A G Vignesh Skanda;
 
   const creators = [
     {
@@ -21,12 +21,13 @@ export default function CreatorsPage() {
       avatar: "/skanda.png", // Developer profile picture
       bio: "Founder of MediBot | AI enthusiast passionate about leveraging artificial intelligence and cloud technologies to make healthcare more accessible and efficient. Dedicated to building innovative solutions at the intersection of healthcare and technology.",
       contributions: [
-        "AI Chat System Architecture",
-        "Medication Reminder Engine", 
-        "Prescription Analysis AI",
-        "Healthcare Data Security",
-        "Mobile App Development",
-        "Backend Infrastructure"
+        "Designed and implemented AI-powered chatbot for patient support",
+"Developed intelligent medication reminder system",
+"Built prescription analysis and recommendation engine",
+"Ensured secure handling of healthcare and patient data",
+"Led mobile app development for seamless patient experience",
+"Architected backend infrastructure and cloud integration"
+
       ],
       technologies: [
         "Next.js", "React", "TypeScript", "Node.js", 
@@ -40,9 +41,10 @@ export default function CreatorsPage() {
       },
       achievements: [
         "Built end-to-end healthcare platform",
-        "Implemented secure patient data handling",
-        "Created intelligent medication management",
-        "Designed user-friendly healthcare UX"
+"Implemented secure patient data handling",
+"Created intelligent medication management",
+"Developed scalable backend infrastructure and cloud integration"
+
       ]
     } 
   ];
