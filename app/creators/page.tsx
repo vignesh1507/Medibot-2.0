@@ -11,7 +11,7 @@ import { SystemUtils } from "@/lib/system-utils";
 
 export default function CreatorsPage() {
   const systemData = SystemUtils.getSystemData();
-  const creatorName = A G Vignesh Skanda;
+  const creatorName = "A G Vignesh Skanda";
 
   const creators = [
     {
