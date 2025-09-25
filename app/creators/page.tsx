@@ -17,9 +17,9 @@ export default function CreatorsPage() {
     {
       id: 1,
       name: creatorName,
-      role: "Lead Developer ",
-      avatar: "/sujay.png", // Developer profile picture
-      bio: "Full-stack developer passionate about healthcare technology and AI. Creator of MediBot, dedicated to making healthcare more accessible through innovative technology solutions.",
+      role: "Founder,CEO",
+      avatar: "/skanda.png", // Developer profile picture
+      bio: "Founder of MediBot | AI enthusiast passionate about leveraging artificial intelligence and cloud technologies to make healthcare more accessible and efficient. Dedicated to building innovative solutions at the intersection of healthcare and technology.",
       contributions: [
         "AI Chat System Architecture",
         "Medication Reminder Engine", 
@@ -33,10 +33,10 @@ export default function CreatorsPage() {
         "Firebase", "AI/ML", "Healthcare APIs", "Mobile Development"
       ],
       socialLinks: {
-        github: "https://github.com/Sujay149/",
-        linkedin: "https://www.linkedin.com/in/sujaybabu", 
-        email: "mailto:sujayss149@gmail.com",
-        website: "http://sujaybabu.vercel.app/"
+        github: "https://github.com/vignesh1507",
+        linkedin: "https://www.linkedin.com/in/vignesh-skanda-7a6363275", 
+        email: "mailto:agvskanda@gmail.com",
+        website: "https://github.com/Asvix-04"
       },
       achievements: [
         "Built end-to-end healthcare platform",
@@ -317,7 +317,7 @@ export default function CreatorsPage() {
                 className="bg-[#0E7490] hover:bg-[#0F766E] text-white"
                 asChild
               >
-                <Link href="mailto:sujayss149@gmail.com">
+                <Link href="mailto:agvskanda@gmail.com">
                   <Mail className="mr-2 h-5 w-5" />
                   Contact Us
                 </Link>
