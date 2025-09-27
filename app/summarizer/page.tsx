@@ -99,7 +99,7 @@ export default function SummarizerPage() {
 
   const generateMedicalSummary = async (text: string, category: string): Promise<string> => {
     try {
-      const model = "gemini-1.5-flash-latest";
+      const model = "gemini-2.0-flash";
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
       const prompt = `You are a health-focused AI assistant. Summarize the following medical text in a concise, structured format (use markdown with bold headers and bullet points) based on the specified category (${category}). Focus on key insights, recommendations, and provide educational content. Include a note reminding users to consult a healthcare professional. The summary should be professional, clear, and no longer than 200 words. Text: "${text}"`;
