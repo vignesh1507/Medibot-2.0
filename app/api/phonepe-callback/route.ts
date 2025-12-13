@@ -61,22 +61,19 @@ export async function GET(req: NextRequest) {
 
         // If payment successful, also update user's subscription
         if (isSuccess && userId && planName) {
-          const normalizedPlan = planName.toLowerCase(); // e.g. 'base' | 'premium' | 'enterprise'
+          // Update user subscription
           const userRef = admin_db.collection('users').doc(userId);
-
           await userRef.update({
-            plan: normalizedPlan,   // <- add this line
             subscription: {
-              plan: normalizedPlan,
+              plan: planName.toLowerCase(),
               status: 'active',
               startDate: new Date(),
-              endDate:
-                normalizedPlan === 'premium'
-                  ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)   // 30 days
-                  : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days (enterprise)
-              lastPaymentId: merchantTransactionId,
+              endDate: planName.toLowerCase() === 'premium' 
+                ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days for monthly
+                : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days for yearly
+              lastPaymentId: merchantTransactionId
             },
-            updatedAt: new Date(),
+            updatedAt: new Date()
           });
         }
 
