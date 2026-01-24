@@ -214,15 +214,15 @@ function ChatContent() {
         key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
         plan: "free"
       },
-      "mixtral-8x7b": {
+      "gpt-oss-120b": {
         api: "groq",
-        model: "mixtral-8x7b-32768",
+        model: "openai/gpt-oss-120b",
         key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
         plan: "free"
       },
-      "gemma-7b": {
+      "qwen-3-32b": {
         api: "groq",
-        model: "gemma-7b-it",
+        model: "qwen/qwen-3-32b",
         key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
         plan: "free"
       },
@@ -1626,15 +1626,15 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
         plan: "free"
       },
-      "mixtral-8x7b": {
+      "gpt-oss-120b": {
         api: "groq",
-        model: "mixtral-8x7b-32768",
+        model: "openai/gpt-oss-120b",
         key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
         plan: "free"
       },
-      "gemma-7b": {
+      "qwen-3-32b": {
         api: "groq",
-        model: "gemma-7b-it",
+        model: "qwen/qwen-3-32b",
         key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
         plan: "free"
       },
@@ -3086,10 +3086,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       Llama 3.3 70B (Recommended)
                     </div>
                   </SelectItem>
-                  <SelectItem value="mixtral-8x7b" className="pl-4">
+                  <SelectItem value="gpt-oss-120b" className="pl-4">
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">●</span>
-                      Mixtral 8x7B
+                      gpt-oss-120b
                     </div>
                   </SelectItem>
                   <SelectItem value="llama-3.1-8b" className="pl-4">
@@ -3098,10 +3098,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       Llama 3.1 8B (Fast)
                     </div>
                   </SelectItem>
-                  <SelectItem value="gemma-7b" className="pl-4">
+                  <SelectItem value="qwen-3-32b" className="pl-4">
                     <div className="flex items-center gap-2">
                       <span className="text-green-500">●</span>
-                      Gemma 7B
+                      qwen-3-32b
                     </div>
                   </SelectItem>
                   <SelectItem value="medibot" className="pl-4">
