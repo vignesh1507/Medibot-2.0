@@ -1647,7 +1647,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       "gemini-2.0-flash": {
         api: "gemini",
         model: "gemini-2.0-flash-exp",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyAk3b_1cffq8XhnVL16MckI2IV81sl6rik",
         plan: "premium"
       },
       "gpt-4o": {
@@ -1664,9 +1664,9 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       },
       // Legacy support - this will be the default free model
       "medibot": {
-        api: "groq",
-        model: "llama-3.3-70b-versatile",
-        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        api: "gemini",
+        model: "gemini-3-pro-preview",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyAk3b_1cffq8XhnVL16MckI2IV81sl6rik",
         plan: "free"
       },
     };
