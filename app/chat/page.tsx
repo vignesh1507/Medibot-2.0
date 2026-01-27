@@ -203,9 +203,9 @@ function ChatContent() {
     // Define modelMap here or move this block below the modelMap definition
     const modelMap: Record<string, { api: string; model: string; key: string; plan: 'free' | 'premium' }> = {
       "llama-3.3-70b": {
-        api: "groq",
-        model: "llama-3.3-70b-versatile",
-        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        api: "huggingface",
+        model: "meta-llama/Llama-3.3-70B-Instruct",
+        key: process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || "",
         plan: "free"
       },
       "llama-3.1-8b": {
@@ -1568,9 +1568,9 @@ CONVERSATION PATTERNS:
 const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string, userPlan: string = 'free'): Promise<string> => {
     // Handle "what's my age" and similar questions
   console.log("=== API KEY DEBUG ===");
-  console.log("openai API Key exists:", !!process.env.NEXT_PUBLIC_OPENAI_API_KEY);
-  console.log("openai API Key length:", process.env.NEXT_PUBLIC_OPENAI_API_KEY?.length);
-  console.log("openai API Key first 10 chars:", process.env.NEXT_PUBLIC_OPENAI_API_KEY?.substring(0, 10));
+  console.log("huggungface API Key exists:", !!process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY);
+  console.log("huggingface API Key length:", process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY?.length);
+  console.log("huggingface API Key first 10 chars:", process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY?.substring(0, 10));
   console.log("====================");
     const ageQuestions = [
       "what's my age", "whats my age", "what is my age", "do you know my age", "tell me my age", "how old am i"
@@ -1620,9 +1620,9 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     const modelMap: Record<string, { api: string; model: string; key: string; plan: 'free' | 'premium' }> = {
       // Free models (Open Source)
       "llama-3.3-70b": {
-        api: "groq",
-        model: "llama-3.3-70b-versatile",
-        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        api: "huggingface",
+        model: "meta-llama/Llama-3.3-70B-Instruct",
+        key: process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || "",
         plan: "free"
       },
       "llama-3.1-8b": {
