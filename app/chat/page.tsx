@@ -245,9 +245,9 @@ function ChatContent() {
         plan: "premium"
       },
       "medibot": {
-        api: "groq",
-        model: "llama-3.3-70b-versatile",
-        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
+        api: "gemini",
+        model: "gemini-3-pro-preview",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
         plan: "free"
       },
     };
