@@ -1568,9 +1568,9 @@ CONVERSATION PATTERNS:
 const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string, userPlan: string = 'free'): Promise<string> => {
     // Handle "what's my age" and similar questions
   console.log("=== API KEY DEBUG ===");
-  console.log("GROQ API Key exists:", !!process.env.NEXT_PUBLIC_GROQ_API_KEY);
-  console.log("GROQ API Key length:", process.env.NEXT_PUBLIC_GROQ_API_KEY?.length);
-  console.log("GROQ API Key first 10 chars:", process.env.NEXT_PUBLIC_GROQ_API_KEY?.substring(0, 10));
+  console.log("Gemini API Key exists:", !!process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+  console.log("Gemini API Key length:", process.env.NEXT_PUBLIC_GEMINI_API_KEY?.length);
+  console.log("Gemini API Key first 10 chars:", process.env.NEXT_PUBLIC_GEMINI_API_KEY?.substring(0, 10));
   console.log("====================");
     const ageQuestions = [
       "what's my age", "whats my age", "what is my age", "do you know my age", "tell me my age", "how old am i"
