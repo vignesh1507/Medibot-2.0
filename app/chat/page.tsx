@@ -245,9 +245,9 @@ function ChatContent() {
         plan: "premium"
       },
       "medibot": {
-        api: "gemini",
-        model: "gemini-3-pro-preview",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyAk3b_1cffq8XhnVL16MckI2IV81sl6rik",
+        api: "openai",
+        model: "gpt-5.2-pro",
+        key: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
         plan: "free"
       },
     };
@@ -1664,9 +1664,9 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       },
       // Legacy support - this will be the default free model
       "medibot": {
-        api: "gemini",
-        model: "gemini-3-pro-preview",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyAk3b_1cffq8XhnVL16MckI2IV81sl6rik",
+        api: "openai",
+        model: "gpt-5.2-pro",
+        key: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
         plan: "free"
       },
     };
