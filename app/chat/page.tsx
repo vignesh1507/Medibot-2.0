@@ -245,9 +245,9 @@ function ChatContent() {
         plan: "premium"
       },
       "medibot": {
-        api: "openai",
-        model: "gpt-5.2-pro",
-        key: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
+        api: "huggingface",
+        model: "meta-llama/Llama-3.3-70B-Instruct",
+        key: process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || "",
         plan: "free"
       },
     };
@@ -1664,9 +1664,9 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       },
       // Legacy support - this will be the default free model
       "medibot": {
-        api: "openai",
-        model: "gpt-5.2-pro",
-        key: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
+        api: "huggingface",
+        model: "meta-llama/Llama-3.3-70B-Instruct",
+        key: process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || "",
         plan: "free"
       },
     };
