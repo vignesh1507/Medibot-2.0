@@ -1957,7 +1957,37 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       const data = await response.json();
       content = data.content?.[0]?.text;
     }
-
+    // ✅ HuggingFace API Integration
+    else if (config.api === "huggingface") {
+      const response = await fetch(
+        `https://api-inference.huggingface.co/models/${config.model}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${config.key}`,
+          },
+          body: JSON.stringify({
+            inputs: optimizedPrompt,
+            parameters: {
+              temperature: 0.7,
+              max_new_tokens: 8192,
+              top_p: 0.95,
+              return_full_text: false,
+            },
+          }),
+          signal: controller.signal,
+        }
+      );
+    
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HuggingFace API error: ${response.status} - ${errorText}`);
+      }
+    
+      const data = await response.json();
+      content = data[0]?.generated_text || data.generated_text;
+    }
     // ✅ OpenAI / Groq
     else {
       const url = config.api === "groq"
