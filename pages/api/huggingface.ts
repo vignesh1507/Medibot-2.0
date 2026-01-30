@@ -12,7 +12,7 @@ export default async function handler(
     const { model, prompt } = req.body;
 
     const response = await fetch(
-      `https://api-inference.huggingface.co/models/${model}`,
+      `https://router.huggingface.co/models/${model}`,  // ⭐ CHANGED THIS
       {
         method: 'POST',
         headers: {
