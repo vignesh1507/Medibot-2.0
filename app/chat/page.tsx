@@ -1977,7 +1977,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       }
     
       const data = await response.json();
-      content = data[0]?.generated_text || data.generated_text;
+      content = data.generated_text;
     }
     // ✅ OpenAI / Groq
     else {
