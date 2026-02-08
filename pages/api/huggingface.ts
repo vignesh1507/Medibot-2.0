@@ -11,8 +11,9 @@ export default async function handler(
   try {
     const { model, prompt } = req.body;
 
+    // ✅ NEW: Updated to use the new HuggingFace router endpoint
     const response = await fetch(
-      `https://api-inference.huggingface.co/models/${model}`,
+      `https://router.huggingface.co/v1/chat/completions`,
       {
         method: 'POST',
         headers: {
@@ -20,13 +21,16 @@ export default async function handler(
           'Authorization': `Bearer ${process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY}`,
         },
         body: JSON.stringify({
-          inputs: prompt,
-          parameters: {
-            temperature: 0.7,
-            max_new_tokens: 2048,
-            top_p: 0.95,
-            do_sample: true,
-          },
+          model: model, // e.g., "meta-llama/Llama-3.3-70B-Instruct"
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          max_tokens: 8192,
+          temperature: 0.7,
+          top_p: 0.95,
         }),
       }
     );
@@ -41,16 +45,10 @@ export default async function handler(
 
     const data = await response.json();
     
-    // Handle different response formats
-    let text = '';
-    if (Array.isArray(data)) {
-      text = data[0]?.generated_text || data[0]?.text || '';
-    } else {
-      text = data.generated_text || data[0]?.generated_text || '';
-    }
-
+    // ✅ NEW: Handle OpenAI-compatible response format
+    const text = data.choices?.[0]?.message?.content || '';
+    
     return res.status(200).json({ generated_text: text });
-
   } catch (error: any) {
     console.error('HuggingFace API error:', error);
     return res.status(500).json({ 
