@@ -22,7 +22,7 @@ const sendViaGmail = async (to: string, subject: string, htmlContent: string) =>
   const transporter = createGmailTransporter();
   
   const mailOptions = {
-    from: `MediBot <${process.env.EMAIL_USER}>`,
+    from: `Medibot <${process.env.EMAIL_USER}>`,
     to,
     subject,
     html: htmlContent,
@@ -268,21 +268,21 @@ export async function POST(req: Request) {
               <div class="logo-container">
                 <div class="logo">M</div>
               </div>
-              <div class="brand-name">MediBot</div>
+              <div class="brand-name">Medibot</div>
             </div>
             
             <!-- Content area -->
             <div class="content">
               <h1 class="greeting">Hello ${to?.split("@")[0] || "there"},</h1>
               
-              <p>You have a reminder from MediBot:</p>
+              <p>You have a reminder from Medibot:</p>
               
               <div class="message-container">
                 <div class="message-label">Your Reminder</div>
                 <div class="message-content">${message}</div>
               </div>
               
-              <p>If you have any questions or need to adjust this reminder, please visit your MediBot dashboard.</p>
+              <p>If you have any questions or need to adjust this reminder, please visit your Medibot dashboard.</p>
               
               <div class="cta-container">
                 <a href="https://medibot-ai.com/dashboard" class="cta-button">Go to Dashboard</a>
@@ -290,7 +290,7 @@ export async function POST(req: Request) {
               
               <p>If you didn't request this reminder, you can safely ignore this email or contact our support team.</p>
               
-              <p>Best regards,<br /><strong>The MediBot Team</strong></p>
+              <p>Best regards,<br /><strong>The Medibot Team</strong></p>
             </div>
             
             <!-- Footer -->
@@ -303,8 +303,8 @@ export async function POST(req: Request) {
                 <a href="https://medibot-ai.com/privacy" class="footer-link">Privacy Policy</a>
               </div>
               
-              <p class="copyright">© ${new Date().getFullYear()} MediBot. All rights reserved.<br />
-              You are receiving this email because you have an account with MediBot.</p>
+              <p class="copyright">© ${new Date().getFullYear()} Medibot. All rights reserved.<br />
+              You are receiving this email because you have an account with Medibot.</p>
             </div>
           </div>
         </td>
@@ -342,7 +342,7 @@ export async function POST(req: Request) {
     
     try {
       const { data, error } = await resend.emails.send({
-        from: `MediBot <${fromEmail}>`,
+        from: `Medibot <${fromEmail}>`,
         to,
         subject,
         html: htmlContent,

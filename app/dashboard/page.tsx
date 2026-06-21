@@ -255,10 +255,10 @@ export default function DashboardPage() {
                     <span className="text-xs sm:text-sm font-semibold text-foreground">Add Meds</span>
                   </Button>
                 </Link>
-                <Link href="/summarizer" className="group">
+                <Link href="/medicine" className="group">
                   <Button variant="outline" className="w-full h-16 flex flex-col items-center justify-center gap-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all rounded-xl shadow-sm">
                     <Activity className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
-                    <span className="text-xs sm:text-sm font-semibold text-foreground">Medical Info</span>
+                    <span className="text-xs sm:text-sm font-semibold text-foreground">Medicine Info</span>
                   </Button>
                 </Link>
                 {/* Appointments feature temporarily disabled */}
@@ -269,7 +269,7 @@ export default function DashboardPage() {
                 <CardHeader className="p-6 pb-2 flex flex-row items-center justify-between">
                   <div>
                     <CardTitle className="text-lg font-bold text-foreground">Recent Activity</CardTitle>
-                    <CardDescription className="text-sm text-muted-foreground">Your latest interactions with MediBot</CardDescription>
+                    <CardDescription className="text-sm text-muted-foreground">Your latest interactions with Medibot</CardDescription>
                   </div>
                   <Link href="/history">
                     <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10 rounded-full">

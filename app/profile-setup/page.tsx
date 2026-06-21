@@ -274,7 +274,7 @@ export default function ProfileSetupPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl shadow-lg text-sm sm:text-base font-medium"
+                className="flex-1 h-12 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white rounded-xl shadow-lg text-sm sm:text-base font-medium"
               >
                 {loading ? "Saving Details..." : "Save Details"}
               </Button>

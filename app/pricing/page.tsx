@@ -13,22 +13,25 @@ const plans = [
     name: 'Base (Free)',
     price: '₹0',
     period: 'forever',
-    description: 'Perfect for getting started with AI health assistance',
+    description: 'Everything you need to start managing your health with AI',
     features: [
-      '🤖 Open Source AI Models (Llama 3.3 70B, Mixtral 8x7B, Gemma 7B)',
-      '🌍 Multilingual Support',
-      '💬 Basic Health Chat',
-      '📱 Mobile App Access',
-      '🔒 Basic Security',
-      '📧 Email Support'
+      'Medibot Care AI — fast, friendly health chat',
+      'Lab report analysis — 3 reports / month',
+      'Symptom photo analysis — 3 photos / month',
+      'Health Memory — your personal health timeline',
+      'Auto-logged symptoms & findings from chat',
+      'Medication tracker & reminders',
+      '8 languages (English, Hindi, Tamil, Telugu & more)',
+      'Emergency detection & trusted source links',
     ],
     limitations: [
-      '🚫 No Premium AI Models (GPT-4, Gemini Pro, Claude)',
-      '🚫 No Prescription Analysis',
-      '🚫 No Medication Reminders',
-      '🚫 No Speech-to-Speech',
-      '🚫 No Info Summarizer',
-      '🚫 Limited Chat History'
+      'No unlimited report / photo analysis',
+      'No Medicine Info (drug lookup by name or photo)',
+      'No Medibot Specialist (deep-analysis AI)',
+      'No health trend charts',
+      'No Doctor Visit PDF export',
+      'No full health-data export',
+      'No regional-language voice (25+ languages)',
     ],
     cta: 'Current Plan',
     highlight: false,
@@ -38,49 +41,23 @@ const plans = [
     name: 'Premium (PRO)',
     price: '₹99',
     period: 'month',
-    description: 'Complete health management with advanced AI and premium features',
+    description: 'Your complete AI health companion — unlimited and personalized',
     features: [
-      '🚀 Everything in Base Plan',
-      '🧠 Premium AI Models (GPT-4o, Gemini 2.0 Flash, Claude 3 Sonnet)',
-      '📋 Advanced Prescription Analysis with OCR',
-      '💊 Smart Medication Reminders & Scheduling',
-      '🎤 Speech-to-Speech Interaction',
-      '📝 Medical Info Summarizer',
-      '📊 Advanced Health Dashboard',
-      '📅 Appointment Management',
-      '🔔 Multi-Channel Notifications (Push, Email, SMS)',
-      '📈 Health Trends & Analytics',
-      '💾 Unlimited Chat History',
-      '🚨 Emergency Contact Features',
-      '⚡ Priority Support',
-      '🔒 Enhanced Security & Privacy'
+      'Everything in Free, plus:',
+      'Unlimited lab report & symptom photo analysis',
+      'Medicine Info — drug lookup by name or photo',
+      'Medibot Specialist — deeper, more capable AI',
+      'Health Trend charts (HbA1c, cholesterol & more over time)',
+      'Doctor Visit PDF — doctor-ready summary export',
+      'Export your full health data (JSON)',
+      '25+ languages + voice in your native language',
+      'Smart medication reminders',
+      'Priority responses',
     ],
     limitations: [],
     cta: 'Upgrade to PRO',
     highlight: true,
     popular: true,
-  },
-  {
-    name: 'Enterprise',
-    price: '₹999',
-    period: 'year',
-    description: 'Advanced solution for healthcare organizations and teams',
-    features: [
-      '🏆 Everything in Premium',
-      '👥 Team Collaboration & Management',
-      '🏥 Healthcare Provider Integration',
-      '📊 Advanced Analytics & Reporting',
-      '🔗 Custom API Integrations',
-      '🎯 Dedicated Account Manager',
-      '📞 24/7 Phone Support',
-      '🔐 Enterprise-grade Security',
-      '⚙️ Custom Workflows',
-      '📋 Compliance Tools (HIPAA ready)'
-    ],
-    limitations: [],
-    cta: 'Contact Sales',
-    highlight: false,
-    popular: false,
   },
 ];
 
@@ -156,15 +133,15 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E6FAF8] py-12 px-4">
       {/* Payment Status Banner */}
       {paymentStatus === 'success' && (
         <div className="max-w-4xl mx-auto mb-8">
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4 flex items-center gap-3">
-            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+            <CheckCircle className="h-5 w-5 text-green-600" />
             <div>
-              <p className="text-green-800 dark:text-green-200 font-medium">Payment Successful!</p>
-              <p className="text-green-600 dark:text-green-400 text-sm">Your Premium plan has been activated.</p>
+              <p className="text-green-800 font-medium">Payment Successful!</p>
+              <p className="text-green-600 text-sm">Your Premium plan has been activated.</p>
             </div>
           </div>
         </div>
@@ -172,55 +149,55 @@ export default function PricingPage() {
       
       {paymentStatus === 'failed' && (
         <div className="max-w-4xl mx-auto mb-8">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 flex items-center gap-3">
-            <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <XCircle className="h-5 w-5 text-red-600" />
             <div>
-              <p className="text-red-800 dark:text-red-200 font-medium">Payment Failed</p>
-              <p className="text-red-600 dark:text-red-400 text-sm">Please try again or contact support if the issue persists.</p>
+              <p className="text-red-800 font-medium">Payment Failed</p>
+              <p className="text-red-600 text-sm">Please try again or contact support if the issue persists.</p>
             </div>
           </div>
         </div>
       )}
 
       <div className="max-w-4xl mx-auto text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4 text-blue-700 dark:text-blue-300">Choose Your MediBot Plan</h1>
-        <p className="text-lg text-gray-600 dark:text-gray-400 mb-6">Get the healthcare assistance you need with transparent pricing and clear feature comparison.</p>
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 text-sm text-blue-800 dark:text-blue-200">
-          <strong>New:</strong> Compare features side-by-side to see exactly what's included in each plan. From basic AI models to advanced prescription analysis.
+        <h1 className="text-4xl font-bold mb-4 text-teal-700">Choose Your Medibot Plan</h1>
+        <p className="text-lg text-gray-600 mb-6">Get the healthcare assistance you need with transparent pricing and clear feature comparison.</p>
+        <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 text-sm text-teal-800">
+          <strong>Simple pricing.</strong> Start free with 3 report &amp; 3 photo analyses a month — upgrade anytime for unlimited analysis, trend charts, and your doctor-visit PDF.
         </div>
       </div>
-      
-      <div className="flex flex-col lg:flex-row gap-8 justify-center items-stretch max-w-7xl mx-auto">
+
+      <div className="flex flex-col lg:flex-row gap-8 justify-center items-stretch max-w-4xl mx-auto">
         {plans.map((plan) => (
           <div
             key={plan.name}
             className={cn(
-              'flex-1 bg-white dark:bg-gray-950 rounded-2xl shadow-lg p-8 flex flex-col border-2 transition-all duration-300 max-w-md mx-auto lg:mx-0 relative',
-              plan.highlight ? 'border-blue-500 scale-105 z-10 shadow-blue-200 dark:shadow-blue-900/20' : 'border-gray-200 dark:border-gray-800'
+              'flex-1 bg-white rounded-2xl shadow-lg p-8 flex flex-col border-2 transition-all duration-300 max-w-md mx-auto lg:mx-0 relative',
+              plan.highlight ? 'border-teal-500 scale-105 z-10 shadow-teal-200' : 'border-gray-200'
             )}
           >
             {plan.popular && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-teal-600 to-teal-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
                 Most Popular
               </div>
             )}
             
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-semibold mb-2 text-blue-700 dark:text-blue-300">{plan.name}</h2>
+              <h2 className="text-2xl font-semibold mb-2 text-teal-700">{plan.name}</h2>
               <div className="flex items-baseline justify-center gap-1 mb-2">
-                <span className="text-4xl font-bold text-blue-600 dark:text-blue-200">{plan.price}</span>
-                {plan.period && <span className="text-gray-500 dark:text-gray-400">/{plan.period}</span>}
+                <span className="text-4xl font-bold text-teal-600">{plan.price}</span>
+                {plan.period && <span className="text-gray-500">/{plan.period}</span>}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">{plan.description}</p>
+              <p className="text-sm text-gray-600">{plan.description}</p>
             </div>
 
             <div className="flex-grow">
               <div className="mb-6">
-                <h4 className="font-semibold text-green-600 dark:text-green-400 mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-green-600 mb-3 flex items-center gap-2">
                   <CheckCircle className="h-4 w-4" />
                   What's Included
                 </h4>
-                <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                <ul className="space-y-2 text-sm text-gray-700">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2">
                       <span className="inline-block w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></span>
@@ -232,11 +209,11 @@ export default function PricingPage() {
 
               {plan.limitations.length > 0 && (
                 <div className="mb-6">
-                  <h4 className="font-semibold text-red-600 dark:text-red-400 mb-3 flex items-center gap-2">
+                  <h4 className="font-semibold text-red-600 mb-3 flex items-center gap-2">
                     <XCircle className="h-4 w-4" />
                     Not Included
                   </h4>
-                  <ul className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+                  <ul className="space-y-2 text-sm text-gray-500">
                     {plan.limitations.map((limitation) => (
                       <li key={limitation} className="flex items-start gap-2">
                         <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0"></span>
@@ -250,15 +227,15 @@ export default function PricingPage() {
             
             <div className="mt-auto pt-4">
               {plan.cta === 'Current Plan' ? (
-                <button className="w-full bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-lg cursor-default flex items-center justify-center gap-2" disabled>
+                <button className="w-full h-12 bg-gray-300 text-gray-700 px-6 rounded-lg cursor-default flex items-center justify-center gap-2 font-semibold" disabled>
                   <CheckCircle className="h-4 w-4" />
                   {plan.cta}
                 </button>
               ) : plan.cta === 'Upgrade to PRO' ? (
-                <button 
+                <button
                   onClick={() => handlePhonePePayment('Premium', 99)}
                   disabled={loading === 'Premium'}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full h-12 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white px-6 rounded-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading === 'Premium' ? (
                     <>
@@ -273,38 +250,30 @@ export default function PricingPage() {
                   )}
                 </button>
               ) : plan.cta === 'Contact Sales' ? (
-                <div className="flex flex-col gap-2">
-                  <button 
-                    onClick={() => handlePhonePePayment('Enterprise', 799)}
-                    disabled={loading === 'Enterprise'}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {loading === 'Enterprise' ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="h-4 w-4" />
-                        Subscribe Now
-                      </>
-                    )}
-                  </button>
-                  <Link 
-                    href="/contact" 
-                    className="text-center text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                  >
-                    or Contact Sales
-                  </Link>
-                </div>
+                <button
+                  onClick={() => handlePhonePePayment('Enterprise', 799)}
+                  disabled={loading === 'Enterprise'}
+                  className="w-full h-12 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white px-6 rounded-lg font-semibold shadow-lg transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading === 'Enterprise' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4" />
+                      Subscribe Now
+                    </>
+                  )}
+                </button>
               ) : null}
             </div>
           </div>
         ))}
       </div>
       
-      <div className="max-w-2xl mx-auto mt-12 text-center text-gray-500 dark:text-gray-400 text-sm">
+      <div className="max-w-2xl mx-auto mt-12 text-center text-gray-500 text-sm">
         <p>* All prices are inclusive of taxes. Cancel anytime. For teams and custom solutions, contact sales.</p>
         <div className="mt-4 flex items-center justify-center gap-2 text-xs">
           <CreditCard className="h-4 w-4" />

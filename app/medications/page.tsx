@@ -48,6 +48,9 @@ export default function MedicationsPage() {
   const { user, userProfile } = useAuth();
   const router = useRouter();
   const reminderTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  // Tracks meds already scheduled this session so the real-time listener doesn't
+  // re-schedule (and re-toast) on every Firestore snapshot.
+  const scheduledMedIds = useRef<Set<string>>(new Set());
 
   // FCM token collection and saving logic
 
@@ -70,7 +73,17 @@ export default function MedicationsPage() {
               }
             }
             
-            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+            // Pass Firebase config to the service worker via query params, since a
+            // service worker is a static file and can't read process.env. Nothing
+            // is hardcoded — the SW reads these from the registration URL.
+            const swConfig = new URLSearchParams({
+              apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
+              authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
+              projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+              messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
+              appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
+            }).toString();
+            const registration = await navigator.serviceWorker.register(`/firebase-messaging-sw.js?${swConfig}`, {
               updateViaCache: 'none'
             });
             console.log('Service Worker registered:', registration);
@@ -85,7 +98,7 @@ export default function MedicationsPage() {
         
         if (permission === "granted") {
           console.log("Getting FCM token...");
-          const fcmToken = await getToken(messaging, { vapidKey: "BMxZwmRm6QusAkd3tzvysDAZB8ReTuJVSQQHdc50nh6WCkN4Ja11FPpKLNwJuHKZUJwzsyKIciT1yKLpePHLDaE" });
+          const fcmToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY || "" });
           console.log("FCM token received:", fcmToken ? "Yes" : "No");
           
           if (fcmToken) {
@@ -98,7 +111,7 @@ export default function MedicationsPage() {
               
               // Show browser notification for foreground messages
               if (Notification.permission === 'granted') {
-                const title = payload.notification?.title || payload.data?.title || 'MediBot Reminder';
+                const title = payload.notification?.title || payload.data?.title || 'Medibot Reminder';
                 const body = payload.notification?.body || payload.data?.body || 'You have a medication reminder';
                 
                 console.log('Showing foreground notification:', title, body);
@@ -265,10 +278,10 @@ export default function MedicationsPage() {
       console.log("Email sent successfully to:", email);
       return result;
     } catch (error) {
-      console.error("Error sending email notification:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      toast.error(`Failed to send email notification: ${errorMessage}`);
-      throw error; // Re-throw to let calling function handle it
+      // Best-effort: email reminders often aren't configured in dev. Log only —
+      // never surface a scary toast or throw; the medication is already saved.
+      console.warn("Email notification not sent (non-fatal):", error);
+      throw error; // caller uses allSettled, so this is swallowed
     }
   };
 
@@ -416,7 +429,10 @@ export default function MedicationsPage() {
       setLoading(false);
 
       meds.forEach((med) => {
-        if (med.reminderTimes.length && user.email) {
+        // Only schedule each med once per session — prevents the listener from
+        // re-scheduling and spamming "Reminders scheduled" on every data sync.
+        if (med.id && med.reminderTimes.length && user.email && !scheduledMedIds.current.has(med.id)) {
+          scheduledMedIds.current.add(med.id);
           scheduleReminders(med, user.email);
         }
       });
@@ -498,28 +514,33 @@ export default function MedicationsPage() {
       if (editingMedication && editingMedication.id) {
         await updateMedication(editingMedication.id, medicationData);
         medicationId = editingMedication.id;
+        // Reminder times may have changed — allow the listener to re-schedule once.
+        scheduledMedIds.current.delete(editingMedication.id);
         toast.success("Medication updated successfully!");
       } else {
         medicationId = await addMedication(user.uid, medicationData);
         toast.success("Medication added successfully!");
       }
 
+      // Notifications are best-effort — the medication is already saved. Email may
+      // fail in dev (no verified Resend domain / Gmail creds) and that's fine; it
+      // must NOT make the save look like it failed.
       const message = `Your medication ${medicationData.name} (${medicationData.dosage}) has been ${editingMedication ? "updated" : "added"} successfully.`;
-      const notifications = [
+      Promise.allSettled([
         sendMobileNotification(user.uid, "Medication Saved", message),
         user.email ? sendEmailNotification(user.email, "Medication Saved", message) : Promise.resolve(),
-      ];
-      await Promise.all(notifications);
+      ]).then((results) => {
+        results.forEach((r) => {
+          if (r.status === "rejected") console.warn("Medication notification failed (non-fatal):", r.reason);
+        });
+      });
 
       setDialogOpen(false);
       resetForm();
     } catch (error) {
+      // This only runs if the actual SAVE (addMedication/updateMedication) failed.
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const notifications = [
-        sendMobileNotification(user.uid, "Medication Save Error", `Failed to save medication: ${errorMessage}`),
-        user.email ? sendEmailNotification(user.email, "Medication Save Error", `Failed to save medication: ${errorMessage}`) : Promise.resolve(),
-      ];
-      await Promise.all(notifications);
+      console.error("Failed to save medication:", errorMessage);
       toast.error(`Failed to save medication: ${errorMessage}`);
     }
   };
@@ -528,6 +549,7 @@ export default function MedicationsPage() {
     try {
       await deleteMedication(medicationId);
       cancelReminders(medicationId);
+      scheduledMedIds.current.delete(medicationId); // allow re-add later
       toast.success("Medication deleted successfully!");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -611,11 +633,11 @@ export default function MedicationsPage() {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen bg-white dark:bg-[#0e1a2b] text-black dark:text-white">
+      <div className="flex min-h-screen bg-white text-black">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 overflow-y-auto px-4 pt-10 max-w-5xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-[#a855f7]">Manage Your Medications</h1>
+            <h1 className="text-3xl font-bold text-teal-600">Manage Your Medications</h1>
             <p className="text-muted-foreground mt-1 mb-6">Track your medications and set reminders</p>
            
           </div>
@@ -647,7 +669,7 @@ export default function MedicationsPage() {
               </div>
 
               <div className="flex-1 text-center md:text-left">
-                <h2 className="text-2xl md:text-3xl font-bold text-[#a855f7] mb-3">
+                <h2 className="text-2xl md:text-3xl font-bold text-teal-600 mb-3">
                   Never Miss a Dose Again
                 </h2>
                 <p className="text-muted-foreground mb-4 leading-relaxed">
@@ -655,7 +677,7 @@ export default function MedicationsPage() {
                 </p>
                 <Button
                   onClick={handleAddMedication}
-                  className="bg-[#a855f7] hover:bg-teal-600 dark:bg-[#a855f7] dark:hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2"
+                  className="bg-teal-600 hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2"
                 >
                   <Plus className="mr-1 h-4 w-4" /> Set a Reminder
                 </Button>
@@ -669,7 +691,7 @@ export default function MedicationsPage() {
               <DialogTrigger asChild>
                 <Button
                   onClick={handleAddMedication}
-                  className="bg-[#a855f7] hover:bg-teal-600 dark:bg-[#a855f7] dark:hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2"
+                  className="bg-teal-600 hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2"
                 >
                   <Plus className="mr-1 h-4 w-4" /> Add Medication
                 </Button>
@@ -763,7 +785,7 @@ export default function MedicationsPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => removeReminderTime(index)}
-                            className="text-muted-foreground hover:text-teal-300 dark:hover:text-teal-500"
+                            className="text-muted-foreground hover:text-teal-300"
                             aria-label="Remove reminder time"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -775,7 +797,7 @@ export default function MedicationsPage() {
                       type="button"
                       variant="ghost"
                       onClick={addReminderTime}
-                      className="mt-2 text-muted-foreground hover:text-teal-300 dark:hover:text-teal-500"
+                      className="mt-2 text-muted-foreground hover:text-teal-300"
                     >
                       <Plus className="mr-2 h-4 w-4" />
                       Add Reminder Time
@@ -798,13 +820,13 @@ export default function MedicationsPage() {
                       type="button"
                       variant="ghost"
                       onClick={() => setDialogOpen(false)}
-                      className="flex-1 text-muted-foreground hover:text-teal-300 dark:hover:text-teal-500"
+                      className="flex-1 text-muted-foreground hover:text-teal-300"
                     >
                       Cancel
                     </Button>
                     <Button
                       type="submit"
-                      className="flex-1 bg-[#a855f7] hover:bg-teal-600 dark:bg-[#a855f7] dark:hover:bg-teal-600 text-white"
+                      className="flex-1 bg-teal-600 hover:bg-teal-600 text-white"
                     >
                       {editingMedication ? "Update" : "Add"} Medication
                     </Button>
@@ -824,7 +846,7 @@ export default function MedicationsPage() {
           ) : (
             <div className="space-y-6">
               <section>
-                <h3 className="text-lg font-semibold mb-2 text-[#a855f7] dark:text-[#a855f7]">Active Medications</h3>
+                <h3 className="text-lg font-semibold mb-2 text-teal-600">Active Medications</h3>
                 {filteredMedications.map((medication) => (
                   <Card key={medication.id} className="bg-card border-border rounded-lg mt-4 shadow-md">
                     <CardContent className="p-4">
@@ -842,7 +864,7 @@ export default function MedicationsPage() {
                               variant="ghost"
                               size="icon"
                               onClick={() => testReminder(medication)}
-                              className="text-muted-foreground hover:text-teal-300 dark:hover:text-teal-500"
+                              className="text-muted-foreground hover:text-teal-300"
                               title=" Reminder"
                             >
                               <Bell className="h-4 w-4" />
@@ -852,7 +874,7 @@ export default function MedicationsPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEditMedication(medication)}
-                            className="text-muted-foreground hover:text-teal-300 dark:hover:text-teal-500"
+                            className="text-muted-foreground hover:text-teal-300"
                             title="Edit"
                           >
                             <Edit className="h-4 w-4" />
@@ -861,7 +883,7 @@ export default function MedicationsPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => medication.id && handleDeleteMedication(medication.id)}
-                            className="text-red-500 dark:text-red-600"
+                            className="text-red-500"
                             title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -873,7 +895,7 @@ export default function MedicationsPage() {
                           <p className="text-sm text-muted-foreground mb-1">Reminder Times:</p>
                           <div className="flex flex-wrap gap-2">
                             {medication.reminderTimes.map((time, index) => (
-                              <Badge key={index} className="bg-blue-600 dark:bg-blue-500 text-white text-xs">
+                              <Badge key={index} className="bg-teal-600 text-white text-xs">
                                 {formatTime(time)}
                               </Badge>
                             ))}
@@ -889,7 +911,7 @@ export default function MedicationsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-red-500 dark:text-red-600 text-xs"
+                          className="text-red-500 text-xs"
                           onClick={() => medication.id && handleDeleteMedication(medication.id)}
                         >
                           <Trash2 className="h-4 w-4 mr-1" /> Delete

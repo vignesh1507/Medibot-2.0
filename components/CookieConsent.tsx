@@ -180,7 +180,7 @@ export default function CookieConsent() {
                         transition={{ delay: 0.2, duration: 0.4 }}
                         className="text-gray-600 text-base leading-relaxed"
                       >
-                        MediBot uses essential cookies to secure your health data, remember your medication schedules, 
+                        Medibot uses essential cookies to secure your health data, remember your medication schedules, 
                         and provide personalized reminders. We also use analytics to improve our services.
                       </motion.p>
                       
@@ -299,7 +299,7 @@ export default function CookieConsent() {
                       <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-200">
                         <div className="flex-1">
                           <h4 className="font-semibold text-gray-900 mb-1">📊 Analytics Cookies</h4>
-                          <p className="text-sm text-gray-600">Help us understand usage patterns to improve MediBot</p>
+                          <p className="text-sm text-gray-600">Help us understand usage patterns to improve Medibot</p>
                         </div>
                         <Switch
                           checked={preferences.analytics}
@@ -308,7 +308,7 @@ export default function CookieConsent() {
                         />
                       </div>
 
-                      <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-200">
+                      <div className="flex items-center justify-between p-3 bg-teal-50 rounded-xl border border-teal-200">
                         <div className="flex-1">
                           <h4 className="font-semibold text-gray-900 mb-1">⚙️ Functional Cookies</h4>
                           <p className="text-sm text-gray-600">Remember your preferences and personalize your experience</p>

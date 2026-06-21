@@ -38,24 +38,24 @@ export default function HomePage() {
     }
   }, [user, loading, router])
   // Updated color scheme to match chat page - blue/violet theme
-  const primaryColor = "bg-[#6366F1]";
-  const primaryHover = "hover:bg-[#5B21B6]";
-  const primaryBorder = "border-[#6366F1]";
-  const primaryText = "text-[#6366F1]";
+  const primaryColor = "bg-teal-600";
+  const primaryHover = "hover:bg-teal-700";
+  const primaryBorder = "border-teal-600";
+  const primaryText = "text-teal-600";
 
   const secondaryColor = "bg-[#F8FAFC]";
   const secondaryHover = "hover:bg-[#F1F5F9]";
   const secondaryBorder = "border-[#E2E8F0]";
   const secondaryText = "text-[#475569]";
 
-  const accentColor = "bg-[#8B5CF6]";
-  const accentHover = "hover:bg-[#7C3AED]";
-  const accentBorder = "border-[#8B5CF6]";
-  const accentText = "text-[#8B5CF6]";
+  const accentColor = "bg-teal-500";
+  const accentHover = "hover:bg-teal-700";
+  const accentBorder = "border-teal-500";
+  const accentText = "text-teal-500";
 
-  const buttonClasses = `h-10 px-6 ${primaryColor} text-white border ${primaryBorder} rounded-lg text-base font-medium shadow-none ${primaryHover} hover:border-[#5B21B6] hover:text-white`;
+  const buttonClasses = `h-10 px-6 ${primaryColor} text-white border ${primaryBorder} rounded-lg text-base font-medium shadow-none ${primaryHover} hover:border-teal-700 hover:text-white`;
   const secondaryButtonClasses = `h-10 px-6 ${secondaryColor} ${secondaryText} border ${secondaryBorder} rounded-lg text-base font-medium shadow-none ${secondaryHover} hover:border-[#CBD5E1] hover:text-[#475569]`;
-  const accentButtonClasses = `h-10 px-6 ${accentColor} text-white border ${accentBorder} rounded-lg text-base font-medium shadow-none ${accentHover} hover:border-[#7C3AED] hover:text-white`;
+  const accentButtonClasses = `h-10 px-6 ${accentColor} text-white border ${accentBorder} rounded-lg text-base font-medium shadow-none ${accentHover} hover:border-teal-700 hover:text-white`;
 
   // Animation controls
   const controls = useAnimation();
@@ -170,25 +170,25 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>MediBot </title>
-        <meta name="description" content="MediBot helps manage your prescriptions, schedule medications, and receive personalized AI-powered health insights anytime."/>
-        <meta name="keywords" content="MediBot, AI health, prescription manager, health assistant, medication tracker"/>
+        <title>Medibot </title>
+        <meta name="description" content="Medibot helps manage your prescriptions, schedule medications, and receive personalized AI-powered health insights anytime."/>
+        <meta name="keywords" content="Medibot, AI health, prescription manager, health assistant, medication tracker"/>
         <meta name="author" content="Asvix - Sujay Babu Thota" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://medibot.vercel.app/" />
-        <meta property="og:title" content="MediBot - AI-Powered Health Assistant & Medication Management" />
-        <meta property="og:description" content="Transform your healthcare with MediBot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights." />
+        <meta property="og:title" content="Medibot - AI-Powered Health Assistant & Medication Management" />
+        <meta property="og:description" content="Transform your healthcare with Medibot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights." />
         <meta property="og:image" content="https://medibot.vercel.app/main.png" />
-        <meta property="og:site_name" content="MediBot" />
+        <meta property="og:site_name" content="Medibot" />
         
         {/* Twitter */}
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:url" content="https://medibot.vercel.app/" />
-        <meta property="twitter:title" content="MediBot - AI-Powered Health Assistant & Medication Management" />
-        <meta property="twitter:description" content="Transform your healthcare with MediBot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights." />
+        <meta property="twitter:title" content="Medibot - AI-Powered Health Assistant & Medication Management" />
+        <meta property="twitter:description" content="Transform your healthcare with Medibot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights." />
         <meta property="twitter:image" content="https://medibot.vercel.app/main.png" />
         
         {/* Additional SEO */}
@@ -210,8 +210,8 @@ export default function HomePage() {
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Organization",
-            "name": "MediBot",
-            "alternateName": "Asvix MediBot",
+            "name": "Medibot",
+            "alternateName": "Asvix Medibot",
             "url": "https://medibot.vercel.app",
             "logo": "https://medibot.vercel.app/logo.png",
             "description": "AI-powered health assistant for medication management and personalized health insights",
@@ -232,7 +232,7 @@ export default function HomePage() {
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
-            "name": "MediBot",
+            "name": "Medibot",
             "operatingSystem": "Android, iOS, Web",
             "applicationCategory": "HealthApplication",
             "aggregateRating": {
@@ -261,42 +261,42 @@ export default function HomePage() {
               "mainEntity": [
                 {
                   "@type": "Question",
-                  "name": "What is MediBot?",
+                  "name": "What is Medibot?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "MediBot is an AI-powered health assistant that helps you manage medications, track health vitals, schedule appointments, and provides personalized health insights through intelligent conversation."
+                    "text": "Medibot is an AI-powered health assistant that helps you manage medications, track health vitals, schedule appointments, and provides personalized health insights through intelligent conversation."
                   }
                 },
                 {
                   "@type": "Question",
-                  "name": "How does MediBot help with medication management?",
+                  "name": "How does Medibot help with medication management?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "MediBot provides medication reminders, tracks your dosage schedule, analyzes prescriptions, checks for drug interactions, and sends SMS notifications to ensure you never miss a dose."
+                    "text": "Medibot provides medication reminders, tracks your dosage schedule, analyzes prescriptions, checks for drug interactions, and sends SMS notifications to ensure you never miss a dose."
                   }
                 },
                 {
                   "@type": "Question",
-                  "name": "Is MediBot free to use?",
+                  "name": "Is Medibot free to use?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Yes, MediBot offers core features for free including basic medication reminders, health tracking, and AI chat. Premium features may be available for advanced analytics and additional services."
+                    "text": "Yes, Medibot offers core features for free including basic medication reminders, health tracking, and AI chat. Premium features may be available for advanced analytics and additional services."
                   }
                 },
                 {
                   "@type": "Question",
-                  "name": "Is my health data secure with MediBot?",
+                  "name": "Is my health data secure with Medibot?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Absolutely. MediBot uses enterprise-grade encryption and follows HIPAA compliance standards to protect your personal health information. Your data is never shared with third parties without your explicit consent."
+                    "text": "Absolutely. Medibot uses enterprise-grade encryption and follows HIPAA compliance standards to protect your personal health information. Your data is never shared with third parties without your explicit consent."
                   }
                 },
                 {
                   "@type": "Question",
-                  "name": "Can MediBot replace my doctor?",
+                  "name": "Can Medibot replace my doctor?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "No, MediBot is designed to complement, not replace, professional medical care. It provides health management tools and general information, but you should always consult with healthcare professionals for medical advice and treatment."
+                    "text": "No, Medibot is designed to complement, not replace, professional medical care. It provides health management tools and general information, but you should always consult with healthcare professionals for medical advice and treatment."
                   }
                 }
               ]
@@ -311,7 +311,7 @@ export default function HomePage() {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "MedicalWebPage",
-              "name": "MediBot - AI Health Assistant",
+              "name": "Medibot - AI Health Assistant",
               "description": "AI-powered health management platform offering medication reminders, prescription analysis, and personalized health insights",
               "url": "https://medibot.vercel.app",
               "medicalAudience": {
@@ -335,7 +335,7 @@ export default function HomePage() {
       </Head>
       
       <div
-        className={`min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#EDE9FE] text-[#475569] flex flex-col items-center justify-start overflow-x-hidden`}
+        className={`min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E6FAF8] text-[#475569] flex flex-col items-center justify-start overflow-x-hidden`}
       >
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -359,7 +359,7 @@ export default function HomePage() {
             >
               <Image
                 src="/logo.png"
-                alt="MediBot Logo - AI Health Assistant"
+                alt="Medibot Logo - AI Health Assistant"
                 width={40}
                 height={40}
                 className="rounded-full object-cover"
@@ -371,7 +371,7 @@ export default function HomePage() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="text-xl font-bold text-[#0E7490]"
             >
-              MediBot
+              Medibot
             </motion.h1>
           </div>
           <motion.div
@@ -427,8 +427,8 @@ export default function HomePage() {
               id="hero-heading"
             >
               Transform Your Health with{" "}
-              <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
-                MediBot
+              <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
+                Medibot
               </span>
             </motion.h1>
             <motion.p
@@ -449,36 +449,13 @@ export default function HomePage() {
             >
               <Button
                 asChild
-                className={`inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] hover:from-[#5B21B6] hover:to-[#7C3AED] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#6366F1]`}
+                className={`inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-600`}
               >
                 <Link href="/auth/signup">Get Started Free</Link>
               </Button>
             </motion.div>
           </div>
 
-          {/* Hero Image */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="mt-16 relative"
-          >
-            <div className="relative max-w-4xl mx-auto rounded-3xl overflow-hidden border border-gray-200 shadow-2xl shadow-[#CFFAFE]/50">
-              <Image
-                src="/main.png"
-                alt="MediBot App Dashboard"
-                width={1200}
-                height={800}
-                className="w-full h-auto"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-white/80 to-transparent pointer-events-none"></div>
-            </div>
-
-            {/* Floating elements around the hero image */}
-            <div className="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-[#CFFAFE]/50 blur-xl animate-pulse-slow"></div>
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full bg-[#CCFBF1]/50 blur-xl animate-pulse-medium"></div>
-          </motion.div>
         </div>
       </section>
 
@@ -497,18 +474,18 @@ export default function HomePage() {
 
         <motion.div variants={item} className="text-center mb-16">
           <span
-            className={`inline-block px-4 py-2 bg-[#EDE9FE] text-[#6366F1] rounded-lg text-sm font-medium mb-4`}
+            className={`inline-block px-4 py-2 bg-[#E6FAF8] text-teal-600 rounded-lg text-sm font-medium mb-4`}
           >
             Powerful Features
           </span>
           <h2 id="features-heading" className="text-4xl md:text-5xl font-bold text-[#475569]">
             Take Control of Your{" "}
-            <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
               Health
             </span>
           </h2>
           <p className="mt-4 text-lg text-[#64748B] max-w-2xl mx-auto">
-            MediBot combines cutting-edge technology with intuitive design to
+            Medibot combines cutting-edge technology with intuitive design to
             revolutionize your health management.
           </p>
         </motion.div>
@@ -516,42 +493,42 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[
             {
-              icon: <Pill className="h-6 w-6 text-[#6366F1]" />,
+              icon: <Pill className="h-6 w-6 text-teal-600" />,
               title: "Smart Medication Tracking",
               description:
                 "Easily log and track your medications with our intuitive interface. Set up schedules, view history, and get insights into your adherence.",
               image: "/healthtrack.png",
             },
             {
-              icon: <MessageCircle className="h-6 w-6 text-[#6366F1]" />,
+              icon: <MessageCircle className="h-6 w-6 text-teal-600" />,
               title: "AI-Powered Health Chat",
               description:
-                "Ask MediBot anything about your health or prescriptions. Our AI provides accurate, personalized advice to support your wellness journey.",
+                "Ask Medibot anything about your health or prescriptions. Our AI provides accurate, personalized advice to support your wellness journey.",
               image: "/chat.png",
             },
             {
-              icon: <Clock className="h-6 w-6 text-[#6366F1]" />,
+              icon: <Clock className="h-6 w-6 text-teal-600" />,
               title: "Timely Reminders",
               description:
                 "Receive customized reminders via email, WhatsApp, or push notifications to stay on top of your medication schedule.",
               image: "/medication.png",
             },
             {
-              icon: <Calendar className="h-6 w-6 text-[#6366F1]" />,
-              title: "Medical Information Summarizer",
+              icon: <Calendar className="h-6 w-6 text-teal-600" />,
+              title: "Medicine Info",
               description:
-                "Visualize your medication and appointment schedules in a sleek, interactive calendar to plan your health routine effectively.",
+                "Type a medicine name or snap a photo of the strip — instantly understand what it is, what it's used for, and its common side effects.",
               image: "/summarize.webp",
             },
             {
-              icon: <Activity className="h-6 w-6 text-[#6366F1]" />,
+              icon: <Activity className="h-6 w-6 text-teal-600" />,
               title: "Prescription Analysis",
               description:
                 "Get tailored health tips and analytics based on your medication adherence and health data to optimize your well-being.",
               image: "/prescription.webp",
             },
             {
-              icon: <Shield className="h-6 w-6 text-[#6366F1]" />,
+              icon: <Shield className="h-6 w-6 text-teal-600" />,
               title: "Secure & Private",
               description:
                 "Your data is protected with state-of-the-art encryption, ensuring your health information remains private and secure.",
@@ -604,15 +581,31 @@ export default function HomePage() {
               viewport={{ once: true }}
               className="lg:w-1/2"
             >
-              <div className="relative rounded-2xl overflow-hidden border border-gray-200 shadow-xl">
-                <Image
-                  src="/mobileview.png"
-                  alt="MediBot Mobile App"
-                  width={600}
-                  height={600}
-                  className="w-full h-auto"
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/50 pointer-events-none"></div>
+              {/* On-brand mobile preview (CSS-built, no outdated screenshot) */}
+              <div className="relative rounded-3xl bg-gradient-to-br from-teal-50 via-white to-teal-100/60 border border-teal-100 shadow-xl p-8 overflow-hidden">
+                <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-teal-200/40 blur-3xl"></div>
+                <div className="relative mx-auto max-w-[260px] bg-white rounded-[2rem] border-4 border-gray-900/90 shadow-2xl p-4">
+                  {/* phone notch */}
+                  <div className="mx-auto mb-3 h-1.5 w-16 rounded-full bg-gray-300"></div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-bold">M</div>
+                    <span className="font-bold text-gray-900">Medibot</span>
+                  </div>
+                  {[
+                    { label: "AI Health Chat", color: "bg-teal-500" },
+                    { label: "Lab Report Analysis", color: "bg-blue-500" },
+                    { label: "Health Memory", color: "bg-teal-600" },
+                    { label: "Medicine Info", color: "bg-cyan-500" },
+                  ].map((row) => (
+                    <div key={row.label} className="flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5 mb-2">
+                      <div className={`w-6 h-6 rounded-lg ${row.color}`}></div>
+                      <span className="text-sm font-medium text-gray-700">{row.label}</span>
+                    </div>
+                  ))}
+                  <div className="mt-3 rounded-xl bg-gradient-to-r from-teal-600 to-blue-600 text-white text-center text-sm font-semibold py-2.5">
+                    Ask Medibot anything
+                  </div>
+                </div>
               </div>
             </motion.div>
 
@@ -630,7 +623,7 @@ export default function HomePage() {
               </span>
               <h2 className="text-3xl md:text-4xl font-bold text-[#475569] mb-6">
                 Health Management{" "}
-                <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
                   On The Go
                 </span>
               </h2>
@@ -687,7 +680,7 @@ export default function HomePage() {
               <div className="relative rounded-2xl overflow-hidden border border-gray-200 shadow-xl">
                 <Image
                   src="/chatroom.png"
-                  alt="MediBot AI Assistant"
+                  alt="Medibot AI Assistant"
                   width={600}
                   height={600}
                   className="w-full h-auto"
@@ -704,18 +697,18 @@ export default function HomePage() {
               className="lg:w-1/2"
             >
               <span
-                className={`inline-block px-4 py-2 bg-[#EDE9FE] text-[#6366F1] rounded-lg text-sm font-medium mb-4`}
+                className={`inline-block px-4 py-2 bg-[#E6FAF8] text-teal-600 rounded-lg text-sm font-medium mb-4`}
               >
                 AI Assistant
               </span>
               <h2 className="text-3xl md:text-4xl font-bold text-[#475569] mb-6">
                 Your Personal{" "}
-                <span className="bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-teal-500 to-teal-600 bg-clip-text text-transparent">
                   Health Companion
                 </span>
               </h2>
               <p className="text-lg text-[#64748B] mb-6">
-                MediBot's AI assistant learns your health patterns and provides
+                Medibot's AI assistant learns your health patterns and provides
                 personalized recommendations to optimize your medication routine.
               </p>
               <ul className="space-y-4 mb-8">
@@ -741,7 +734,7 @@ export default function HomePage() {
 
       {/* Stats Section */}
       <section
-        className={`w-full py-20 bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#EDE9FE]`}
+        className={`w-full py-20 bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E6FAF8]`}
       >
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
@@ -785,7 +778,7 @@ export default function HomePage() {
                 className="p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-200 shadow-md"
               >
                 <div className="flex justify-center mb-3">{stat.icon}</div>
-                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent mb-2">
+                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent mb-2">
                   {stat.number}
                 </div>
                 <div className="text-[#64748B] text-lg">{stat.label}</div>
@@ -820,27 +813,28 @@ export default function HomePage() {
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-[#475569]">
             Choose Your{" "}
-            <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
               Plan
             </span>
           </h2>
           <p className="mt-4 text-lg text-[#64748B] max-w-2xl mx-auto">
-            Select the perfect plan to suit your health management needs with MediBot's
+            Select the perfect plan to suit your health management needs with Medibot's
             flexible pricing options.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {[
             {
               title: "Free",
-              price: "0₹",
-              period: "month",
+              price: "₹0",
+              period: "forever",
               features: [
-                "Basic Medication Tracking",
-                "Limited AI Health Chat",
-                "Email Reminders",
-                "Basic Security",
+                "Medibot Care AI health chat",
+                "3 lab report + 3 photo analyses / month",
+                "Health Memory timeline",
+                "Medication tracker & reminders",
+                "8 languages",
               ],
               cta: "Get Started Free",
               link: "/auth/signup",
@@ -848,35 +842,18 @@ export default function HomePage() {
             },
             {
               title: "Premium",
-              price: "99 ₹",
+              price: "₹99",
               period: "month",
               features: [
-                "Advanced Medication Tracking",
-                "Unlimited AI Health Chat",
-                "Multi-Channel Reminders",
-                "Medical Summarizer",
-                "Enhanced Security",
+                "Unlimited report & photo analysis",
+                "Medicine Info — drug lookup by name or photo",
+                "Medibot Specialist AI + health trend charts",
+                "Doctor Visit PDF & full data export",
+                "25+ languages + native-language voice",
               ],
-              cta: "Contact Sales",
-              link: "/contact",
+              cta: "Upgrade to Premium",
+              link: "/pricing",
               highlighted: true,
-            },
-            {
-              title: "Enterprise",
-              price: "999 ₹",
-              period: "year",
-              features: [
-                "Full Medication Management",
-                "Priority AI Support",
-                "Custom Integrations",
-                "Advanced Analytics",
-                "HIPAA-Compliant Security",
-                "Provider Monitoring",
-                "Lifetime Access",
-              ],
-              cta: "Contact Sales",
-              link: "/contact",
-              highlighted: false,
             },
           ].map((plan, index) => (
             <motion.div
@@ -916,7 +893,7 @@ export default function HomePage() {
                     asChild
                     className={`${
                       plan.highlighted
-                        ? "bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] text-white hover:from-[#5B21B6] hover:to-[#7C3AED]"
+                        ? "bg-gradient-to-r from-teal-600 to-teal-500 text-white hover:from-teal-700 hover:to-teal-700"
                         : buttonClasses
                     } w-full`}
                   >
@@ -939,13 +916,13 @@ export default function HomePage() {
           className="text-center mb-16"
         >
           <span
-            className={`inline-block px-4 py-2 bg-[#EDE9FE] text-[#6366F1] rounded-lg text-sm font-medium mb-4`}
+            className={`inline-block px-4 py-2 bg-[#E6FAF8] text-teal-600 rounded-lg text-sm font-medium mb-4`}
           >
             Partnerships
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-[#475569]">
             Trusted{" "}
-            <span className="bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-500 to-teal-600 bg-clip-text text-transparent">
               Collaborations
             </span>
           </h2>
@@ -957,19 +934,19 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {[
             {
-              icon: <Stethoscope className="h-8 w-8 text-[#8B5CF6]" />,
+              icon: <Stethoscope className="h-8 w-8 text-teal-500" />,
               title: "Healthcare Experts",
               description: "Collaborating with distinguished healthcare professionals like Dr. Saikat Gochhait (Honoris Causa) to integrate evidence-based practices.",
               count: "1"
             },
             {
-              icon: <Shield className="h-8 w-8 text-[#6366F1]" />,
+              icon: <Shield className="h-8 w-8 text-teal-600" />,
               title: "Active Partnerships",
               description: "Strategic collaborations focused on clinical decision support and AI-powered health management systems.",
               count: "1"
             },
             {
-              icon: <Activity className="h-8 w-8 text-[#6366F1]" />,
+              icon: <Activity className="h-8 w-8 text-teal-600" />,
               title: "Patients Reached",
               description: "Healthcare professionals and patients benefiting from our collaborative research and development initiatives.",
               count: isLoading ? "Loading..." : `${userCount.toLocaleString()}+`
@@ -983,11 +960,11 @@ export default function HomePage() {
               viewport={{ once: true }}
               whileHover={{ y: -5 }}
             >
-              <Card className="bg-white rounded-xl border border-gray-200 shadow-lg shadow-[#EDE9FE]/30 hover:shadow-[#EDE9FE]/50 transition-all h-full p-6 text-center">
-                <div className={`inline-flex p-4 bg-[#EDE9FE] rounded-lg mb-4`}>
+              <Card className="bg-white rounded-xl border border-gray-200 shadow-lg shadow-[#E6FAF8]/30 hover:shadow-[#E6FAF8]/50 transition-all h-full p-6 text-center">
+                <div className={`inline-flex p-4 bg-[#E6FAF8] rounded-lg mb-4`}>
                   {collab.icon}
                 </div>
-                <div className="text-3xl font-bold bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] bg-clip-text text-transparent mb-2">
+                <div className="text-3xl font-bold bg-gradient-to-r from-teal-500 to-teal-600 bg-clip-text text-transparent mb-2">
                   {collab.count}
                 </div>
                 <h3 className="text-xl font-semibold text-[#475569] mb-3">
@@ -1008,12 +985,6 @@ export default function HomePage() {
           viewport={{ once: true }}
           className="text-center"
         >
-          <Link href="/collaborations">
-            <Button className={`${accentButtonClasses} px-8 py-4 text-lg`}>
-              View All Collaborations
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
         </motion.div>
       </section>
 
@@ -1021,13 +992,13 @@ export default function HomePage() {
       <section className="w-full max-w-4xl mx-auto px-6 py-20">
         <div className="text-center mb-16">
           <span
-            className={`inline-block px-4 py-2 bg-[#EDE9FE] text-[#6366F1] rounded-lg text-sm font-medium mb-4`}
+            className={`inline-block px-4 py-2 bg-[#E6FAF8] text-teal-600 rounded-lg text-sm font-medium mb-4`}
           >
             Need Help?
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-[#475569]">
             Frequently Asked{" "}
-            <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
               Questions
             </span>
           </h2>
@@ -1036,19 +1007,19 @@ export default function HomePage() {
         <div className="space-y-4">
           {[
             {
-              question: "How does MediBot ensure my medical data is secure?",
+              question: "How does Medibot ensure my medical data is secure?",
               answer:
                 "We use HIPAA-compliant end-to-end encryption and comply with all healthcare data protection regulations. Your information is never shared without your explicit consent.",
             },
             {
-              question: "Can MediBot integrate with my electronic health records?",
+              question: "Can Medibot integrate with my electronic health records?",
               answer:
-                "Yes, MediBot offers seamless integration with major EHR systems through our secure API connections.",
+                "Yes, Medibot offers seamless integration with major EHR systems through our secure API connections.",
             },
             {
-              question: "Is MediBot suitable for elderly patients?",
+              question: "Is Medibot suitable for elderly patients?",
               answer:
-                "Absolutely! We designed MediBot with accessibility in mind, featuring large text options, simple navigation, and voice commands.",
+                "Absolutely! We designed Medibot with accessibility in mind, featuring large text options, simple navigation, and voice commands.",
             },
             {
               question: "How accurate are the medication interaction warnings?",
@@ -1116,48 +1087,34 @@ export default function HomePage() {
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.8 }}
-        className={`w-full py-32 bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#EDE9FE] relative overflow-hidden`}
+        className={`w-full py-32 bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E6FAF8] relative overflow-hidden`}
       >
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-full h-full opacity-10">
-            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path
-                d="M0,0 L100,0 L100,100 L0,100 Z"
-                fill="none"
-                stroke="#0F766E"
-                strokeWidth="0.5"
-                strokeDasharray="5,5"
-              />
-            </svg>
-          </div>
-        </div>
-
         <div className="max-w-4xl mx-auto px-6 text-center relative">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="inline-block p-4 bg-[#EDE9FE] rounded-lg mb-6"
+            className="inline-block p-4 bg-[#E6FAF8] rounded-lg mb-6"
           >
-            <Heart className="h-8 w-8 text-[#6366F1]" />
+            <Heart className="h-8 w-8 text-teal-600" />
           </motion.div>
 
           <h2 className="text-4xl md:text-5xl font-bold text-[#475569] mb-6">
             Ready to Transform Your{" "}
-            <span className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
               Healthcare
             </span>
             ?
           </h2>
           <p className="text-[#64748B] text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
             Join {isLoading ? "many" : `${userCount.toLocaleString()}+`} patients and
-            healthcare professionals who trust MediBot for better health outcomes.
+            healthcare professionals who trust Medibot for better health outcomes.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <Link href="/auth/signup">
               <Button
-                className={`${buttonClasses} w-60 h-14 text-lg bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] hover:from-[#5B21B6] hover:to-[#7C3AED] text-white`}
+                className={`${buttonClasses} w-60 h-14 text-lg bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-700 text-white`}
               >
                 Get Started Free
               </Button>
@@ -1179,13 +1136,13 @@ export default function HomePage() {
               <div className="w-12 h-12 relative">
                 <Image
                   src="/logo.png"
-                  alt="MediBot Logo"
+                  alt="Medibot Logo"
                   width={48}
                   height={48}
                   className="rounded-full object-cover"
                 />
               </div>
-              <h1 className="text-2xl font-bold text-[#0E7490]">MediBot</h1>
+              <h1 className="text-2xl font-bold text-[#0E7490]">Medibot</h1>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
@@ -1231,10 +1188,10 @@ export default function HomePage() {
                   </li>
                   <li>
                     <Link
-                      href="/summarizer"
+                      href="/medicine"
                       className="text-[#0F766E] hover:text-[#0E7490] transition-colors"
                     >
-                      Medical Summarizer
+                      Medicine Info
                     </Link>
                   </li>
                   <li>
@@ -1298,7 +1255,7 @@ export default function HomePage() {
 
           <div className="pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
             <p className="text-[#0F766E] mb-4 md:mb-0">
-              © {new Date().getFullYear()} MediBot by Asvix. All rights reserved.
+              © {new Date().getFullYear()} Medibot by Asvix. All rights reserved.
             </p>
             <div className="flex space-x-6">
               <Link href="#" className="text-[#0F766E] hover:text-[#0E7490] transition-colors">

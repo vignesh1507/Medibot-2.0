@@ -227,12 +227,12 @@ export default function HistoryPage() {
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen bg-white dark:bg-[#0e1a2b] text-black dark:text-white">
+      <div className="flex min-h-screen bg-white  text-black">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 overflow-y-auto px-4 pt-10 max-w-5xl mx-auto">
           {/* Header without Theme Toggle */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-[#a855f7]">Your Chat History</h1>
+            <h1 className="text-3xl font-bold text-teal-600">Your Chat History</h1>
             <p className="text-muted-foreground mt-1 mb-6">View and manage your past conversations</p>
           </div>
 
@@ -254,7 +254,7 @@ export default function HistoryPage() {
                 variant="ghost"
                 size="icon"
                 onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-teal-300 dark:hover:text-teal-500"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-teal-300"
                 aria-label="Clear search"
               >
                 <X className="h-4 w-4" />
@@ -270,13 +270,13 @@ export default function HistoryPage() {
                 variant="ghost"
                 size="icon"
                 onClick={handleRefresh}
-                className="text-muted-foreground hover:text-teal-300 dark:hover:text-teal-500"
+                className="text-muted-foreground hover:text-teal-300"
                 aria-label="Refresh chat history"
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
               <Link href="/chat">
-                <Button className="bg-[#a855f7] hover:bg-teal-600 dark:bg-[#a855f7] dark:hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2">
+                <Button className="bg-teal-600 hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2">
                   <Plus className="mr-1 h-4 w-4" /> New
                 </Button>
               </Link>
@@ -299,12 +299,12 @@ export default function HistoryPage() {
               </p>
               <div className="flex justify-center gap-4">
                 <Link href="/auth/signin">
-                  <Button className="bg-[#a855f7] hover:bg-teal-600 dark:bg-[#a855f7] dark:hover:bg-teal-600 text-white">
+                  <Button className="bg-teal-600 hover:bg-teal-600 text-white">
                     Login
                   </Button>
                 </Link>
                 <Link href="/auth/signup">
-                  <Button className="bg-[#a855f7] hover:bg-teal-600 dark:bg-[#a855f7] dark:hover:bg-teal-600 text-white">
+                  <Button className="bg-teal-600 hover:bg-teal-600 text-white">
                     Signup
                   </Button>
                 </Link>
@@ -320,7 +320,7 @@ export default function HistoryPage() {
                   : "You haven't started any conversations yet."}
               </p>
               <Link href="/chat">
-                <Button className="bg-[#a855f7] hover:bg-teal-600 dark:bg-[#a855f7] dark:hover:bg-teal-600 text-white">
+                <Button className="bg-teal-600 hover:bg-teal-600 text-white">
                   <Plus className="mr-2 h-4 w-4" /> Start New Chat
                 </Button>
               </Link>
@@ -328,7 +328,7 @@ export default function HistoryPage() {
           ) : (
             <div className="space-y-6">
               <section>
-                <h3 className="text-lg font-semibold mb-2 text-[#a855f7] dark:text-[#a855f7]">Recent Conversations</h3>
+                <h3 className="text-lg font-semibold mb-2 text-teal-600">Recent Conversations</h3>
                 {filteredSessions.map((session) => (
                   <Card
                     key={session.id}
@@ -359,7 +359,7 @@ export default function HistoryPage() {
                               e.stopPropagation();
                               handleDeleteSession(session.id!);
                             }}
-                            className="text-red-500 dark:text-red-600"
+                            className="text-red-500"
                             title="Delete"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -386,7 +386,7 @@ export default function HistoryPage() {
                 <Button
                   variant="ghost"
                   onClick={() => setDeleteDialogOpen(false)}
-                  className="text-muted-foreground hover:text-teal-300 dark:hover:text-teal-500"
+                  className="text-muted-foreground hover:text-teal-300"
                 >
                   Cancel
                 </Button>

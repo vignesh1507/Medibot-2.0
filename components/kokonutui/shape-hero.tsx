@@ -190,7 +190,7 @@ export default function ShapeHero({
                     height={80}
                     rotate={45}
                     borderRadius={10}
-                    gradient="from-purple-500/[0.25] dark:from-purple-500/[0.35]"
+                    gradient="from-teal-500/[0.25] dark:from-teal-500/[0.35]"
                     className="left-[40%] top-[15%]"
                 />
 

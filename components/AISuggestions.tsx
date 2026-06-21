@@ -20,7 +20,7 @@ const AISuggestions: React.FC<AISuggestionsProps> = ({ onSuggestionClick, disabl
     <div className="space-y-6 px-4">
       {/* Header */}
       <div className="text-center space-y-2 animate-fade-in-up">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-700 font-medium">
           Click any question below to get started...
         </p>
       </div>
@@ -35,14 +35,13 @@ const AISuggestions: React.FC<AISuggestionsProps> = ({ onSuggestionClick, disabl
             className={`
               group relative text-left p-3 text-sm
               transition-all duration-300 transform hover:scale-105
-              hover:bg-blue-50/50 dark:hover:bg-blue-900/10 rounded-lg
+              hover:bg-teal-50 rounded-lg border border-gray-200 bg-white
               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
               animate-fade-in-up suggestion-card-${index}
             `}
           >
-            {/* Content */}
             <div className="relative z-10">
-              <p className="text-gray-700 dark:text-gray-300 font-medium leading-relaxed hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200">
+              <p className="text-gray-800 font-semibold leading-relaxed group-hover:text-teal-700 transition-colors duration-200">
                 {suggestion}
               </p>
             </div>

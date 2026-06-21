@@ -336,7 +336,7 @@ export default function ProfilePage() {
                       <div className="flex items-center space-x-6">
                         <Avatar className="w-20 h-20">
                           <AvatarImage src={previewUrl || userProfile?.photoURL || ""} />
-                          <AvatarFallback className="bg-purple-600 text-white text-2xl font-semibold">
+                          <AvatarFallback className="bg-teal-600 text-white text-2xl font-semibold">
                             {formData.displayName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}
                           </AvatarFallback>
                         </Avatar>
@@ -344,7 +344,7 @@ export default function ProfilePage() {
                           <Button
                             type="button"
                             variant="outline"
-                            className="bg-muted border-border text-foreground hover:bg-purple-600 hover:text-white"
+                            className="bg-muted border-border text-foreground hover:bg-teal-600 hover:text-white"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={uploadingPhoto}
                             aria-label="Change profile picture"
@@ -383,7 +383,7 @@ export default function ProfilePage() {
                             id="displayName"
                             value={formData.displayName}
                             onChange={(e) => handleInputChange("displayName", e.target.value)}
-                            className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-purple-600"
+                            className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-teal-600"
                             placeholder="Enter your display name"
                             aria-describedby="displayName-error"
                             required
@@ -422,7 +422,7 @@ export default function ProfilePage() {
                             type="date"
                             value={formData.dateOfBirth}
                             onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-                            className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-purple-600"
+                            className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-teal-600"
                             max={new Date().toISOString().split("T")[0]}
                           />
                         </div>
@@ -436,7 +436,7 @@ export default function ProfilePage() {
                           >
                             <SelectTrigger
                               id="gender"
-                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-teal-600"
                               aria-label="Select gender"
                             >
                               <SelectValue placeholder="Select gender" />
@@ -458,7 +458,7 @@ export default function ProfilePage() {
                             type="tel"
                             value={formData.phoneNumber}
                             onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
-                            className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-purple-600"
+                            className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-teal-600"
                             placeholder="+1234567890"
                             aria-describedby="phoneNumber-error"
                           />
@@ -482,7 +482,7 @@ export default function ProfilePage() {
                               id="emergencyContactName"
                               value={formData.emergencyContactName}
                               onChange={(e) => handleInputChange("emergencyContactName", e.target.value)}
-                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-teal-600"
                               placeholder="Emergency contact name"
                               aria-describedby="emergencyContactName-error"
                             />
@@ -501,7 +501,7 @@ export default function ProfilePage() {
                               type="tel"
                               value={formData.emergencyContactPhone}
                               onChange={(e) => handleInputChange("emergencyContactPhone", e.target.value)}
-                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-teal-600"
                               placeholder="+1234567890"
                               aria-describedby="emergencyContactPhone-error"
                             />
@@ -522,7 +522,7 @@ export default function ProfilePage() {
                               id="emergencyContactRelationship"
                               value={formData.emergencyContactRelationship}
                               onChange={(e) => handleInputChange("emergencyContactRelationship", e.target.value)}
-                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-teal-600"
                               placeholder="e.g., Parent, Spouse"
                             />
                           </div>
@@ -541,7 +541,7 @@ export default function ProfilePage() {
                               id="allergies"
                               value={formData.allergies}
                               onChange={(e) => handleInputChange("allergies", e.target.value)}
-                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-teal-600"
                               placeholder="e.g., Penicillin, Peanuts (comma separated)"
                             />
                           </div>
@@ -553,7 +553,7 @@ export default function ProfilePage() {
                               id="conditions"
                               value={formData.conditions}
                               onChange={(e) => handleInputChange("conditions", e.target.value)}
-                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-teal-600"
                               placeholder="e.g., Diabetes, Hypertension (comma separated)"
                             />
                           </div>
@@ -568,7 +568,7 @@ export default function ProfilePage() {
                           >
                             <SelectTrigger
                               id="bloodType"
-                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-purple-600"
+                              className="bg-muted border-border text-foreground focus:outline-none focus:ring-2 focus:ring-teal-600"
                               aria-label="Select blood type"
                             >
                               <SelectValue placeholder="Select blood type" />
@@ -590,7 +590,7 @@ export default function ProfilePage() {
                       <Button
                         type="submit"
                         disabled={loading || Object.keys(errors).length > 0}
-                        className="bg-purple-600 hover:bg-purple-700 text-white font-semibold w-full"
+                        className="bg-teal-600 hover:bg-teal-700 text-white font-semibold w-full"
                         aria-label="Update profile"
                       >
                         {loading ? "Updating..." : "Update Profile"}
@@ -707,7 +707,7 @@ export default function ProfilePage() {
                       <Button
                         onClick={handleExportData}
                         variant="outline"
-                        className="bg-muted border-border text-foreground hover:bg-purple-600 hover:text-white"
+                        className="bg-muted border-border text-foreground hover:bg-teal-600 hover:text-white"
                         aria-label="Export my data"
                       >
                         📤 Export My Data

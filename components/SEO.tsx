@@ -20,11 +20,11 @@ export default function SEO({
   noindex = false
 }: SEOProps) {
   const siteTitle = title 
-    ? `${title} | MediBot - AI-Powered Health Assistant`
-    : 'MediBot - AI-Powered Health Assistant & Medication Management'
+    ? `${title} | Medibot - AI-Powered Health Assistant`
+    : 'Medibot - AI-Powered Health Assistant & Medication Management'
   
   const siteDescription = description || 
-    'Transform your healthcare with MediBot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights.'
+    'Transform your healthcare with Medibot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights.'
   
   const siteUrl = url ? `https://medibot.vercel.app${url}` : 'https://medibot.vercel.app'
   const imageUrl = image.startsWith('http') ? image : `https://medibot.vercel.app${image}`
@@ -57,8 +57,8 @@ export default function SEO({
       <meta property="og:description" content={siteDescription} />
       <meta property="og:url" content={siteUrl} />
       <meta property="og:image" content={imageUrl} />
-      <meta property="og:image:alt" content={title || 'MediBot - AI Health Assistant'} />
-      <meta property="og:site_name" content="MediBot" />
+      <meta property="og:image:alt" content={title || 'Medibot - AI Health Assistant'} />
+      <meta property="og:site_name" content="Medibot" />
       
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
@@ -102,7 +102,7 @@ export default function SEO({
             },
             "mainEntity": {
               "@type": "SoftwareApplication",
-              "name": "MediBot",
+              "name": "Medibot",
               "applicationCategory": "HealthApplication",
               "operatingSystem": "Web, Android, iOS"
             }

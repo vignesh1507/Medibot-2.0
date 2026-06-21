@@ -22,6 +22,8 @@ import {
   X,
   Smartphone,
   Download,
+  Activity,
+  Search,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -61,12 +63,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   const menuItems = [
     { icon: MessageCircle, label: "AI Chatbot", href: "/chat" },
-    { icon: FileText, label: "Info Summarizer", href: "/summarizer" },
-    // Appointments temporarily disabled
+    { icon: Activity, label: "Health Memory", href: "/timeline" },
+    { icon: Search, label: "Medicine Info", href: "/medicine" },
     { icon: Pill, label: "Medications", href: "/medications" },
     { icon: History, label: "Chat History", href: "/history" },
     { icon: User, label: "My Profile", href: "/profile" },
-    { icon: MessageSquare, label: "Feedback", href: "/feedback" },
   ];
 
   const handleSignOut = async () => {
@@ -235,7 +236,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                       className={cn(
                         "flex items-center font-sans h-12 rounded-xl transition-all duration-200",
                         isActive
-                          ? "bg-purple-600 text-white shadow"
+                          ? "bg-teal-600 text-white shadow"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted",
                         collapsed ? "justify-center" : "px-4"
                       )}
@@ -257,7 +258,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 size="sm"
                 variant="outline"
                 className={cn(
-                  "flex items-center w-full h-12 rounded-xl px-4 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 shadow-sm hover:shadow-md hover:bg-blue-100 dark:hover:bg-blue-900 transition-all duration-200",
+                  "flex items-center w-full h-12 rounded-xl px-4 border border-teal-200 bg-teal-50 text-teal-600 shadow-sm hover:shadow-md hover:bg-teal-100 transition-all duration-200",
                   collapsed && "justify-center px-0"
                 )}
               >
@@ -267,7 +268,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
               {/* QR Code Popup */}
               {!collapsed && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-36 p-3 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-800 rounded-xl shadow-lg opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all origin-bottom z-50 pointer-events-none group-hover:pointer-events-auto text-center">
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-36 p-3 bg-white border border-blue-200 rounded-xl shadow-lg opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all origin-bottom z-50 pointer-events-none group-hover:pointer-events-auto text-center">
                   <p className="text-xs font-medium text-foreground mb-2">Scan QR to Download</p>
                   <img
                     src="/qr.png"
@@ -295,7 +296,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                         <AvatarImage
                           src={userProfile?.photoURL || user?.photoURL || ""}
                         />
-                        <AvatarFallback className="bg-purple-600 text-white font-semibold">
+                        <AvatarFallback className="bg-teal-600 text-white font-semibold">
                           {userProfile?.displayName?.charAt(0).toUpperCase() ||
                             user?.displayName?.charAt(0).toUpperCase() ||
                             user?.email?.charAt(0).toUpperCase() ||
@@ -316,22 +317,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     </div>
                   </div>
 
-                  {/* Theme and Sign Out options */}
                   {showProfileOptions && (
                     <div className="bg-muted rounded-b-xl border border-border border-t-0 overflow-hidden">
-                      <Button
-                        variant="ghost"
-                        onClick={toggleTheme}
-                        className="w-full justify-start h-12 rounded-none px-4 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                      >
-                        {theme === "dark" ? (
-                          <Sun className="h-5 w-5 mr-3" />
-                        ) : (
-                          <Moon className="h-5 w-5 mr-3" />
-                        )}
-                        {theme === "dark" ? "Light Mode" : "Dark Mode"}
-                      </Button>
-
                       <Button
                         onClick={handleSignOut}
                         variant="ghost"
@@ -355,7 +342,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                       <AvatarImage
                         src={userProfile?.photoURL || user?.photoURL || ""}
                       />
-                      <AvatarFallback className="bg-purple-600 text-white text-sm">
+                      <AvatarFallback className="bg-teal-600 text-white text-sm">
                         {userProfile?.displayName?.charAt(0).toUpperCase() ||
                           user?.displayName?.charAt(0).toUpperCase() ||
                           user?.email?.charAt(0).toUpperCase() ||
@@ -364,23 +351,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     </Avatar>
                   </div>
 
-                  {/* Theme and Sign Out options for collapsed state */}
                   {showProfileOptions && (
                     <div className="bg-muted rounded-xl border border-border p-2 w-full space-y-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={toggleTheme}
-                        className="w-full h-10 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                        title={theme === "dark" ? "Light Mode" : "Dark Mode"}
-                      >
-                        {theme === "dark" ? (
-                          <Sun className="h-5 w-5" />
-                        ) : (
-                          <Moon className="h-5 w-5" />
-                        )}
-                      </Button>
-
                       <Button
                         onClick={handleSignOut}
                         variant="ghost"

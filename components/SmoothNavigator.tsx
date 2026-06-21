@@ -24,7 +24,7 @@ export function SmoothNavigator({ children }: { children: React.ReactNode }) {
 
 export function GlobalSkeletonLoader() {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#F8FAFC]">
       <div className="w-full max-w-2xl p-6 space-y-6">
         {/* Card skeleton */}
         <Skeleton className="h-32 w-full rounded-2xl shimmer" />

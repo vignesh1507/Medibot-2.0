@@ -102,16 +102,16 @@ export default function SignUpPage() {
         }}
       >
         {/* Dark overlay for better readability */}
-        <div className="absolute inset-0 bg-black/50"></div>
+        <div className="absolute inset-0 bg-white/30"></div>
         
-        <div className="w-full max-w-md bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800/50 shadow-xl shadow-slate-950/50 p-6 sm:p-7 relative z-10">
+        <div className="w-full max-w-md bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200 shadow-xl shadow-gray-200/60 p-6 sm:p-7 relative z-10">
           {/* Header */}
           <div className="flex items-center mb-6">
             <Link href="/">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all"
+                className="text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all"
               >
                 <ArrowLeft className="h-5 w-5" />
                 <p>Back</p>
@@ -129,37 +129,37 @@ export default function SignUpPage() {
                   alt="Medibot Logo" 
                   width={48} 
                   height={48} 
-                  className="rounded-full border-2 border-slate-700/50"
+                  className="rounded-full border-2 border-gray-200"
                 />
               </div>
-              <span className="text-white font-bold text-xl">Medibot</span>
+              <span className="text-gray-900 font-bold text-xl">Medibot</span>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">Create Account</h1>
-            <p className="text-slate-400 text-sm">Join thousands improving their health with AI</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Create Account</h1>
+            <p className="text-gray-500 text-sm">Join thousands improving their health with AI</p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="block text-white font-medium mb-1 text-sm">Full Name</label>
+              <label className="block text-gray-900 font-medium mb-1 text-sm">Full Name</label>
               <Input
                 type="text"
                 placeholder="Enter your full name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-slate-800/50 border-slate-700 text-white h-10 rounded-lg focus:ring-2 focus:ring-purple-500/50"
+                className="bg-gray-50 border-gray-300 text-gray-900 h-10 rounded-lg focus:ring-2 focus:ring-teal-500/50"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-white font-medium mb-1 text-sm">Email</label>
+              <label className="block text-gray-900 font-medium mb-1 text-sm">Email</label>
               <Input
                 type="email"
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="bg-slate-800/50 border-slate-700 text-white h-10 rounded-lg focus:ring-2 focus:ring-purple-500/50"
+                className="bg-gray-50 border-gray-300 text-gray-900 h-10 rounded-lg focus:ring-2 focus:ring-teal-500/50"
                 required
               />
             </div>
@@ -171,9 +171,9 @@ export default function SignUpPage() {
                 type="checkbox"
                 checked={formData.rememberMe}
                 onChange={e => setFormData({ ...formData, rememberMe: e.target.checked })}
-                className="accent-purple-600 h-4 w-4 rounded border-gray-400 focus:ring-purple-500"
+                className="accent-teal-600 h-4 w-4 rounded border-gray-400 focus:ring-teal-500"
               />
-              <label htmlFor="rememberMe" className="ml-2 text-slate-300 text-sm select-none cursor-pointer">Remember Me</label>
+              <label htmlFor="rememberMe" className="ml-2 text-gray-700 text-sm select-none cursor-pointer">Remember Me</label>
             </div>
             {/* Terms and Conditions */}
             <div className="flex items-start space-x-2 py-1">
@@ -181,15 +181,15 @@ export default function SignUpPage() {
                 id="terms"
                 checked={formData.agreeToTerms}
                 onCheckedChange={(checked) => setFormData({ ...formData, agreeToTerms: checked as boolean })}
-                className="mt-1 border-2 border-purple-500 rounded text-white data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-700 focus-visible:ring-2 focus-visible:ring-purple-500"
+                className="mt-1 border-2 border-teal-500 rounded text-gray-900 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-700 focus-visible:ring-2 focus-visible:ring-teal-500"
               />
-              <label htmlFor="terms" className="text-xs text-slate-300 leading-relaxed">
+              <label htmlFor="terms" className="text-xs text-gray-700 leading-relaxed">
                 I agree to the{" "}
-                <Link href="/terms" className="text-purple-400 hover:underline">
+                <Link href="/terms" className="text-teal-400 hover:underline">
                   Terms of Service
                 </Link>{" "}
                 and{" "}
-                <Link href="/privacy" className="text-purple-400 hover:underline">
+                <Link href="/privacy" className="text-teal-400 hover:underline">
                   Privacy Policy
                 </Link>
               </label>
@@ -198,17 +198,17 @@ export default function SignUpPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg shadow-lg font-medium transition-all duration-200"
+              className="w-full h-10 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white rounded-lg shadow-lg font-medium transition-all duration-200"
             >
               {loading ? "Sending Verification..." : "Send Verification Link"}
             </Button>
 
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-700"></div>
+                <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="px-2 bg-slate-900/90 text-slate-400">
+                <span className="px-2 bg-white/95 text-gray-500">
                   or continue with
                 </span>
               </div>
@@ -220,13 +220,13 @@ export default function SignUpPage() {
                 onClick={handleGoogleSignUp}
                 disabled={loading}
                 variant="outline"
-                className="h-9 bg-slate-800/50 border-slate-700 text-white hover:bg-slate-700/50 rounded-lg transition-all text-sm"
+                className="h-9 bg-gray-50 border-gray-300 text-gray-900 hover:bg-gray-100 rounded-lg transition-all text-sm"
               >
-                <svg className="mr-1 h-3 w-3" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
+                <svg className="mr-2 h-4 w-4 flex-shrink-0" viewBox="0 0 48 48">
+                  <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                  <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                  <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                  <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
                 </svg>
                 Google
               </Button>
@@ -235,9 +235,9 @@ export default function SignUpPage() {
                 onClick={handleFacebookSignUp}
                 disabled={loading}
                 variant="outline"
-                className="h-9 bg-slate-800/50 border-slate-700 text-white hover:bg-slate-700/50 rounded-lg transition-all text-sm"
+                className="h-9 bg-gray-50 border-gray-300 text-gray-900 hover:bg-gray-100 rounded-lg transition-all text-sm"
               >
-                <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="mr-2 h-4 w-4 flex-shrink-0" fill="#1877F2" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                 </svg>
                 Facebook
@@ -245,8 +245,8 @@ export default function SignUpPage() {
             </div>
 
             <div className="text-center pt-1">
-              <span className="text-slate-400 text-sm">Already have an account? </span>
-              <Link href="/auth/signin" className="text-green-400 hover:underline text-sm font-medium">
+              <span className="text-gray-500 text-sm">Already have an account? </span>
+              <Link href="/auth/signin" className="text-green-600 hover:underline text-sm font-medium">
                 Sign In
               </Link>
             </div>

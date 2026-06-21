@@ -6,11 +6,11 @@ import { Home, Search, ArrowLeft, Bot } from 'lucide-react';
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-950 dark:to-blue-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-950 dark:to-blue-950 flex items-center justify-center px-4">
       <div className="max-w-2xl mx-auto text-center">
         {/* Animated 404 */}
         <div className="relative mb-8">
-          <div className="text-8xl md:text-9xl font-bold text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text animate-pulse">
+          <div className="text-8xl md:text-9xl font-bold text-transparent bg-gradient-to-r from-blue-600 via-teal-600 to-pink-600 bg-clip-text animate-pulse">
             404
           </div>
           <div className="absolute inset-0 text-8xl md:text-9xl font-bold text-blue-200 dark:text-blue-800 opacity-20 animate-bounce">
@@ -18,10 +18,10 @@ export default function NotFound() {
           </div>
         </div>
 
-        {/* MediBot Icon */}
+        {/* Medibot Icon */}
         <div className="flex justify-center mb-6">
           <div className="relative">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg animate-spin-slow">
+            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg animate-spin-slow">
               <Bot className="h-10 w-10 text-white" />
             </div>
             <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
@@ -36,7 +36,7 @@ export default function NotFound() {
         </h1>
         
         <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
-          MediBot couldn't find the page you're looking for.
+          Medibot couldn't find the page you're looking for.
         </p>
         
         <p className="text-base text-gray-500 dark:text-gray-500 mb-8">
@@ -46,7 +46,7 @@ export default function NotFound() {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
           <Link href="/">
-            <button className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl flex items-center gap-2 min-w-[180px]">
+            <button className="group bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white px-8 py-3 rounded-xl font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl flex items-center gap-2 min-w-[180px]">
               <Home className="h-5 w-5 group-hover:scale-110 transition-transform" />
               Back to Home
             </button>
@@ -78,22 +78,14 @@ export default function NotFound() {
             </Link>
             
             <Link href="/premium" className="group">
-              <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors">
-                <p className="text-sm font-medium text-purple-700 dark:text-purple-300 group-hover:text-purple-800 dark:group-hover:text-purple-200">
+              <div className="p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors">
+                <p className="text-sm font-medium text-teal-700 dark:text-teal-300 group-hover:text-teal-800 dark:group-hover:text-teal-200">
                   Premium
                 </p>
               </div>
             </Link>
             
-            <Link href="/appointments" className="group">
-              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
-                <p className="text-sm font-medium text-green-700 dark:text-green-300 group-hover:text-green-800 dark:group-hover:text-green-200">
-                  Appointments
-                </p>
-              </div>
-            </Link>
-            
-            <Link href="/profile" className="group">
+<Link href="/profile" className="group">
               <div className="p-3 rounded-lg bg-pink-50 dark:bg-pink-900/20 hover:bg-pink-100 dark:hover:bg-pink-900/30 transition-colors">
                 <p className="text-sm font-medium text-pink-700 dark:text-pink-300 group-hover:text-pink-800 dark:group-hover:text-pink-200">
                   Profile
@@ -106,8 +98,8 @@ export default function NotFound() {
         {/* Help Text */}
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Need help? 
-            <Link href="/feedback" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium ml-1">
+            Need help?
+            <Link href="/help" className="text-teal-600 hover:text-teal-700 font-medium ml-1">
               Contact Support
             </Link>
           </p>

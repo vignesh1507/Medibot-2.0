@@ -79,19 +79,25 @@ export async function POST(req: NextRequest) {
           if (isSuccess) {
             const paymentData = paymentDoc.data();
             if (paymentData?.userId && paymentData?.planName) {
+              const isYearly = paymentData.planName.toLowerCase() !== 'premium';
+              const endDate = isYearly
+                ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+                : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
               const userRef = admin_db.collection('users').doc(paymentData.userId);
+              // Set top-level `plan` (what the app gates on) AND the subscription object.
               await userRef.update({
+                plan: 'premium',
                 subscription: {
                   plan: paymentData.planName.toLowerCase(),
                   status: 'active',
                   startDate: new Date(),
-                  endDate: paymentData.planName.toLowerCase() === 'premium' 
-                    ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days for monthly
-                    : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days for yearly
+                  endDate,
                   lastPaymentId: transactionId
                 },
                 updatedAt: new Date()
               });
+              console.log(`[PhonePe Status] Upgraded user ${paymentData.userId} to premium until ${endDate.toISOString()}`);
             }
           }
         }

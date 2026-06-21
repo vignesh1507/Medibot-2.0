@@ -209,13 +209,13 @@ const PaymentDialog = ({
           </div>
         ) : (
           <div className="space-y-6 pt-2">
-            <div className="rounded-lg bg-gray-50 p-4 shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+            <div className="rounded-lg bg-gray-50 p-4 shadow-sm border border-gray-200">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600 dark:text-gray-300 font-medium">Plan</span>
+                <span className="text-gray-600 font-medium">Plan</span>
                 <span className="font-semibold">{plan === "premium" ? "Premium" : "Base"}</span>
               </div>
               <div className="flex justify-between items-center mt-3 text-sm">
-                <span className="text-gray-600 dark:text-gray-300 font-medium">Price</span>
+                <span className="text-gray-600 font-medium">Price</span>
                 <span className="font-semibold">
                   {plan === "premium" ? "₹99" : "Free"} <span className="text-xs text-gray-400">/ month</span>
                 </span>

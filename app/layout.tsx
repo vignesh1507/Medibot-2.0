@@ -16,10 +16,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL('https://medibot-ai.com'),
   title: {
-    default: 'MediBot',
-    template: '%s | MediBot'
+    default: 'Medibot',
+    template: '%s | Medibot'
   },
-  description: 'Transform your healthcare with MediBot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights. Join 23+ users trusting MediBot for better health outcomes.',
+  description: 'Transform your healthcare with Medibot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights. Join 23+ users trusting Medibot for better health outcomes.',
   keywords: [
     'medication reminder',
     'health app',
@@ -55,22 +55,22 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://medibot.vercel.app',
-    title: 'MediBot - AI-Powered Health Assistant & Medication Management',
-    description: 'Transform your healthcare with MediBot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights.',
-    siteName: 'MediBot',
+    title: 'Medibot - AI-Powered Health Assistant & Medication Management',
+    description: 'Transform your healthcare with Medibot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights.',
+    siteName: 'Medibot',
     images: [
       {
         url: '/main.png',
         width: 1200,
         height: 630,
-        alt: 'MediBot - AI Health Assistant Dashboard',
+        alt: 'Medibot - AI Health Assistant Dashboard',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'MediBot - AI-Powered Health Assistant & Medication Management',
-    description: 'Transform your healthcare with MediBot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights.',
+    title: 'Medibot - AI-Powered Health Assistant & Medication Management',
+    description: 'Transform your healthcare with Medibot - Your AI-powered health companion for medication management, prescription analysis, and personalized health insights.',
     creator: '@medibot',
     images: ['/main.png'],
   },
@@ -82,11 +82,11 @@ export const metadata: Metadata = {
     apple: "/logo.png",
     shortcut: "/logo.png",
   },
-  applicationName: "MediBot",
+  applicationName: "Medibot",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "MediBot",
+    title: "Medibot",
   },
   alternates: {
     canonical: 'https://medibot.vercel.app',
@@ -94,7 +94,7 @@ export const metadata: Metadata = {
   other: {
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',
-    'apple-mobile-web-app-title': 'MediBot',
+    'apple-mobile-web-app-title': 'Medibot',
     'mobile-web-app-capable': 'yes',
     'msapplication-TileColor': '#00acc1',
   },
@@ -130,8 +130,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              "name": "MediBot",
-              "alternateName": "Asvix MediBot",
+              "name": "Medibot",
+              "alternateName": "Asvix Medibot",
               "url": "https://medibot.vercel.app",
               "logo": "https://medibot.vercel.app/logo.png",
               "description": "AI-powered health assistant for medication management and personalized health insights",
@@ -155,7 +155,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebSite",
-              "name": "MediBot",
+              "name": "Medibot",
               "url": "https://medibot.vercel.app",
               "description": "AI-powered health assistant for medication management and personalized health insights",
               "potentialAction": {
@@ -174,7 +174,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
-              "name": "MediBot",
+              "name": "Medibot",
               "operatingSystem": "Android, iOS, Web",
               "applicationCategory": "HealthApplication",
               "aggregateRating": {
@@ -198,8 +198,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   <LoadingProvider>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
+          forcedTheme="light"
           disableTransitionOnChange
         >
           <SmoothNavigator>

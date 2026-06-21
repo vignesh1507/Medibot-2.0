@@ -1,12 +1,15 @@
 importScripts('https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.0.0/firebase-messaging-compat.js');
 
+// Config is injected via the registration URL query params (see medications page).
+// Nothing is hardcoded here — keeps Firebase config out of the committed repo.
+const params = new URLSearchParams(self.location.search);
 firebase.initializeApp({
-  apiKey: "AIzaSyAB5TldoIqRS_WfUlF7JYfVnzXi3i96dmw",
-  authDomain: "medibot-457514.firebaseapp.com",
-  projectId: "medibot-457514",
-  messagingSenderId: "806828516267",
-  appId: "1:806828516267:web:a75aad403f3dfbc67da8ee"
+  apiKey: params.get('apiKey'),
+  authDomain: params.get('authDomain'),
+  projectId: params.get('projectId'),
+  messagingSenderId: params.get('messagingSenderId'),
+  appId: params.get('appId'),
 });
 
 const messaging = firebase.messaging();
@@ -15,7 +18,7 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Background message received:', payload);
   
-  const notificationTitle = payload.notification?.title || payload.data?.title || 'MediBot Reminder';
+  const notificationTitle = payload.notification?.title || payload.data?.title || 'Medibot Reminder';
   const notificationBody = payload.notification?.body || payload.data?.body || 'You have a medication reminder';
   
   const notificationOptions = {

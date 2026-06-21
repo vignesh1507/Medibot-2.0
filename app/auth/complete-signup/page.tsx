@@ -110,40 +110,40 @@ export default function CompleteSignupPage() {
         }}
       >
         {/* Dark overlay for better readability */}
-        <div className="absolute inset-0 bg-black/50"></div>
+        <div className="absolute inset-0 bg-white/30"></div>
         
-        <div className="w-full max-w-md bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800/50 shadow-xl shadow-slate-950/50 p-6 sm:p-7 relative z-10">
+        <div className="w-full max-w-md bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200 shadow-xl shadow-gray-200/60 p-6 sm:p-7 relative z-10">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-white mb-1">Complete Your Signup</h1>
-            <p className="text-slate-400 text-sm">Confirm your email to verify your account</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Complete Your Signup</h1>
+            <p className="text-gray-500 text-sm">Confirm your email to verify your account</p>
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-white font-medium mb-1 text-sm">Email</label>
+              <label className="block text-gray-900 font-medium mb-1 text-sm">Email</label>
               <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter the email you used to sign up"
-                className="bg-slate-800/50 border-slate-700 text-white h-10 rounded-lg focus:ring-2 focus:ring-purple-500/50"
+                className="bg-gray-50 border-gray-300 text-gray-900 h-10 rounded-lg focus:ring-2 focus:ring-teal-500/50"
                 required
               />
             </div>
             <div>
-              <label className="block text-white font-medium mb-1 text-sm">Name (optional)</label>
+              <label className="block text-gray-900 font-medium mb-1 text-sm">Name (optional)</label>
               <Input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
-                className="bg-slate-800/50 border-slate-700 text-white h-10 rounded-lg focus:ring-2 focus:ring-purple-500/50"
+                className="bg-gray-50 border-gray-300 text-gray-900 h-10 rounded-lg focus:ring-2 focus:ring-teal-500/50"
               />
             </div>
             <Button 
               type="submit" 
               disabled={processing}
-              className="w-full h-10 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg shadow-lg font-medium transition-all duration-200"
+              className="w-full h-10 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-gray-900 rounded-lg shadow-lg font-medium transition-all duration-200"
             >
               {processing ? 'Verifying Account...' : 'Complete Signup'}
             </Button>
@@ -164,12 +164,12 @@ export default function CompleteSignupPage() {
       }}
     >
       {/* Dark overlay for better readability */}
-      <div className="absolute inset-0 bg-black/50"></div>
+      <div className="absolute inset-0 bg-white/30"></div>
       
-      <div className="w-full max-w-md bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800/50 shadow-xl shadow-slate-950/50 p-6 sm:p-7 relative z-10">
+      <div className="w-full max-w-md bg-white/95 backdrop-blur-md rounded-2xl border border-gray-200 shadow-xl shadow-gray-200/60 p-6 sm:p-7 relative z-10">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">Completing signup...</h2>
-          <p className="text-slate-400 text-sm">Verifying and creating your account — please wait.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Completing signup...</h2>
+          <p className="text-gray-500 text-sm">Verifying and creating your account — please wait.</p>
         </div>
       </div>
     </div>

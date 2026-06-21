@@ -13,15 +13,15 @@ import { getFirestore } from "firebase/firestore"
 import { getStorage } from "firebase/storage"
 import { getMessaging } from "firebase/messaging"
 
-// Use environment variables with fallback to prevent client-side access errors
+// All values come from environment variables — nothing hardcoded.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyAB5TldoIqRS_WfUlF7JYfVnzXi3i96dmw",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "medibot-457514.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "medibot-457514",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "medibot-457514.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "806828516267",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:806828516267:web:a75aad403f3dfbc67da8ee",
-  measurementId: "G-4S6ZN10CRC",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 }
 
 // Initialize Firebase

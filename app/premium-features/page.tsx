@@ -229,7 +229,7 @@ function ChatContent() {
       "gemini-2.0-flash": {
         api: "gemini",
         model: "gemini-2.0-flash-exp",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
         plan: "premium"
       },
       "gpt-4o": {
@@ -388,7 +388,7 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
         )}
       </button>
       {isPremiumFeature && (
-        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
+        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-teal-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
           PRO
         </div>
       )}
@@ -763,7 +763,7 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
       userName = user.email.split("@")[0];
     }
 
-    const baseInstruction = `You are MediBot, a friendly and knowledgeable health assistant created by Sujay Babu Thota. 🩺
+    const baseInstruction = `You are Medibot, a friendly and knowledgeable health assistant created by Sujay Babu Thota. 🩺
 
 PERSONALIZATION:
 ${userName ? `- The user's name is ${userName}. Use their name naturally in conversation when appropriate.` : '- Learn and remember the user\'s name if they mention it.'}
@@ -784,12 +784,12 @@ RESPONSE GUIDELINES:
     if (contextMessages && contextMessages.length > 800) {
       // If context is too long, use only the essential parts
       const contextSummary = contextMessages.slice(-500) + "...";
-      return `${baseInstruction}\n\nRecent context: ${contextSummary}\n\nUser: ${userMessage}\n\nRespond as MediBot with warmth, personalization, and expertise:`;
+      return `${baseInstruction}\n\nRecent context: ${contextSummary}\n\nUser: ${userMessage}\n\nRespond as Medibot with warmth, personalization, and expertise:`;
     }
     
     return contextMessages 
-      ? `${baseInstruction}\n\nConversation Context: ${contextMessages}\n\nUser: ${userMessage}\n\nRespond as MediBot with warmth, personalization, and expertise:`
-      : `${baseInstruction}\n\nUser: ${userMessage}\n\nRespond as MediBot with warmth and expertise:`;
+      ? `${baseInstruction}\n\nConversation Context: ${contextMessages}\n\nUser: ${userMessage}\n\nRespond as Medibot with warmth, personalization, and expertise:`
+      : `${baseInstruction}\n\nUser: ${userMessage}\n\nRespond as Medibot with warmth and expertise:`;
   };
 
   // 🔥 ENHANCED FUNCTION: Build comprehensive user context for personalization
@@ -1555,7 +1555,7 @@ CONVERSATION PATTERNS:
 
   const sendMessageNotification = (userMessage: string, botResponse: string) => {
     if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("MediBot Response", {
+      new Notification("Medibot Response", {
         body: "Your message has been answered",
         icon: "/logo.png",
         badge: "/logo.png",
@@ -1642,7 +1642,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       "gemini-2.0-flash": {
         api: "gemini",
         model: "gemini-2.0-flash-exp",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
         plan: "premium"
       },
       "gpt-4o": {
@@ -1712,14 +1712,14 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       
       // Create personalized greeting responses
       const personalizedResponses = userName ? [
-        `Hi ${userName}! 🩺 Great to see you again! I'm MediBot, your health assistant. How can I help you with your health concerns today? 😊`,
+        `Hi ${userName}! 🩺 Great to see you again! I'm Medibot, your health assistant. How can I help you with your health concerns today? 😊`,
         `Hello ${userName}! 🩺 Welcome back! I'm here to assist you with any health questions or concerns you might have. What's on your mind today? 😊`,
-        `Hey ${userName}! 🩺 Nice to chat with you again! I'm MediBot, ready to help with your health and wellness questions. How can I assist you today? 😊`,
-        `Hi there, ${userName}! 🩺 I'm MediBot, your personal health assistant. Feel free to ask me anything about health, medications, symptoms, or wellness tips. How can I help? 😊`
+        `Hey ${userName}! 🩺 Nice to chat with you again! I'm Medibot, ready to help with your health and wellness questions. How can I assist you today? 😊`,
+        `Hi there, ${userName}! 🩺 I'm Medibot, your personal health assistant. Feel free to ask me anything about health, medications, symptoms, or wellness tips. How can I help? 😊`
       ] : [
-        "Hi there! 🩺 I'm MediBot, your helpful health assistant. How can I help you with your health concerns today? 😊",
+        "Hi there! 🩺 I'm Medibot, your helpful health assistant. How can I help you with your health concerns today? 😊",
         "Hello! 🩺 Great to see you! I'm here to assist you with any health questions or concerns you might have. What's on your mind today? 😊",
-        "Hey! 🩺 I'm MediBot, ready to help you with your health and wellness questions. How can I assist you today? 😊",
+        "Hey! 🩺 I'm Medibot, ready to help you with your health and wellness questions. How can I assist you today? 😊",
         "Hi! 🩺 Welcome! I'm your personal health assistant. Feel free to ask me anything about health, medications, symptoms, or wellness tips. How can I help? 😊"
       ];
 
@@ -1743,7 +1743,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       "tell me your developer", "who built you", "who's your founder"
     ];
     if (identityQuestions.some(q => userMessage.toLowerCase().includes(q))) {
-      return "I was developed by Sujay Babu Thota from MediBot.";
+      return "I was developed by Sujay Babu Thota from Medibot.";
     }
 
     // Handle "what's my name" and similar questions
@@ -1872,10 +1872,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     const optimizedPrompt = createOptimizedPrompt(userMessage, fullContext);
     
     // Alternative: Simple fallback prompt if needed
-    const simplePrompt = `You are MediBot. Answer this health question with emoji 🩺 and complete response: ${userMessage}`;
+    const simplePrompt = `You are Medibot. Answer this health question with emoji 🩺 and complete response: ${userMessage}`;
     const prompt = currentSessionContext
-  ? `You are MediBot, a helpful health assistant. 🏥✨\n\nAlways begin your response with a friendly greeting that includes the user’s question and 1–2 modern emojis placed at the very beginning of the message. End your response with another 1–2 emojis for warmth, encouragement, or emphasis.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Use relevant emojis naturally throughout your response to make it more engaging and visual, but keep it subtle and professional.\n\nEmoji Guidelines:\n- Health-related emojis: 🏥 💊 🩺 🌡️ ❤️ 🧠 💚 🔬 ⚕️ 🫀 🫁 🦠 🧬\n- General emphasis emojis: ✅ ⚠️ 💡 🔍 📋 📝 🎯 ⭐ ✨ 📌 🔔 📊 👍\n- Emotional emojis: 😊 😌 🤗 💪 🙏 🤝 🌸 🌟 🤍 👍\n- Use 2–4 emojis total per response (placed at start, end, or key points).\n\nOnly use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing medications, symptoms, or instructions\n- The content is naturally suited for steps (like “what to do next”)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in smooth, natural paragraphs with light emoji use.\n\nCONVERSATION HISTORY:\n${currentSessionContext}\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: Start with emojis + thank the user + echo their question 🎉\n\nMain Body: Detailed, conversational paragraphs with smooth flow 🩺\n\nClosing: End with 1–2 supportive emojis (like 😊💪, ❤️✨, or 👍😊)\n\nIf user asks about your developer, say: "I was developed by Sujay Babu Thota from MediBot 👨‍💻". Use context to infer their name or age if asked.`
-  : `You are MediBot, a helpful health assistant. 🏥✨\n\nAlways begin your response with a friendly greeting that includes the user’s question and 1–2 modern emojis placed at the very beginning of the message. End your response with another 1–2 emojis for warmth, encouragement, or emphasis.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Use relevant emojis naturally throughout your response to make it more engaging and visual, but keep it subtle and professional.\n\nEmoji Guidelines:\n- Health-related emojis: 🏥 💊 🩺 🌡️ ❤️ 🧠 💚 🔬 ⚕️ 🫀 🫁 🦠 🧬\n- General emphasis emojis: ✅ ⚠️ 💡 🔍 📋 📝 🎯 ⭐ ✨ 📌 🔔 📊 👍\n- Emotional emojis: 😊 😌 🤗 💪 🙏 🤝 🌸 🌟 🤍 👍\n- Use 2–4 emojis total per response (placed at start, end, or key points).\n\nOnly use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing medications, symptoms, or instructions\n- The content is naturally suited for steps (like “what to do next”)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in smooth, natural paragraphs with light emoji use.\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: Start with emojis + thank the user + echo their question 🎉\n\nMain Body: Detailed, conversational paragraphs with smooth flow 🩺\n\nClosing: End with 1–2 supportive emojis (like 😊💪, ❤️✨, or 👍😊)\n\nIf user asks about your developer, say: "I was developed by Sujay Babu Thota from MediBot 👨‍💻". Use context to infer their name or age if asked.`;
+  ? `You are Medibot, a helpful health assistant. 🏥✨\n\nAlways begin your response with a friendly greeting that includes the user’s question and 1–2 modern emojis placed at the very beginning of the message. End your response with another 1–2 emojis for warmth, encouragement, or emphasis.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Use relevant emojis naturally throughout your response to make it more engaging and visual, but keep it subtle and professional.\n\nEmoji Guidelines:\n- Health-related emojis: 🏥 💊 🩺 🌡️ ❤️ 🧠 💚 🔬 ⚕️ 🫀 🫁 🦠 🧬\n- General emphasis emojis: ✅ ⚠️ 💡 🔍 📋 📝 🎯 ⭐ ✨ 📌 🔔 📊 👍\n- Emotional emojis: 😊 😌 🤗 💪 🙏 🤝 🌸 🌟 🤍 👍\n- Use 2–4 emojis total per response (placed at start, end, or key points).\n\nOnly use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing medications, symptoms, or instructions\n- The content is naturally suited for steps (like “what to do next”)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in smooth, natural paragraphs with light emoji use.\n\nCONVERSATION HISTORY:\n${currentSessionContext}\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: Start with emojis + thank the user + echo their question 🎉\n\nMain Body: Detailed, conversational paragraphs with smooth flow 🩺\n\nClosing: End with 1–2 supportive emojis (like 😊💪, ❤️✨, or 👍😊)\n\nIf user asks about your developer, say: "I was developed by Sujay Babu Thota from Medibot 👨‍💻". Use context to infer their name or age if asked.`
+  : `You are Medibot, a helpful health assistant. 🏥✨\n\nAlways begin your response with a friendly greeting that includes the user’s question and 1–2 modern emojis placed at the very beginning of the message. End your response with another 1–2 emojis for warmth, encouragement, or emphasis.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Use relevant emojis naturally throughout your response to make it more engaging and visual, but keep it subtle and professional.\n\nEmoji Guidelines:\n- Health-related emojis: 🏥 💊 🩺 🌡️ ❤️ 🧠 💚 🔬 ⚕️ 🫀 🫁 🦠 🧬\n- General emphasis emojis: ✅ ⚠️ 💡 🔍 📋 📝 🎯 ⭐ ✨ 📌 🔔 📊 👍\n- Emotional emojis: 😊 😌 🤗 💪 🙏 🤝 🌸 🌟 🤍 👍\n- Use 2–4 emojis total per response (placed at start, end, or key points).\n\nOnly use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing medications, symptoms, or instructions\n- The content is naturally suited for steps (like “what to do next”)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in smooth, natural paragraphs with light emoji use.\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: Start with emojis + thank the user + echo their question 🎉\n\nMain Body: Detailed, conversational paragraphs with smooth flow 🩺\n\nClosing: End with 1–2 supportive emojis (like 😊💪, ❤️✨, or 👍😊)\n\nIf user asks about your developer, say: "I was developed by Sujay Babu Thota from Medibot 👨‍💻". Use context to infer their name or age if asked.`;
 
     let content: string | undefined;
 
@@ -1970,7 +1970,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           messages: [
             {
               role: "system",
-              content: "You are a helpful health assistant named MediBot created by Sujay Babu Thota from MediBot.",
+              content: "You are a helpful health assistant named Medibot created by Sujay Babu Thota from Medibot.",
             },
             {
               role: "user",
@@ -1999,7 +1999,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       if (data.choices?.[0]?.finish_reason === "length") {
         console.warn("Response was truncated due to length limit");
         // Try again with a more concise prompt
-        const shortPrompt = `You are MediBot. Answer this health question completely: ${userMessage}`;
+        const shortPrompt = `You are Medibot. Answer this health question completely: ${userMessage}`;
         
         const retryResponse = await fetch(url, {
           method: "POST",
@@ -2060,7 +2060,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     console.error(`Error generating ${selectedModel} response:`, error);
 
     if (selectedModel !== "medibot") {
-      toast.warning("Primary model failed, switching to MediBot...");
+      toast.warning("Primary model failed, switching to Medibot...");
       return generateAIResponse(userMessage, "medibot", messageId);
     }
 
@@ -2075,7 +2075,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     try {
       setAnalyzingPrescription(true);
       const fileBase64 = await fileToBase64(file);
-      const geminiApiKey = "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM";
+      const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
       if (!geminiApiKey) throw new Error("Gemini API key is not configured.");
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
@@ -2584,7 +2584,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                         <Volume2 className="h-4 w-4" />
                       </Button>
                       {userProfile?.plan === 'base' && (
-                        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
+                        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-teal-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
                           PRO
                         </div>
                       )}
@@ -2716,7 +2716,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         `}</style>
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
        <div className="flex-1 flex flex-col overflow-hidden">
-  {/* Transparent header, plan selector inline after MediBot name on all screens */}
+  {/* Transparent header, plan selector inline after Medibot name on all screens */}
   <div className="sticky top-0 z-20 flex flex-row items-center justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-transparent shadow-none w-full min-h-[44px] sm:min-h-[56px] md:min-h-[64px]">
     {/* Left: Brand/Sidebar + Plan Selector */}
     <div className="flex flex-row items-center gap-1 min-w-[100px] w-auto flex-shrink-0">
@@ -2825,12 +2825,12 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             onClick={startNewChat} 
             variant="ghost" 
             size="icon" 
-            className="group relative bg-gradient-to-br from-purple-500/10 via-purple-600/15 to-purple-700/10 hover:from-purple-500/20 hover:via-purple-600/25 hover:to-purple-700/20 dark:from-purple-400/10 dark:via-purple-500/15 dark:to-purple-600/10 dark:hover:from-purple-400/20 dark:hover:via-purple-500/25 dark:hover:to-purple-600/20 text-purple-600 dark:text-purple-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:rotate-12 hover:shadow-lg hover:shadow-purple-500/20 border border-purple-200/30 dark:border-purple-400/20"
+            className="group relative bg-gradient-to-br from-teal-500/10 via-teal-600/15 to-teal-700/10 hover:from-teal-500/20 hover:via-teal-600/25 hover:to-teal-700/20 dark:from-teal-400/10 dark:via-teal-500/15 dark:to-teal-600/10 dark:hover:from-teal-400/20 dark:hover:via-teal-500/25 dark:hover:to-teal-600/20 text-teal-600 dark:text-teal-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:rotate-12 hover:shadow-lg hover:shadow-teal-500/20 border border-teal-200/30 dark:border-teal-400/20"
             title="Start New Chat"
           >
             <Plus className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 transition-transform duration-300" />
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-400/0 via-purple-500/0 to-purple-600/0 group-hover:from-purple-400/10 group-hover:via-purple-500/5 group-hover:to-purple-600/10 transition-all duration-300"></div>
-            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-purple-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-teal-400/0 via-teal-500/0 to-teal-600/0 group-hover:from-teal-400/10 group-hover:via-teal-500/5 group-hover:to-teal-600/10 transition-all duration-300"></div>
+            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-teal-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
           </Button>
           
           <Button 
@@ -2843,7 +2843,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           >
             <Camera className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 transition-transform duration-300" />
             {userProfile?.plan === 'base' && (
-              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
+              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-teal-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
                 PRO
               </div>
             )}
@@ -2883,7 +2883,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             </Button>
           </Link>
           <Link href="/auth/signup">
-            <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-7 px-2 sm:h-8 sm:px-3 md:h-9 md:px-4 w-full sm:w-auto rounded-full shadow-sm text-xs">
+            <Button className="bg-gradient-to-r from-teal-600 to-blue-500 text-white hover:from-teal-700 hover:to-blue-600 h-7 px-2 sm:h-8 sm:px-3 md:h-9 md:px-4 w-full sm:w-auto rounded-full shadow-sm text-xs">
               Get Started
             </Button>
           </Link>
@@ -2900,10 +2900,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             <div className="w-full max-w-md text-center space-y-8 mx-auto flex flex-col items-center justify-center">
               <div className="flex flex-col items-center space-y-6">
                 <div className="w-20 h-20 relative">
-                  <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
+                  <Image src="/logo.png" alt="Medibot Logo" width={80} height={80} className="rounded-full" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to Medibot</h1>
                   <p className="text-gray-500 dark:text-gray-400 text-sm">Please log in or sign up to start chatting.</p>
                 </div>
               </div>
@@ -2934,7 +2934,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   <Button className="w-full flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-green-100 dark:hover:bg-green-800 transition-all">
                     💊 How to manage high blood pressure?
                   </Button>
-                  <Button className="w-full flex items-center justify-center gap-2 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-purple-100 dark:hover:bg-purple-800 transition-all">
+                  <Button className="w-full flex items-center justify-center gap-2 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-teal-100 dark:hover:bg-teal-800 transition-all">
                     🏃‍♀️ Best exercises for heart health
                   </Button>
                   <Button className="w-full flex items-center justify-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-yellow-100 dark:hover:bg-yellow-800 transition-all">
@@ -2953,7 +2953,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   {/* Logo with enhanced styling */}
                   <div className="relative">
                     <div className="w-24 h-24 relative">
-                      <Image src="/logo.png" alt="MediBot Logo" width={96} height={96} className="rounded-full shadow-lg" />
+                      <Image src="/logo.png" alt="Medibot Logo" width={96} height={96} className="rounded-full shadow-lg" />
                     </div>
                     <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
                       <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
@@ -2963,7 +2963,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   {/* Welcome text */}
                   <div className="space-y-3">
                     <h1 className="text-5xl font-extrabold tracking-wide bg-gradient-to-r from-blue-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent drop-shadow-sm">
-  Welcome to MediBot
+  Welcome to Medibot
 </h1>
 
                     <p className="text-gray-600 dark:text-gray-300 text-lg max-w-md mx-auto">
@@ -3107,7 +3107,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   <SelectItem value="medibot" className="pl-4">
                     <div className="flex items-center gap-2">
                       <span className="text-blue-500">●</span>
-                      MediBot (Legacy)
+                      Medibot (Legacy)
                     </div>
                   </SelectItem>
                   
@@ -3240,7 +3240,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       </div>
 
       <p className="mt-1 text-center text-sm text-gray-500 font-sans">
-        MediBot can make mistakes. Check important info.
+        Medibot can make mistakes. Check important info.
       </p>
     </div>
   )}

@@ -31,7 +31,7 @@ export default function CookiePolicyPage() {
                   Cookie Policy
                 </h1>
                 <p className="text-gray-600 text-xl font-medium">
-                  Transparency in how MediBot protects and uses your data
+                  Transparency in how Medibot protects and uses your data
                 </p>
               </div>
             </div>
@@ -63,8 +63,8 @@ export default function CookiePolicyPage() {
               </div>
               <div className="p-4 bg-white rounded-xl border border-[#0E7490]/20 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Settings className="w-5 h-5 text-purple-600" />
+                  <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                    <Settings className="w-5 h-5 text-teal-600" />
                   </div>
                   <div>
                     <p className="font-bold text-2xl text-gray-900">Full</p>
@@ -133,7 +133,7 @@ export default function CookiePolicyPage() {
                     <div>
                       <h2 className="text-2xl font-bold text-gray-900 mb-2">Privacy-First Healthcare</h2>
                       <p className="text-lg text-gray-700 leading-relaxed">
-                        At MediBot, we prioritize your privacy while delivering exceptional healthcare management. 
+                        At Medibot, we prioritize your privacy while delivering exceptional healthcare management. 
                         This comprehensive policy explains exactly how cookies enhance your experience while keeping your medical data secure.
                       </p>
                     </div>
@@ -179,7 +179,7 @@ export default function CookiePolicyPage() {
                       </p>
                     </div>
                     <p className="text-sm text-gray-600 mb-0">
-                      This policy applies to all MediBot services, mobile apps, and web platforms. 
+                      This policy applies to all Medibot services, mobile apps, and web platforms. 
                       We notify users of any significant changes via email and in-app notifications.
                     </p>
                   </div>
@@ -199,7 +199,7 @@ export default function CookiePolicyPage() {
                     <div>
                       <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Privacy Matters</h2>
                       <p className="text-lg text-gray-700 leading-relaxed">
-                        At MediBot, we use cookies and similar technologies to provide you with a better, 
+                        At Medibot, we use cookies and similar technologies to provide you with a better, 
                         faster, and safer healthcare management experience. This cookie policy explains what cookies are, how we use them, 
                         and how you can control them.
                       </p>
@@ -215,7 +215,7 @@ export default function CookiePolicyPage() {
                       </p>
                     </div>
                     <p className="text-sm text-gray-600 mb-0">
-                      This policy applies to all MediBot services and applications.
+                      This policy applies to all Medibot services and applications.
                     </p>
                   </div>
                 </div>
@@ -288,7 +288,7 @@ export default function CookiePolicyPage() {
                       🔒 Essential Cookies
                     </h4>
                     <p className="text-sm text-gray-600 leading-relaxed">
-                      Required for basic website functionality, security, user authentication, and core MediBot features. 
+                      Required for basic website functionality, security, user authentication, and core Medibot features. 
                       These cannot be disabled as they're essential for your safety.
                     </p>
                   </div>
@@ -304,17 +304,17 @@ export default function CookiePolicyPage() {
                       📊 Performance Cookies
                     </h4>
                     <p className="text-sm text-gray-600 leading-relaxed">
-                      Help us understand how visitors interact with MediBot by collecting 
+                      Help us understand how visitors interact with Medibot by collecting 
                       and reporting information anonymously to improve our healthcare services.
                     </p>
                   </div>
 
-                  <div className="p-6 border-2 rounded-xl bg-gradient-to-br from-purple-50 to-violet-50 border-purple-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="p-6 border-2 rounded-xl bg-gradient-to-br from-teal-50 to-violet-50 border-teal-200 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-3 mb-3">
-                      <Badge variant="secondary" className="bg-purple-100 text-purple-800 px-3 py-1 font-semibold">
+                      <Badge variant="secondary" className="bg-teal-100 text-teal-800 px-3 py-1 font-semibold">
                         Functional
                       </Badge>
-                      <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+                      <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse" />
                     </div>
                     <h4 className="font-bold text-gray-900 mb-3 text-lg flex items-center gap-2">
                       ⚙️ Functionality Cookies
@@ -423,7 +423,7 @@ export default function CookiePolicyPage() {
               </CardHeader>
               <CardContent className="p-8">
                 <p className="text-gray-600 mb-6 leading-relaxed">
-                  Here's a comprehensive list of all cookies used by MediBot, including their purpose, duration, and data collected.
+                  Here's a comprehensive list of all cookies used by Medibot, including their purpose, duration, and data collected.
                 </p>
                 
                 <div className="space-y-6">
@@ -513,10 +513,10 @@ export default function CookiePolicyPage() {
                   </div>
 
                   {/* Functional Cookies Table */}
-                  <div className="border border-purple-200 rounded-xl overflow-hidden">
-                    <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 border-b border-purple-200">
-                      <h3 className="font-bold text-purple-800 flex items-center gap-2">
-                        <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
+                  <div className="border border-teal-200 rounded-xl overflow-hidden">
+                    <div className="bg-gradient-to-r from-teal-50 to-violet-50 p-4 border-b border-teal-200">
+                      <h3 className="font-bold text-teal-800 flex items-center gap-2">
+                        <div className="w-6 h-6 bg-teal-500 rounded-lg flex items-center justify-center">
                           <Settings className="w-4 h-4 text-white" />
                         </div>
                         Functional Cookies (Optional)
@@ -561,7 +561,7 @@ export default function CookiePolicyPage() {
                   <ul className="space-y-2 text-sm text-amber-700">
                     <li>• All cookies containing personal data are encrypted</li>
                     <li>• No health information is stored in cookies</li>
-                    <li>• Cookies are only accessible by MediBot servers</li>
+                    <li>• Cookies are only accessible by Medibot servers</li>
                     <li>• We never sell or share cookie data with third parties</li>
                     <li>• You can delete all cookies anytime through your browser</li>
                   </ul>
@@ -613,7 +613,7 @@ export default function CookiePolicyPage() {
                       <h4 className="font-bold text-gray-900 mb-2 text-lg">Browser Settings</h4>
                       <p className="text-gray-600 leading-relaxed">
                         You can also control cookies through your browser settings. Please note that disabling 
-                        certain cookies may affect the functionality of MediBot and your ability to manage your health data effectively.
+                        certain cookies may affect the functionality of Medibot and your ability to manage your health data effectively.
                       </p>
                       <div className="mt-4 grid sm:grid-cols-2 gap-3">
                         <div className="p-3 bg-white rounded-lg border border-gray-200">
@@ -686,12 +686,12 @@ export default function CookiePolicyPage() {
                             View Full Privacy Policy
                           </Link>
                         </div>
-                        <div className="p-4 bg-gradient-to-r from-purple-50/50 to-purple-100/50 rounded-lg border border-purple-200">
+                        <div className="p-4 bg-gradient-to-r from-teal-50/50 to-teal-100/50 rounded-lg border border-teal-200">
                           <div className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full" />
+                            <div className="w-2 h-2 bg-teal-500 rounded-full" />
                             Response Time
                           </div>
-                          <p className="text-purple-600 font-medium">Within 24-48 hours</p>
+                          <p className="text-teal-600 font-medium">Within 24-48 hours</p>
                         </div>
                       </div>
                     </div>

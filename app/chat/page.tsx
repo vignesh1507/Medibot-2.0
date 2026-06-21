@@ -13,6 +13,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TextType from "@/components/TextType";
 import AISuggestions from "@/components/AISuggestions";
 import {
+  detectEmergency,
+  EmergencyBanner,
+  SourceLinks,
+  MedicalDisclaimer,
+} from "@/components/MedicalSafety";
+import { buildHealthTimeline, buildAIMemoryContext } from "@/lib/healthTimeline";
+import { autoLogFromUserMessage } from "@/lib/healthAutoLogger";
+import { analyzeLabReport, parseReportFindings } from "@/lib/analyzeLabReport";
+import { LabReportRenderer, isLabReportResponse, wrapLabReport } from "@/components/LabReportRenderer";
+import { ChatFileCard } from "@/components/ChatFileCard";
+import { buildFileMeta } from "@/lib/fileMeta";
+import type { ChatFileMeta } from "@/lib/firestore";
+import { needsUpgradeForLanguage, type DetectedLanguage } from "@/lib/languageSupport";
+import { getUsage, canAnalyze, incrementUsage, FREE_MONTHLY_LIMITS, type AnalysisFeature } from "@/lib/usageLimits";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -55,6 +70,7 @@ import {
   RefreshCw,
   StopCircle,
   ChevronDown,
+  Ghost,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -63,6 +79,7 @@ import {
   subscribeToUserChatSessions,
   updateChatSessionTitle,
   deleteChatSession,
+  addHealthRecord,
   type ChatSession,
 } from "@/lib/firestore";
 import { toast } from "sonner";
@@ -96,6 +113,7 @@ interface ProcessedChatSession extends Omit<ChatSession, "createdAt" | "updatedA
     id: string;
     userId: string;
     image?: string | null;
+    file?: ChatFileMeta | null;
     message: string;
     response: string;
     timestamp: Date;
@@ -166,7 +184,7 @@ function ChatContent() {
   const [analyzingPrescription, setAnalyzingPrescription] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editedMessage, setEditedMessage] = useState("");
-  const [selectedModel, setSelectedModel] = useState("llama-3.3-70b");
+  const [selectedModel, setSelectedModel] = useState("medibot-care");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -188,7 +206,22 @@ function ChatContent() {
   const [messageCount, setMessageCount] = useState(0);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [manualNewChatStarted, setManualNewChatStarted] = useState(false);
-  
+  const [healthMemoryContext, setHealthMemoryContext] = useState<string>("");
+
+  // Incognito mode: ephemeral chat that is never saved, has no memory of the user,
+  // and vanishes on exit. We stash the pre-incognito session to restore it on exit.
+  const [isIncognito, setIsIncognito] = useState(false);
+  const savedSessionBeforeIncognito = useRef<ProcessedChatSession | null>(null);
+  // Language upgrade gate: set to the detected premium language when a free user
+  // writes in a premium-only language. Drives the upgrade modal.
+  const [languageGate, setLanguageGate] = useState<DetectedLanguage | null>(null);
+  // Usage limit gate: set to the blocked feature when a free user exhausts their
+  // monthly analysis quota. Drives the usage upgrade modal.
+  const [usageGate, setUsageGate] = useState<AnalysisFeature | null>(null);
+  // Ref mirror so async callbacks (Firestore snapshot) always read the live value.
+  const isIncognitoRef = useRef(false);
+  useEffect(() => { isIncognitoRef.current = isIncognito; }, [isIncognito]);
+
   const { user, userProfile } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -198,66 +231,79 @@ function ChatContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  // Build the user's health memory context for AI personalization.
+  // Initial build on mount; refreshed on each send via getFreshMemoryContext().
+  useEffect(() => {
+    if (!user?.uid) {
+      setHealthMemoryContext("");
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const snapshot = await buildHealthTimeline(user.uid);
+        if (cancelled) return;
+        const context = buildAIMemoryContext(snapshot);
+        setHealthMemoryContext(context);
+      } catch (e) {
+        console.error("Failed to build health memory context:", e);
+        if (!cancelled) setHealthMemoryContext("");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid, userProfile?.updatedAt]);
+
+  // Always-fresh memory context — called right before sending a message.
+  // Picks up any health records / meds / events added since the page mounted.
+  const getFreshMemoryContext = async (): Promise<string> => {
+    if (!user?.uid) return "";
+    try {
+      const snapshot = await buildHealthTimeline(user.uid);
+      const fresh = buildAIMemoryContext(snapshot);
+      // Update state too so UI-bound consumers stay in sync
+      setHealthMemoryContext(fresh);
+      return fresh;
+    } catch (e) {
+      console.error("getFreshMemoryContext failed, falling back to cached:", e);
+      return healthMemoryContext;
+    }
+  };
+
   // Auto-switch to free model if user downgrades to base plan
   useEffect(() => {
-    // Define modelMap here or move this block below the modelMap definition
+    // Medibot brand-only model lineup. Underlying provider details are hidden from users.
     const modelMap: Record<string, { api: string; model: string; key: string; plan: 'free' | 'premium' }> = {
-      "llama-3.3-70b": {
-        api: "huggingface",
-        model: "meta-llama/Llama-3.3-70B-Instruct",
-        key: process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || "",
-        plan: "free"
-      },
-      "llama-3.1-8b": {
-        api: "groq",
-        model: "llama-3.1-8b-instant",
-        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
-        plan: "free"
-      },
-      "gpt-oss-120b": {
-        api: "groq",
-        model: "openai/gpt-oss-120b",
-        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
-        plan: "free"
-      },
-      "qwen-3-32b": {
-        api: "groq",
-        model: "qwen/qwen-3-32b",
-        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
-        plan: "free"
-      },
-      "gemini-2.0-flash": {
+      "medibot-care": {
         api: "gemini",
-        model: "gemini-2.0-flash-exp",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyAk3b_1cffq8XhnVL16MckI2IV81sl6rik",
-        plan: "premium"
+        model: "gemini-2.5-flash",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+        plan: "free",
       },
-      "gpt-4o": {
-        api: "openai",
-        model: "gpt-4o",
-        key: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
-        plan: "premium"
-      },
-      "claude-3-sonnet": {
-        api: "anthropic",
-        model: "claude-3-sonnet-20240229",
-        key: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || "",
-        plan: "premium"
-      },
-      "medibot": {
-        api: "huggingface",
-        model: "meta-llama/Llama-3.3-70B-Instruct",
-        key: process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || "",
-        plan: "free"
+      "medibot-specialist": {
+        api: "gemini",
+        model: "gemini-2.5-pro",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+        plan: "premium",
       },
     };
 
     const currentModel = modelMap[selectedModel];
     if (currentModel?.plan === 'premium' && userProfile?.plan === 'base') {
-      setSelectedModel('llama-3.3-70b'); // Switch to default free model
-      toast("Model Changed: Switched to Llama 3.3 70B as premium models require a PRO subscription.");
+      setSelectedModel('medibot-care');
+      toast("Switched to Medibot Care. Medibot Specialist requires a PRO subscription.");
     }
   }, [userProfile?.plan, selectedModel]);
+
+  // Keep selectedPlan in sync with the user's actual plan from their profile.
+  // This is what gates premium model access (picker + generateAIResponse), so it
+  // MUST reflect userProfile.plan — otherwise paying users can't use premium.
+  useEffect(() => {
+    const plan = userProfile?.plan === 'premium' ? 'premium' : 'base';
+    setSelectedPlan(plan);
+    setSelectedPlanForPayment(plan);
+  }, [userProfile?.plan]);
 const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecording, isPremiumFeature = false }: { onResult: (text: string) => void; disabled?: boolean; onStartRecording?: () => void; onStopRecording?: () => void; isPremiumFeature?: boolean }) => {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
@@ -375,20 +421,20 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
         onClick={listening ? stopListening : startListening}
         disabled={disabled}
         aria-label={listening ? 'Stop voice input' : 'Start voice input'}
-        className={`h-8 w-8 flex items-center justify-center rounded-full border-none bg-transparent text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition ${listening ? 'animate-pulse bg-blue-200 dark:bg-blue-900/40' : ''} ${isPremiumFeature ? 'opacity-50' : ''}`}
+        className={`h-8 w-8 flex items-center justify-center rounded-full border-none bg-transparent text-teal-600 hover:bg-teal-100 transition ${listening ? 'animate-pulse bg-teal-200' : ''} ${isPremiumFeature ? 'opacity-50' : ''}`}
         style={{ outline: 'none' }}
       >
         {listening ? (
           <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" className="opacity-30"/><rect x="8.5" y="5" width="3" height="7" rx="1.5"/><rect x="8.5" y="13" width="3" height="2" rx="1"/></svg>
         ) : (
           <>
-            <img src="/microphone.png" alt="Microphone" className="h-5 w-5 block dark:hidden object-contain" />
-            <img src="/microphone1.png" alt="Microphone" className="h-5 w-5 hidden dark:block object-contain" />
+            <img src="/microphone.png" alt="Microphone" className="h-5 w-5 block object-contain" />
+            <img src="/microphone1.png" alt="Microphone" className="h-5 w-5 hidden object-contain" />
           </>
         )}
       </button>
       {isPremiumFeature && (
-        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
+        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-500 to-orange-400 text-white text-[6px] px-1 py-0.5 rounded font-bold">
           PRO
         </div>
       )}
@@ -602,10 +648,15 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
             return;
           }
           
+          // Never touch the session while in incognito — it must stay ephemeral.
+          if (isIncognitoRef.current) {
+            return;
+          }
+
           const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
           const lastSessionId = getLastSessionId();
           let selectedSession: ProcessedChatSession | undefined;
-          
+
           // Don't override if we already have a temporary session
           if (currentSession && currentSession.id && currentSession.id.startsWith('temp-')) {
             console.log("🔄 Keeping temporary session, not overriding");
@@ -751,45 +802,89 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
       .map(([topic]) => topic);
   };
 
+  // Deterministic script detection for the common India case. Returns a forced
+  // language name when the script is unambiguous, else "" (let the model decide).
+  // Covers Devanagari (Hindi/Marathi), Bengali, Tamil, Telugu, Kannada, Malayalam,
+  // Gujarati, Gurmukhi (Punjabi). Latin-only text → English.
+  const detectScriptLanguage = (text: string): string => {
+    if (!text) return "";
+    const scripts: Array<[RegExp, string]> = [
+      [/[ऀ-ॿ]/, "Hindi"],
+      [/[ঀ-৿]/, "Bengali"],
+      [/[஀-௿]/, "Tamil"],
+      [/[ఀ-౿]/, "Telugu"],
+      [/[ಀ-೿]/, "Kannada"],
+      [/[ഀ-ൿ]/, "Malayalam"],
+      [/[઀-૿]/, "Gujarati"],
+      [/[਀-੿]/, "Punjabi"],
+    ];
+    for (const [re, lang] of scripts) {
+      if (re.test(text)) return lang;
+    }
+    // Pure ASCII / Latin letters → English (covers "hello", "hey bro wassup")
+    if (/[A-Za-z]/.test(text) && !/[^\x00-\x7F]/.test(text)) return "English";
+    return "";
+  };
+
   // 🔥 Helper function to create a concise prompt that prevents cutoffs
-  const createOptimizedPrompt = (userMessage: string, contextMessages?: string) => {
-    // Get user's name for personalization
+  const createOptimizedPrompt = (userMessage: string, contextMessages?: string, incognito: boolean = false) => {
+    // Get user's name for personalization — suppressed entirely in incognito mode
+    // so the AI "doesn't know who you are" and starts from scratch.
     let userName = "";
-    if (userProfile?.displayName) {
-      userName = userProfile.displayName.split(' ')[0];
-    } else if (user?.displayName) {
-      userName = user.displayName.split(' ')[0];
-    } else if (user?.email) {
-      userName = user.email.split("@")[0];
+    if (!incognito) {
+      if (userProfile?.displayName) {
+        userName = userProfile.displayName.split(' ')[0];
+      } else if (user?.displayName) {
+        userName = user.displayName.split(' ')[0];
+      } else if (user?.email) {
+        userName = user.email.split("@")[0];
+      }
     }
 
-    const baseInstruction = `You are MediBot, a friendly and knowledgeable health assistant created by Vignesh Skanda. 🩺
+    const baseInstruction = `You are Medibot, a friendly and knowledgeable health information assistant created by Vignesh Skanda.
+
+CRITICAL MEDICAL SAFETY RULES — non-negotiable:
+1. NEVER recommend, prescribe, suggest, or name any specific medication, drug, brand name, or dosage. Not even over-the-counter ones (no paracetamol, ibuprofen, acetaminophen, loperamide, aspirin, etc.). Prescribing is illegal for you.
+2. If asked "what medicine should I take," respond with non-pharmaceutical guidance (rest, hydration, when to seek care) and direct them to a pharmacist or doctor.
+3. NEVER diagnose. Do not say "you have X disease." Describe possibilities only as "things to discuss with a doctor."
+4. ALWAYS recommend consulting a qualified healthcare professional for diagnosis and treatment.
+5. For red-flag symptoms (chest pain, severe bleeding, breathing difficulty, suicidal thoughts, stroke signs), tell them to seek emergency care immediately.
 
 PERSONALIZATION:
-${userName ? `- The user's name is ${userName}. Use their name naturally in conversation when appropriate.` : '- Learn and remember the user\'s name if they mention it.'}
-- Use conversation history to provide personalized, contextual responses
-- Reference previous discussions when relevant to show continuity
+${userName ? `- The user's name is ${userName}. Use their name naturally when appropriate.` : '- Learn and remember the user\'s name if they mention it.'}
+- Use conversation history and verified health profile for personalized, contextual responses
+- Reference previous discussions when relevant
 
-RESPONSE GUIDELINES:
-- For greetings: Use their name if known, be warm and ask about health concerns
-- For health questions: Provide detailed, helpful information with appropriate disclaimers
-- For follow-up questions: Reference previous conversations and build upon them
-- For conversation history requests: Show actual previous questions/topics from their chat history
-- Always be empathetic, professional, and encouraging
-- Use 2-4 relevant health emojis per response (🩺💊❤️🏥😊💪✨👍)
-- Write in natural, conversational paragraphs
-- Always complete your responses fully
-- End with encouraging emojis like 😊, 💪, ✨, or 👍`;
-    
-    if (contextMessages && contextMessages.length > 800) {
-      // If context is too long, use only the essential parts
-      const contextSummary = contextMessages.slice(-500) + "...";
-      return `${baseInstruction}\n\nRecent context: ${contextSummary}\n\nUser: ${userMessage}\n\nRespond as MediBot with warmth, personalization, and expertise:`;
+MEMORY:
+- You DO have access to this conversation's history, including any lab reports you previously analyzed for this user (their key findings appear in the Conversation Context below).
+- When the user refers to "the report", "my results", or "this", look in the Conversation Context for the most recently analyzed report and answer using it.
+- NEVER claim you "don't retain data" or "memory gets reset" — you can see the context provided. If the context genuinely has no report, simply ask them to re-share it.
+
+LANGUAGE:
+- ALWAYS reply in the SAME language as the user's MOST RECENT message — not the language used earlier in the conversation.
+- If their latest message is in English, reply in English. If it's in Hindi, reply in Hindi. If they switch languages mid-conversation, switch with them immediately.
+- Judge the language from the user's CURRENT message only, ignoring the language of past messages in the history.
+
+FORMATTING:
+- Plain text only. NO emojis or symbols.
+- Natural, conversational paragraphs like a friend who knows health basics.
+- Bullet points only when listing steps, symptoms to watch for, or when the user asks for a list.
+- Always complete your responses fully.`;
+
+    const forcedLang = detectScriptLanguage(userMessage);
+    const langReminder = forcedLang
+      ? `\n\n(CRITICAL: the user's latest message is in ${forcedLang}. You MUST reply ONLY in ${forcedLang}, regardless of the language used earlier in this conversation.)`
+      : `\n\n(Reminder: reply in the same language as this latest user message — "${userMessage.slice(0, 80)}" — not the language of earlier messages.)`;
+
+    if (contextMessages && contextMessages.length > 4000) {
+      // If context is very long, keep the most recent portion (preserves report findings)
+      const contextSummary = "..." + contextMessages.slice(-3500);
+      return `${baseInstruction}\n\nRecent context: ${contextSummary}\n\nUser: ${userMessage}${langReminder}\n\nRespond as Medibot with warmth, personalization, and expertise:`;
     }
-    
-    return contextMessages 
-      ? `${baseInstruction}\n\nConversation Context: ${contextMessages}\n\nUser: ${userMessage}\n\nRespond as MediBot with warmth, personalization, and expertise:`
-      : `${baseInstruction}\n\nUser: ${userMessage}\n\nRespond as MediBot with warmth and expertise:`;
+
+    return contextMessages
+      ? `${baseInstruction}\n\nConversation Context: ${contextMessages}\n\nUser: ${userMessage}${langReminder}\n\nRespond as Medibot with warmth, personalization, and expertise:`
+      : `${baseInstruction}\n\nUser: ${userMessage}\n\nRespond as Medibot with warmth and expertise:`;
   };
 
   // 🔥 ENHANCED FUNCTION: Build comprehensive user context for personalization
@@ -872,6 +967,104 @@ CONVERSATION PATTERNS:
     if (hasUrgent) style += "Sometimes needs urgent guidance. ";
     
     return style || "Conversational, health-conscious individual";
+  };
+
+  // ── Incognito mode ──────────────────────────────────────────────
+  const enterIncognito = () => {
+    if (isIncognito) return;
+    // Remember where the user was so we can restore it on exit.
+    savedSessionBeforeIncognito.current = currentSession;
+    setIsIncognito(true);
+    setSidebarOpen(false);
+    setMessage("");
+    setSelectedFile(null);
+    setFileName("");
+    // Fresh, in-memory-only session. The "incognito" id signals "never persist".
+    setCurrentSession({
+      id: "incognito",
+      userId: user?.uid || "incognito",
+      title: "Incognito",
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  };
+
+  const exitIncognito = () => {
+    if (!isIncognito) return;
+    setIsIncognito(false);
+    setMessage("");
+    setSelectedFile(null);
+    setFileName("");
+    // Discard the incognito conversation, restore the prior session (or new chat).
+    setCurrentSession(savedSessionBeforeIncognito.current);
+    savedSessionBeforeIncognito.current = null;
+  };
+
+  // Ephemeral send path for incognito — never persists, no memory, no auto-logging.
+  const sendIncognitoMessage = async () => {
+    if (!message.trim() && !selectedFile) {
+      toast.error("Please enter a message or upload a file");
+      return;
+    }
+    setIsGenerationStopped(false);
+    const userMessage = message.trim() || (selectedFile ? "Please analyze this report" : "File uploaded");
+    const messageId = uuidv4();
+    const fileToAnalyze = selectedFile;
+    let fileMeta: ChatFileMeta | null = null;
+    if (selectedFile) {
+      try { fileMeta = await buildFileMeta(selectedFile); }
+      catch { fileMeta = { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type }; }
+    }
+
+    setLoading(true);
+    setMessage("");
+    setSelectedFile(null);
+    setFileName("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    // Optimistically render the user message.
+    setCurrentSession((prev) =>
+      prev
+        ? {
+            ...prev,
+            messages: [
+              ...prev.messages,
+              { id: messageId, userId: "incognito", message: userMessage, response: "", timestamp: new Date(), type: "chat" as const, image: null, file: fileMeta },
+            ],
+            updatedAt: new Date(),
+          }
+        : prev,
+    );
+
+    let botResponse = "";
+    try {
+      if (fileToAnalyze) {
+        const toastId = toast.loading(`Analyzing ${fileToAnalyze.name}…`, { description: "Reading your report…" });
+        try {
+          const { markdown } = await analyzeLabReport(fileToAnalyze, message.trim());
+          botResponse = wrapLabReport(markdown);
+          toast.success("Report analyzed", { id: toastId });
+          // NOTE: deliberately NOT logging findings to Health Memory in incognito.
+        } catch (err: any) {
+          toast.error("Analysis failed", { id: toastId, description: err?.message });
+          botResponse = `I couldn't analyze "${fileToAnalyze.name}". ${err?.message ?? ""}`;
+        }
+      } else {
+        // incognito=true → no health memory, no cross-session history, no name.
+        botResponse = await generateAIResponse(userMessage, selectedModel, messageId, selectedPlan, "", true);
+      }
+    } catch (err) {
+      console.error("Incognito generation failed:", err);
+      botResponse = "Sorry, something went wrong. Please try again.";
+    }
+
+    setCurrentSession((prev) =>
+      prev
+        ? { ...prev, messages: prev.messages.map((m) => (m.id === messageId ? { ...m, response: botResponse } : m)), updatedAt: new Date() }
+        : prev,
+    );
+    setLoading(false);
   };
 
   const startNewChat = async () => {
@@ -975,6 +1168,30 @@ CONVERSATION PATTERNS:
       toast.error("Please log in to send messages");
       return;
     }
+    // Language paywall: free users writing in a premium-only language get an
+    // upgrade prompt instead of a response.
+    if (message.trim()) {
+      const gate = needsUpgradeForLanguage(message, userProfile?.plan);
+      if (gate) {
+        setLanguageGate(gate);
+        return;
+      }
+    }
+
+    // Usage paywall: free users get 3 report + 3 image analyses per month.
+    if (selectedFile) {
+      const usage = await getUsage(user.uid);
+      const verdict = canAnalyze(usage, userProfile?.plan, selectedFile.type);
+      if (!verdict.allowed) {
+        setUsageGate(verdict.blockedFeature ?? "report");
+        return;
+      }
+    }
+
+    // In incognito, use the ephemeral path that never persists.
+    if (isIncognito) {
+      return sendIncognitoMessage();
+    }
     if (!message.trim() && !selectedFile) {
       toast.error("Please enter a message or upload a file");
       return;
@@ -983,7 +1200,7 @@ CONVERSATION PATTERNS:
     // Reset generation stopped state when starting new message
     setIsGenerationStopped(false);
     
-    const userMessage = message.trim() || "File uploaded";
+    const userMessage = message.trim() || (selectedFile ? "Please analyze this report" : "File uploaded");
     const messageId = uuidv4();
     setLoading(true);
     try {
@@ -1014,11 +1231,21 @@ CONVERSATION PATTERNS:
         }
       }
       
-      let fileUrl: string | null = null;
+      // Note: We no longer upload to Cloudinary. The PDF/image is sent
+      // directly to Gemini's multimodal API for analysis below. We store ONLY
+      // privacy-safe metadata (name/size/type/pageCount) — never the file itself.
+      const fileUrl: string | null = null;
+      const fileToAnalyze: File | null = selectedFile;
+      let fileMeta: ChatFileMeta | null = null;
       if (selectedFile) {
-        fileUrl = await uploadImageToCloudinary(selectedFile);
+        try {
+          fileMeta = await buildFileMeta(selectedFile);
+        } catch (e) {
+          console.warn("Failed to build file metadata:", e);
+          fileMeta = { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type };
+        }
       }
-      
+
       // For new sessions, create a temporary in-memory session to show the message immediately
       if (isNewSession && !currentSession) {
         const tempSession: ProcessedChatSession = {
@@ -1040,6 +1267,7 @@ CONVERSATION PATTERNS:
         timestamp: new Date(),
         type: "chat",
         image: fileUrl ?? null,
+        file: fileMeta,
       };
       setCurrentSession((prev) => {
         if (!prev) return prev;
@@ -1055,22 +1283,82 @@ CONVERSATION PATTERNS:
       setFileName("");
       if (fileInputRef.current) fileInputRef.current.value = "";
       let botResponse = "";
-      if (message.trim()) {
-        botResponse = await generateAIResponse(userMessage, selectedModel, messageId, selectedPlan);
-      }
-      if (fileUrl) {
-        // Check if user has premium plan for prescription analysis
-        if (userProfile?.plan === 'base') {
-          toast.error("Prescription analysis is a premium feature. Redirecting to upgrade page...");
-          setTimeout(() => {
-            router.push('/pricing');
-          }, 1500);
-          // Still allow the file to be uploaded but don't analyze it
-          botResponse = botResponse ? `${botResponse}\n\n📄 File uploaded successfully! Upgrade to PRO to analyze prescriptions automatically.` : "📄 File uploaded successfully! Upgrade to PRO to analyze prescriptions automatically.";
-        } else {
-          const analysis = await analyzePrescription(selectedFile!);
-          const analysisText = `**Prescription Analysis**:\n- **Medications**: ${analysis.medications.join(", ")}\n- **Dosages**: ${analysis.dosages.join(", ")}\n- **Instructions**: ${analysis.instructions}${analysis.warnings.length ? "\n- **Warnings**: " + analysis.warnings.join(", ") : ""}`;
-          botResponse = botResponse ? `${botResponse}\n\n${analysisText}` : analysisText;
+      if (fileToAnalyze) {
+        // A file is attached. If the user ALSO typed a question, answer that question
+        // using the report. Otherwise, produce the full structured analysis.
+        const userQuestion = message.trim();
+        const isImageFile = fileToAnalyze.type.startsWith("image/");
+        const toastId = toast.loading(`Analyzing ${fileToAnalyze.name}…`, {
+          description: isImageFile ? "Looking at your image…" : (userQuestion ? "Answering your question from the report…" : "Reading your report — this takes a few seconds."),
+        });
+        try {
+          const { markdown, modelUsed, kind } = await analyzeLabReport(fileToAnalyze, userQuestion);
+          console.log(`[chat] image analyzed with ${modelUsed} (kind=${kind})`);
+          botResponse = wrapLabReport(markdown);
+          toast.success(kind === "symptom" ? "Photo analyzed" : "Report analyzed", { id: toastId });
+
+          // Count this analysis against the user's monthly free quota (premium = no-op).
+          incrementUsage(user.uid, kind === "symptom" ? "image" : "report", userProfile?.plan).catch(() => {});
+
+          if (user?.uid && kind === "report") {
+            // Feed abnormal findings into Health Memory (timeline + AI memory). Non-blocking.
+            const parsed = parseReportFindings(markdown);
+            const abnormal = parsed.findings.filter((f) => f.status !== "BORDERLINE");
+            if (abnormal.length > 0) {
+              const recordDate = parsed.reportDate || new Date().toISOString().slice(0, 10);
+              const sourceLabel = parsed.reportType ? ` (${parsed.reportType})` : "";
+              Promise.allSettled(
+                abnormal.slice(0, 30).map((f) =>
+                  addHealthRecord(user.uid, {
+                    type: "test_result",
+                    title: `${f.name}: ${f.value} (${f.status === "CRITICAL" ? "Critically " : ""}${f.status.charAt(0) + f.status.slice(1).toLowerCase()})`,
+                    description: `${f.range ? `Normal range: ${f.range}. ` : ""}From uploaded lab report${sourceLabel}.`,
+                    date: recordDate,
+                  }),
+                ),
+              )
+                .then((results) => {
+                  const saved = results.filter((r) => r.status === "fulfilled").length;
+                  if (saved > 0) {
+                    toast.success(`Added ${saved} finding${saved === 1 ? "" : "s"} to your Health Memory`, { duration: 4000 });
+                  }
+                })
+                .catch((e) => console.error("Failed to log report findings:", e));
+            }
+          } else if (user?.uid && kind === "symptom") {
+            // Log a single symptom event to the timeline.
+            addHealthRecord(user.uid, {
+              type: "symptom",
+              title: "Symptom photo shared",
+              description: "You shared a photo of a physical symptom for visual observation.",
+              date: new Date().toISOString().slice(0, 10),
+            })
+              .then(() => toast.success("Added to your Health Memory", { duration: 3000 }))
+              .catch((e) => console.error("Failed to log symptom photo:", e));
+          }
+        } catch (err: any) {
+          console.error("Image analysis failed:", err);
+          const errMsg = err?.message ?? "Couldn't analyze this file.";
+          toast.error("Analysis failed", { id: toastId, description: errMsg });
+          botResponse = `I couldn't analyze "${fileToAnalyze.name}". ${errMsg}\n\nYou can try again, or upload a clearer photo.`;
+        }
+      } else if (message.trim()) {
+        const freshMemory = await getFreshMemoryContext();
+        botResponse = await generateAIResponse(userMessage, selectedModel, messageId, selectedPlan, freshMemory);
+
+        // Background: auto-extract any symptoms / vitals the user mentioned and log them.
+        // Non-blocking — fires and forgets. Shows a tiny toast for each new event.
+        if (user?.uid) {
+          autoLogFromUserMessage(user.uid, userMessage)
+            .then((result) => {
+              if (result.logged.length > 0) {
+                const labels = result.logged.map((e) => e.title).join(", ");
+                toast.success(`Logged to your Health Memory: ${labels}`, {
+                  duration: 3500,
+                });
+              }
+            })
+            .catch((e) => console.error("auto-log failed:", e));
         }
       }
       
@@ -1123,7 +1411,7 @@ CONVERSATION PATTERNS:
         }
       }
       
-      const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl);
+      const newMessage = await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", fileUrl, fileMeta);
       setCurrentSession((prev) => {
         if (!prev) return prev;
         const updatedMessages = prev.messages.map((msg) =>
@@ -1260,42 +1548,39 @@ CONVERSATION PATTERNS:
     
     try {
       // Generate a new, optimized response with enhanced prompt for retry
-      const optimizedPrompt = userMessage.includes("(Please provide an improved") 
-        ? userMessage 
+      const optimizedPrompt = userMessage.includes("(Please provide an improved")
+        ? userMessage
         : `${userMessage} (Please provide an improved, more detailed and comprehensive response than your previous answer)`;
       const newMessageId = uuidv4();
-      
-      const botResponse = await generateAIResponse(optimizedPrompt, selectedModel, newMessageId, selectedPlan);
+
+      const freshMemory = isIncognito ? "" : await getFreshMemoryContext();
+      const botResponse = await generateAIResponse(optimizedPrompt, selectedModel, newMessageId, selectedPlan, freshMemory, isIncognito);
+
+      // 1) ALWAYS show the new response in the UI first — regardless of whether
+      //    it can be persisted. This is what the user actually cares about.
+      setCurrentSession((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: [
+            ...prev.messages,
+            { id: newMessageId, userId: user.uid, message: userMessage, response: botResponse, timestamp: new Date(), type: "chat" as const, image: null, file: null },
+          ],
+          updatedAt: new Date(),
+        };
+      });
+      toast.success("Generated improved response!");
+      setTimeout(() => scrollToBottom(), 100);
+
+      // 2) Persist best-effort — only for real, saved sessions (not incognito/temp).
       const sessionId = currentSession?.id;
-      
-      if (sessionId) {
-        // Add as a new message instead of replacing the existing one
-        const newMessage = await addMessageToSession(sessionId, user.uid, userMessage, botResponse, "chat", null);
-        
-        // Update the current session with the new message
-        setCurrentSession((prev) => {
-          if (!prev) return prev;
-          
-          // Convert the new message to match the expected format
-          const formattedMessage = {
-            ...newMessage,
-            id: newMessage.id || uuidv4(),
-            timestamp: newMessage.timestamp instanceof Date
-              ? newMessage.timestamp
-              : (newMessage.timestamp as any).toDate(),
-          };
-          
-          return {
-            ...prev,
-            messages: [...prev.messages, formattedMessage],
-            updatedAt: new Date(),
-          };
-        });
-        
-        toast.success("Generated improved response!");
-        
-        // Scroll to bottom to show the new message
-        setTimeout(() => scrollToBottom(), 100);
+      const isPersistable = !isIncognito && sessionId && !sessionId.startsWith("temp-") && sessionId !== "incognito";
+      if (isPersistable) {
+        try {
+          await addMessageToSession(sessionId!, user.uid, userMessage, botResponse, "chat", null);
+        } catch (persistErr) {
+          console.warn("Retry response shown but not saved:", persistErr);
+        }
       }
     } catch (error: any) {
       console.error("Error generating optimized response:", error);
@@ -1318,16 +1603,32 @@ CONVERSATION PATTERNS:
       }
       try {
         setLoading(true);
-        const botResponse = await generateAIResponse(editedMessage, selectedModel, messageId, selectedPlan);
+        const freshMemory = isIncognito ? "" : await getFreshMemoryContext();
+        const botResponse = await generateAIResponse(editedMessage, selectedModel, messageId, selectedPlan, freshMemory, isIncognito);
+
+        // Update UI first, always.
+        const existingMessage = currentSession?.messages.find((msg) => msg.id === messageId);
+        setCurrentSession((prev) =>
+          prev
+            ? {
+                ...prev,
+                messages: prev.messages.map((msg) =>
+                  msg.id === messageId ? { ...msg, message: editedMessage, response: botResponse } : msg,
+                ),
+              }
+            : prev,
+        );
+        toast.success("Message updated!");
+
+        // Persist best-effort for real sessions only.
         const sessionId = currentSession?.id;
-        if (sessionId) {
-          const existingMessage = currentSession!.messages.find((msg) => msg.id === messageId);
-          const updatedMessages = currentSession!.messages.map((msg) =>
-            msg.id === messageId ? { ...msg, message: editedMessage, response: botResponse } : msg
-          );
-          await addMessageToSession(sessionId, user.uid, editedMessage, botResponse, "chat", existingMessage?.image ?? null);
-          setCurrentSession((prev) => (prev ? { ...prev, messages: updatedMessages } : prev));
-          toast.success("Message updated!");
+        const isPersistable = !isIncognito && sessionId && !sessionId.startsWith("temp-") && sessionId !== "incognito";
+        if (isPersistable) {
+          try {
+            await addMessageToSession(sessionId!, user.uid, editedMessage, botResponse, "chat", existingMessage?.image ?? null);
+          } catch (persistErr) {
+            console.warn("Edited message shown but not saved:", persistErr);
+          }
         }
       } catch (error: any) {
         console.error("Error editing message:", error);
@@ -1555,7 +1856,7 @@ CONVERSATION PATTERNS:
 
   const sendMessageNotification = (userMessage: string, botResponse: string) => {
     if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("MediBot Response", {
+      new Notification("Medibot Response", {
         body: "Your message has been answered",
         icon: "/logo.png",
         badge: "/logo.png",
@@ -1565,7 +1866,7 @@ CONVERSATION PATTERNS:
 
   // 🔥 ENHANCED FUNCTION: AI Response with comprehensive personalization
 
-const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string, userPlan: string = 'free'): Promise<string> => {
+const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string, userPlan: string = 'free', healthMemoryContext: string = '', incognito: boolean = false): Promise<string> => {
     // Handle "what's my age" and similar questions
   console.log("=== API KEY DEBUG ===");
   console.log("huggungface API Key exists:", !!process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY);
@@ -1575,7 +1876,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     const ageQuestions = [
       "what's my age", "whats my age", "what is my age", "do you know my age", "tell me my age", "how old am i"
     ];
-    if (ageQuestions.some(q => userMessage.toLowerCase().includes(q))) {
+    if (!incognito && ageQuestions.some(q => userMessage.toLowerCase().includes(q))) {
       // Try to infer the most recent age from all chat sessions
       let userAge = "";
       let latestTimestamp = 0;
@@ -1617,57 +1918,26 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     const controller = new AbortController();
     setAbortController(controller);
 
+    // Medibot brand-only lineup — underlying provider details are hidden from users.
     const modelMap: Record<string, { api: string; model: string; key: string; plan: 'free' | 'premium' }> = {
-      // Free models (Open Source)
-      "llama-3.3-70b": {
-        api: "huggingface",
-        model: "meta-llama/Llama-3.3-70B-Instruct",
-        key: process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || "",
-        plan: "free"
-      },
-      "llama-3.1-8b": {
-        api: "groq",
-        model: "llama-3.1-8b-instant",
-        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
-        plan: "free"
-      },
-      "gpt-oss-120b": {
-        api: "groq",
-        model: "openai/gpt-oss-120b",
-        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
-        plan: "free"
-      },
-      "qwen-3-32b": {
-        api: "groq",
-        model: "qwen/qwen-3-32b",
-        key: process.env.NEXT_PUBLIC_GROQ_API_KEY || "",
-        plan: "free"
-      },
-      // Premium models (Paid APIs)
-      "gemini-2.0-flash": {
+      "medibot-care": {
         api: "gemini",
-        model: "gemini-2.0-flash-exp",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyAk3b_1cffq8XhnVL16MckI2IV81sl6rik",
-        plan: "premium"
+        model: "gemini-2.5-flash",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+        plan: "free",
       },
-      "gpt-4o": {
-        api: "openai",
-        model: "gpt-4o",
-        key: process.env.NEXT_PUBLIC_OPENAI_API_KEY || "",
-        plan: "premium"
+      "medibot-specialist": {
+        api: "gemini",
+        model: "gemini-2.5-pro",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+        plan: "premium",
       },
-      "claude-3-sonnet": {
-        api: "anthropic",
-        model: "claude-3-sonnet-20240229",
-        key: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || "",
-        plan: "premium"
-      },
-      // Legacy support - this will be the default free model
+      // Legacy alias — old chat sessions saved with "medibot" still work
       "medibot": {
-        api: "huggingface",
-        model: "meta-llama/Llama-3.3-70B-Instruct",
-        key: process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY || "",
-        plan: "free"
+        api: "gemini",
+        model: "gemini-2.5-flash",
+        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+        plan: "free",
       },
     };
 
@@ -1683,7 +1953,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     const greetings = ["hi", "hello", "hey", "hola", "yo", "hii", "hi there", "hlo", "helloo", "good morning", "good afternoon", "good evening", "how are you", "wassup", "what's up", "sup"];
     const userMessageLower = userMessage.trim().toLowerCase();
     
-    if (greetings.some(greeting => userMessageLower === greeting || userMessageLower.startsWith(greeting + " "))) {
+    if (!incognito && greetings.some(greeting => userMessageLower === greeting || userMessageLower.startsWith(greeting + " "))) {
       // Get user's name from profile or infer from conversations
       let userName = "";
       if (userProfile?.displayName) {
@@ -1717,14 +1987,14 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       
       // Create personalized greeting responses
       const personalizedResponses = userName ? [
-        `Hi ${userName}! 🩺 Great to see you again! I'm MediBot, your health assistant. How can I help you with your health concerns today? 😊`,
+        `Hi ${userName}! 🩺 Great to see you again! I'm Medibot, your health assistant. How can I help you with your health concerns today? 😊`,
         `Hello ${userName}! 🩺 Welcome back! I'm here to assist you with any health questions or concerns you might have. What's on your mind today? 😊`,
-        `Hey ${userName}! 🩺 Nice to chat with you again! I'm MediBot, ready to help with your health and wellness questions. How can I assist you today? 😊`,
-        `Hi there, ${userName}! 🩺 I'm MediBot, your personal health assistant. Feel free to ask me anything about health, medications, symptoms, or wellness tips. How can I help? 😊`
+        `Hey ${userName}! 🩺 Nice to chat with you again! I'm Medibot, ready to help with your health and wellness questions. How can I assist you today? 😊`,
+        `Hi there, ${userName}! 🩺 I'm Medibot, your personal health assistant. Feel free to ask me anything about health, medications, symptoms, or wellness tips. How can I help? 😊`
       ] : [
-        "Hi there! 🩺 I'm MediBot, your helpful health assistant. How can I help you with your health concerns today? 😊",
+        "Hi there! 🩺 I'm Medibot, your helpful health assistant. How can I help you with your health concerns today? 😊",
         "Hello! 🩺 Great to see you! I'm here to assist you with any health questions or concerns you might have. What's on your mind today? 😊",
-        "Hey! 🩺 I'm MediBot, ready to help you with your health and wellness questions. How can I assist you today? 😊",
+        "Hey! 🩺 I'm Medibot, ready to help you with your health and wellness questions. How can I assist you today? 😊",
         "Hi! 🩺 Welcome! I'm your personal health assistant. Feel free to ask me anything about health, medications, symptoms, or wellness tips. How can I help? 😊"
       ];
 
@@ -1748,14 +2018,14 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       "tell me your developer", "who built you", "who's your founder"
     ];
     if (identityQuestions.some(q => userMessage.toLowerCase().includes(q))) {
-      return "I was developed by Vignesh Skanda from MediBot.";
+      return "I was developed by Vignesh Skanda from Medibot.";
     }
 
     // Handle "what's my name" and similar questions
     const nameQuestions = [
       "what's my name", "whats my name", "what is my name", "do you know my name", "tell me my name", "who am i"
     ];
-    if (nameQuestions.some(q => userMessage.toLowerCase().includes(q))) {
+    if (!incognito && nameQuestions.some(q => userMessage.toLowerCase().includes(q))) {
       // Try to infer name from userProfile, user, or all chat sessions
       let userName = "";
       if (userProfile?.displayName) userName = userProfile.displayName;
@@ -1792,10 +2062,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       "what did we discuss", "our previous conversation", "conversation history", "chat history",
       "what did i ask you before", "my past questions", "previous topics", "what have we talked about"
     ];
-    if (historyQuestions.some(q => userMessage.toLowerCase().includes(q))) {
+    if (!incognito && historyQuestions.some(q => userMessage.toLowerCase().includes(q))) {
       // Get comprehensive conversation history
       let historyText = "";
-      
+
       if (sessions && sessions.length > 0) {
         // Get user's questions from all sessions (excluding current session if it's new)
         const allUserQuestions: Array<{question: string, session: string, date: string}> = [];
@@ -1845,28 +2115,55 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       return historyText;
     }
 
+    // Condense a stored AI response for context. Lab-report analyses are huge
+    // (10k+ chars) — for context we keep only the report type + abnormal findings
+    // so follow-up questions ("explain more on this") can reference the report
+    // without blowing up the prompt.
+    const condenseForContext = (response: string): string => {
+      if (!response) return "";
+      if (!response.includes("[[LAB_REPORT]]")) return response;
+      const clean = response.replace("[[LAB_REPORT]]", "").trim();
+      const lines = clean.split("\n");
+      const kept: string[] = [];
+      let inAttention = false;
+      for (const line of lines) {
+        if (/^\*\*Report type:/i.test(line) || /^### Lab Report Analysis/i.test(line)) {
+          kept.push(line.replace(/^###\s*/, ""));
+        }
+        if (/^### Results That Need Attention/i.test(line)) { inAttention = true; continue; }
+        if (/^### /.test(line)) { inAttention = false; }
+        // Keep the abnormal result headlines (the **[STATUS] Name** — value lines)
+        if (inAttention && /^\*\*\[(LOW|BORDERLINE|HIGH|CRITICAL)\]/.test(line)) {
+          kept.push(line.replace(/\*\*/g, "").replace(/_\(/g, "(").replace(/\)_/g, ")"));
+        }
+      }
+      const summary = kept.join("\n").slice(0, 1500);
+      return summary || "[Analyzed a lab report for the user]";
+    };
+
     // Enhanced context building: Include both current session and cross-session context
     let currentSessionContext = "";
     let crossSessionContext = "";
-    
+
     // Current session context (last 5 messages)
     if (currentSession?.messages?.length) {
       const recentMessages = currentSession.messages.slice(-5);
       currentSessionContext = recentMessages
-        .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
+        .map((msg) => `User: ${msg.message}\nAI: ${condenseForContext(msg.response)}`)
         .join("\n\n");
     }
     
-    // Cross-session context for personalization (if this is a new session or has few messages)
-    if ((!currentSession || currentSession.messages.length < 3) && sessions && sessions.length > 1) {
+    // Cross-session context for personalization (if this is a new session or has few messages).
+    // SKIPPED entirely in incognito mode — the AI must not see any past conversations.
+    if (!incognito && (!currentSession || currentSession.messages.length < 3) && sessions && sessions.length > 1) {
       const otherSessions = sessions.filter(s => s.id !== currentSession?.id).slice(0, 2);
-      const relevantMessages = otherSessions.flatMap(session => 
+      const relevantMessages = otherSessions.flatMap(session =>
         session.messages.slice(-2) // Last 2 messages from each of the 2 most recent other sessions
       );
-      
+
       if (relevantMessages.length > 0) {
         crossSessionContext = `\n\nRELEVANT CONVERSATION HISTORY:\n${relevantMessages
-          .map((msg) => `User: ${msg.message}\nAI: ${msg.response}`)
+          .map((msg) => `User: ${msg.message}\nAI: ${condenseForContext(msg.response)}`)
           .join("\n\n")}`;
       }
     }
@@ -1874,13 +2171,32 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     const fullContext = currentSessionContext + crossSessionContext;
 
     // Use optimized prompt to prevent cutoffs
-    const optimizedPrompt = createOptimizedPrompt(userMessage, fullContext);
+    const optimizedPrompt = createOptimizedPrompt(userMessage, fullContext, incognito);
     
     // Alternative: Simple fallback prompt if needed
-    const simplePrompt = `You are MediBot. Answer this health question with emoji 🩺 and complete response: ${userMessage}`;
+    const simplePrompt = `You are Medibot. Answer this health question with a complete, plain-text response. Do NOT use any emojis or emoticons: ${userMessage}`;
+    const basePrompt = `You are Medibot, a helpful health information assistant.
+
+CRITICAL MEDICAL SAFETY RULES — these are non-negotiable:
+1. NEVER recommend, prescribe, suggest, or name any specific medication, drug, brand name, or dosage. Not even over-the-counter ones. Not even common ones like paracetamol, ibuprofen, acetaminophen, loperamide, aspirin, etc. You are not a doctor and prescribing is illegal for you.
+2. If the user asks "what medicine should I take" or similar, respond with: general non-pharmaceutical guidance (rest, hydration, when to seek care) and explicitly tell them to consult a pharmacist or doctor for medication choices.
+3. NEVER diagnose. Do not say "you have X" or "this sounds like X disease." You may describe possibilities only as "things to discuss with a doctor."
+4. ALWAYS recommend the user consults a qualified healthcare professional for diagnosis and treatment decisions.
+5. For any red-flag symptoms (chest pain, severe bleeding, breathing difficulty, suicidal thoughts, stroke signs), tell them to seek emergency care immediately.
+
+FORMATTING RULES:
+- Use plain text only. NO emojis, emoticons, or symbols (no 🩺 💊 ❤️ 😊 etc).
+- Write in natural, flowing paragraphs like a friend who happens to know health basics.
+- Use bullet points ONLY when listing steps, symptoms-to-watch-for, or when the user explicitly asks for a list.
+
+PERSONALIZATION:
+When the user's verified health profile is provided below, USE IT carefully. Reference known conditions, allergies, and recorded events when medically relevant. NEVER invent facts not in the profile. If the user mentions a symptom that's a known pattern for them, acknowledge it.
+
+If the user asks about your developer, say: "I was developed by Vignesh Skanda from Medibot."`;
+    const memoryBlock = healthMemoryContext ? `\n\n${healthMemoryContext}\n` : '';
     const prompt = currentSessionContext
-  ? `You are MediBot, a helpful health assistant. 🏥✨\n\nAlways begin your response with a friendly greeting that includes the user’s question and 1–2 modern emojis placed at the very beginning of the message. End your response with another 1–2 emojis for warmth, encouragement, or emphasis.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Use relevant emojis naturally throughout your response to make it more engaging and visual, but keep it subtle and professional.\n\nEmoji Guidelines:\n- Health-related emojis: 🏥 💊 🩺 🌡️ ❤️ 🧠 💚 🔬 ⚕️ 🫀 🫁 🦠 🧬\n- General emphasis emojis: ✅ ⚠️ 💡 🔍 📋 📝 🎯 ⭐ ✨ 📌 🔔 📊 👍\n- Emotional emojis: 😊 😌 🤗 💪 🙏 🤝 🌸 🌟 🤍 👍\n- Use 2–4 emojis total per response (placed at start, end, or key points).\n\nOnly use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing medications, symptoms, or instructions\n- The content is naturally suited for steps (like “what to do next”)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in smooth, natural paragraphs with light emoji use.\n\nCONVERSATION HISTORY:\n${currentSessionContext}\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: Start with emojis + thank the user + echo their question 🎉\n\nMain Body: Detailed, conversational paragraphs with smooth flow 🩺\n\nClosing: End with 1–2 supportive emojis (like 😊💪, ❤️✨, or 👍😊)\n\nIf user asks about your developer, say: "I was developed by Vignesh Skanda from MediBot 👨‍💻". Use context to infer their name or age if asked.`
-  : `You are MediBot, a helpful health assistant. 🏥✨\n\nAlways begin your response with a friendly greeting that includes the user’s question and 1–2 modern emojis placed at the very beginning of the message. End your response with another 1–2 emojis for warmth, encouragement, or emphasis.\n\nProvide detailed, conversational responses in paragraph format like ChatGPT. Write in a natural, flowing manner with well-structured paragraphs. Use relevant emojis naturally throughout your response to make it more engaging and visual, but keep it subtle and professional.\n\nEmoji Guidelines:\n- Health-related emojis: 🏥 💊 🩺 🌡️ ❤️ 🧠 💚 🔬 ⚕️ 🫀 🫁 🦠 🧬\n- General emphasis emojis: ✅ ⚠️ 💡 🔍 📋 📝 🎯 ⭐ ✨ 📌 🔔 📊 👍\n- Emotional emojis: 😊 😌 🤗 💪 🙏 🤝 🌸 🌟 🤍 👍\n- Use 2–4 emojis total per response (placed at start, end, or key points).\n\nOnly use bullet points when:\n- The user specifically asks for a list, steps, or points\n- You're listing medications, symptoms, or instructions\n- The content is naturally suited for steps (like “what to do next”)\n- You want to highlight key takeaways at the end\n\nOtherwise, respond in smooth, natural paragraphs with light emoji use.\n\nUSER QUESTION:\n${userMessage}\n\nFormat:\nGreeting: Start with emojis + thank the user + echo their question 🎉\n\nMain Body: Detailed, conversational paragraphs with smooth flow 🩺\n\nClosing: End with 1–2 supportive emojis (like 😊💪, ❤️✨, or 👍😊)\n\nIf user asks about your developer, say: "I was developed by Vignesh Skanda from MediBot 👨‍💻". Use context to infer their name or age if asked.`;
+  ? `${basePrompt}${memoryBlock}\n\nCONVERSATION HISTORY:\n${currentSessionContext}\n\nUSER QUESTION:\n${userMessage}`
+  : `${basePrompt}${memoryBlock}\n\nUSER QUESTION:\n${userMessage}`;
 
     let content: string | undefined;
 
@@ -1895,13 +2211,13 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           },
           body: JSON.stringify({
             contents: [{ parts: [{ text: optimizedPrompt }] }],
-            generationConfig: { 
-              temperature: 0.7, 
-              maxOutputTokens: 8192,
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 65536,
               topP: 0.95,
               topK: 1,
               stopSequences: [],
-              candidateCount: 1
+              candidateCount: 1,
             },
           }),
           signal: controller.signal,
@@ -1996,7 +2312,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           messages: [
             {
               role: "system",
-              content: "You are a helpful health assistant named MediBot created by Vignesh Skanda from MediBot.",
+              content: "You are a helpful health assistant named Medibot created by Vignesh Skanda from Medibot.",
             },
             {
               role: "user",
@@ -2025,7 +2341,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       if (data.choices?.[0]?.finish_reason === "length") {
         console.warn("Response was truncated due to length limit");
         // Try again with a more concise prompt
-        const shortPrompt = `You are MediBot. Answer this health question completely: ${userMessage}`;
+        const shortPrompt = `You are Medibot. Answer this health question completely: ${userMessage}`;
         
         const retryResponse = await fetch(url, {
           method: "POST",
@@ -2066,28 +2382,24 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     }
 
     if (!content) throw new Error("No valid response");
-    
-    // Check if response seems incomplete (ends mid-sentence)
-    const trimmedContent = content.trim();
-    const lastChar = trimmedContent.slice(-1);
-    const seemsIncomplete = !['!', '.', '?', '😊', '💪', '❤️', '✨', '👍', '🙏'].includes(lastChar) && 
-                           trimmedContent.length > 50;
-    
-    if (seemsIncomplete) {
-      console.warn("Response appears incomplete, last character:", lastChar);
-      // Add a note about potential truncation
-      content = trimmedContent + "\n\n[Response may have been truncated. Please ask me to continue if you need more information.]";
-    }
-    
-    return content.trim();
+
+    // Strip emojis from AI response — covers symbols, emoticons, dingbats, regional indicators, ZWJ sequences, variation selectors
+    const stripEmojis = (s: string) =>
+      s
+        .replace(/[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F900}-\u{1F9FF}\u{2B00}-\u{2BFF}\u{1F100}-\u{1F1FF}]/gu, '')
+        .replace(/[\u{FE0E}\u{FE0F}\u{200D}]/gu, '')
+        .replace(/[ \t]{2,}/g, ' ')
+        .trim();
+
+    return stripEmojis(content);
 
   } catch (error: any) {
     if (error.name === "AbortError") return "";
     console.error(`Error generating ${selectedModel} response:`, error);
 
-    if (selectedModel !== "medibot") {
-      toast.warning("Primary model failed, switching to MediBot...");
-      return generateAIResponse(userMessage, "medibot", messageId);
+    if (selectedModel !== "medibot-care" && selectedModel !== "medibot") {
+      toast.warning("Switching to Medibot Care…");
+      return generateAIResponse(userMessage, "medibot-care", messageId, userPlan, healthMemoryContext, incognito);
     }
 
     return "Sorry, something went wrong. Try again.";
@@ -2101,7 +2413,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     try {
       setAnalyzingPrescription(true);
       const fileBase64 = await fileToBase64(file);
-      const geminiApiKey = "AIzaSyDNHY0ptkqYXxknm1qJYP_tCw2A12be_gM";
+      const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
       if (!geminiApiKey) throw new Error("Gemini API key is not configured.");
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
@@ -2314,7 +2626,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 if (isSubheading(line)) {
                   const text = line.replace(/^(\*\*|##)\s?/, '').replace(/(\*\*|)$|:$/g, '').trim();
                   return (
-                    <div key={`msg-${messageIndex}-subheading-${idx}`} className="font-bold text-lg mt-4 mb-2 text-blue-700 dark:text-blue-300 border-b border-blue-200 dark:border-blue-700 pb-1">
+                    <div key={`msg-${messageIndex}-subheading-${idx}`} className="font-bold text-lg mt-4 mb-2 text-teal-700 border-b border-teal-200 pb-1">
                       {text}
                     </div>
                   );
@@ -2323,8 +2635,8 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 if (isBulletPoint(line)) {
                   return (
                     <div key={`msg-${messageIndex}-bullet-${idx}`} className="pl-4 mb-2 flex items-start">
-                      <span className="mr-3 text-blue-600 dark:text-blue-400 text-lg leading-6 select-none">•</span>
-                      <span className="text-gray-800 dark:text-gray-200">{line.replace(/^\s*([-*•])\s+/, '')}</span>
+                      <span className="mr-3 text-teal-600 text-lg leading-6 select-none">•</span>
+                      <span className="text-gray-800">{line.replace(/^\s*([-*•])\s+/, '')}</span>
                     </div>
                   );
                 }
@@ -2332,14 +2644,14 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 if (isNumberedPoint(line)) {
                   return (
                     <div key={`msg-${messageIndex}-numbered-${idx}`} className="pl-4 mb-2 flex items-start">
-                      <span className="mr-3 text-blue-600 dark:text-blue-400 text-base font-semibold select-none">{line.match(/^\s*\d+\./)?.[0]}</span>
-                      <span className="text-gray-800 dark:text-gray-200">{line.replace(/^\s*\d+\.\s*/, '')}</span>
+                      <span className="mr-3 text-teal-600 text-base font-semibold select-none">{line.match(/^\s*\d+\./)?.[0]}</span>
+                      <span className="text-gray-800">{line.replace(/^\s*\d+\.\s*/, '')}</span>
                     </div>
                   );
                 }
                 // Regular paragraph
                 return (
-                  <p key={`msg-${messageIndex}-paragraph-${idx}`} className="mb-3 text-gray-800 dark:text-gray-200 leading-relaxed">{line}</p>
+                  <p key={`msg-${messageIndex}-paragraph-${idx}`} className="mb-3 text-gray-800 leading-relaxed">{line}</p>
                 );
               })}
             </div>
@@ -2376,8 +2688,8 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             <div className="ai-response space-y-2">
               {points.map((point, idx) => (
                 <div key={`msg-${messageIndex}-point-${idx}`} className="pl-4 flex items-start">
-                  <span className="mr-3 text-blue-600 dark:text-blue-400 text-lg leading-6 select-none">•</span>
-                  <span className="text-gray-800 dark:text-gray-200">{point}</span>
+                  <span className="mr-3 text-teal-600 text-lg leading-6 select-none">•</span>
+                  <span className="text-gray-800">{point}</span>
                 </div>
               ))}
             </div>
@@ -2385,14 +2697,21 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         }
         
         // Single point/paragraph
-        return <p className="ai-response text-gray-800 dark:text-gray-200 leading-relaxed">{singleLine}</p>;
+        return <p className="ai-response text-gray-800 leading-relaxed">{singleLine}</p>;
       };
+      const emergency = detectEmergency(msg.message);
       return (
         <div key={`message-${msg.id}-${messageIndex}`}>
           <div className="space-y-4">
-            <div className="flex justify-end items-start space-x-2 max-w-[70%] ml-auto">
-              <div className="relative group">
-                <div className="bg-zinc-900 dark:bg-white rounded-xl p-4 text-white dark:text-gray-900 text-sm leading-relaxed border border-zinc-700 dark:border-gray-200">
+            {emergency && (
+              <EmergencyBanner category={emergency.category} severity={emergency.severity} />
+            )}
+            <div className="flex justify-end items-start space-x-2 max-w-[80%] ml-auto">
+              <div className="relative group flex flex-col items-end gap-2">
+                {msg.file && (
+                  <ChatFileCard file={msg.file} />
+                )}
+                <div className="bg-zinc-900 rounded-xl p-4 text-white text-sm leading-relaxed border border-zinc-700">
                   {isValidImageUrl(msg.image) ? (
                     <div className="mb-2">
                       <Image
@@ -2533,7 +2852,8 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     `}</style>
   </div>
 ) : (
-  <p>{msg.message}</p>
+  // Suppress the "File uploaded" placeholder when a file card is already shown above
+  (msg.file && msg.message === "File uploaded") ? null : <p>{msg.message}</p>
 )}
 
                 </div>
@@ -2542,11 +2862,11 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                     variant="ghost"
                     size="icon"
                     onClick={() => handleCopyText(msg.message, `user-${msg.id}`)}
-                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 rounded-full transition-colors duration-200"
+                    className="text-gray-500 hover:text-gray-700 h-6 w-6 rounded-full transition-colors duration-200"
                     title="Copy Message"
                   >
                     {copiedMessageIds.has(`user-${msg.id}`) ? (
-                      <Check className="h-4 w-4 text-black dark:text-white" />
+                      <Check className="h-4 w-4 text-black" />
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
@@ -2555,19 +2875,19 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                     variant="ghost"
                     size="icon"
                     onClick={() => handleEditMessage(msg.id, msg.message)}
-                    className="text-gray-500 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400 h-6 w-6 rounded-full transition-colors duration-200"
+                    className="text-gray-500 hover:text-teal-500 h-6 w-6 rounded-full transition-colors duration-200"
                     title="Edit Message"
                   >
                     <span className="relative h-4 w-4 inline-block">
-                      <img src="/pencil.png" alt="Edit" className="h-4 w-4 block dark:hidden" />
-                      <img src="/pencildark.png" alt="Edit" className="h-4 w-4 hidden dark:block" />
+                      <img src="/pencil.png" alt="Edit" className="h-4 w-4 block" />
+                      <img src="/pencildark.png" alt="Edit" className="h-4 w-4 hidden" />
                     </span>
                   </Button>
                 </div>
               </div>
               <Avatar className="w-8 h-8 mt-1 flex-shrink-0">
                 <AvatarImage src={userProfile?.photoURL || user?.photoURL || ""} />
-                <AvatarFallback className="bg-blue-600 text-white text-sm">
+                <AvatarFallback className="bg-teal-600 text-white text-sm">
                   {userProfile?.displayName?.charAt(0).toUpperCase() ||
                     user?.displayName?.charAt(0).toUpperCase() ||
                     user?.email?.charAt(0).toUpperCase() || "U"}
@@ -2577,23 +2897,29 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             {msg.response ? (
             <div className="flex items-start space-x-2" style={{ maxWidth: '100%' }}>
                 <div className="relative group">
-                  <div className="rounded-xl p-4 dark:text-white text-sm leading-relaxed space-y-4 ai-response">
-                    <TextType 
-                      text={msg.response}
-                      renderAsMarkdown={true}
-                      className="text-sm leading-relaxed ai-response"
-                    />
+                  <div className="rounded-xl p-4 text-sm leading-relaxed space-y-4 ai-response">
+                    {isLabReportResponse(msg.response) ? (
+                      <LabReportRenderer response={msg.response} />
+                    ) : (
+                      <TextType
+                        text={msg.response}
+                        renderAsMarkdown={true}
+                        className="text-sm leading-relaxed ai-response"
+                      />
+                    )}
+                    <SourceLinks response={msg.response} />
+                    <MedicalDisclaimer />
                   </div>
                   <div className="absolute -bottom-6 left-4 flex space-x-2 justify-start opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => handleCopyText(msg.response, `ai-${msg.id}`)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 rounded-full transition-colors duration-200"
+                      className="text-gray-500 hover:text-gray-700 h-6 w-6 rounded-full transition-colors duration-200"
                       title="Copy Response"
                     >
                       {copiedMessageIds.has(`ai-${msg.id}`) ? (
-                        <Check className="h-4 w-4 text-black dark:text-white" />
+                        <Check className="h-4 w-4 text-black" />
                       ) : (
                         <Copy className="h-4 w-4" />
                       )}
@@ -2603,14 +2929,14 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                         variant="ghost"
                         size="icon"
                         onClick={() => handleSpeakResponse(msg.response)}
-                        className={`text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white h-6 w-6 rounded-full transition-colors duration-200 ${isSpeaking ? "animate-pulse bg-gray-500/20" : ""} ${userProfile?.plan === 'base' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`text-gray-500 hover:text-gray-700 h-6 w-6 rounded-full transition-colors duration-200 ${isSpeaking ? "animate-pulse bg-gray-500/20" : ""} ${userProfile?.plan === 'base' ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title={userProfile?.plan === 'base' ? "Speech-to-Speech (PRO Feature)" : (isSpeaking ? "Stop Speaking" : "Speak Response")}
                         disabled={userProfile?.plan === 'base'}
                       >
                         <Volume2 className="h-4 w-4" />
                       </Button>
                       {userProfile?.plan === 'base' && (
-                        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
+                        <div className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-500 to-orange-400 text-white text-[6px] px-1 py-0.5 rounded font-bold">
                           PRO
                         </div>
                       )}
@@ -2619,7 +2945,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       variant="ghost"
                       size="icon"
                       onClick={() => handleFeedback(msg.id, true)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-green-500 h-6 w-6 rounded-full transition-colors duration-200"
+                      className="text-gray-500 hover:text-green-500 h-6 w-6 rounded-full transition-colors duration-200"
                       title="Thumbs Up"
                     >
                       <ThumbsUp className="h-4 w-4" />
@@ -2628,7 +2954,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       variant="ghost"
                       size="icon"
                       onClick={() => handleFeedback(msg.id, false)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-red-500 h-6 w-6 rounded-full transition-colors duration-200"
+                      className="text-gray-500 hover:text-red-500 h-6 w-6 rounded-full transition-colors duration-200"
                       title="Thumbs Down"
                     >
                       <ThumbsDown className="h-4 w-4" />
@@ -2637,7 +2963,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       variant="ghost"
                       size="icon"
                       onClick={() => handleRetryResponse(msg.id, msg.message)}
-                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6 rounded-full transition-colors duration-200"
+                      className="text-gray-500 hover:text-teal-500 h-6 w-6 rounded-full transition-colors duration-200"
                       title="Generate Improved Response ✨"
                     >
                       <RefreshCw className="h-4 w-4" />
@@ -2646,7 +2972,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       variant="ghost"
                       size="icon"
                       onClick={() => window.open(`https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(msg.message)}`, "_blank")}
-                      className="text-gray-500 dark:text-gray-300 hover:text-blue-500 h-6 w-6 rounded-full transition-colors duration-200"
+                      className="text-gray-500 hover:text-teal-500 h-6 w-6 rounded-full transition-colors duration-200"
                       title="Search PubMed"
                     >
                       <Search className="h-4 w-4" />
@@ -2659,9 +2985,9 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 <div className="flex items-start space-x-2 w-full">
                   <div className="p-4">
                     <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                      <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                      <div className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
                     </div>
                   </div>
                 </div>
@@ -2675,7 +3001,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
 
   return (
     <AuthGuard>
-      <div className="min-h-screen flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex h-screen overflow-hidden bg-gray-50">
         <style jsx global>{`
           textarea {
             max-height: 120px;
@@ -2740,17 +3066,18 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             cursor: not-allowed;
           }
         `}</style>
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        {/* Sidebar is hidden entirely in incognito mode (Claude-style) */}
+        {!isIncognito && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
        <div className="flex-1 flex flex-col overflow-hidden">
-  {/* Transparent header, plan selector inline after MediBot name on all screens */}
-  <div className="sticky top-0 z-20 flex flex-row items-center justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200/80 dark:border-gray-700/50 bg-transparent shadow-none w-full min-h-[44px] sm:min-h-[56px] md:min-h-[64px]">
+  {/* Transparent header, plan selector inline after Medibot name on all screens */}
+  <div className="sticky top-0 z-20 flex flex-row items-center justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200/80 bg-transparent shadow-none w-full min-h-[44px] sm:min-h-[56px] md:min-h-[64px]">
     {/* Left: Brand/Sidebar + Plan Selector */}
     <div className="flex flex-row items-center gap-1 min-w-[100px] w-auto flex-shrink-0">
       <Button
         variant="ghost"
         size="icon"
         onClick={() => setSidebarOpen(true)}
-        className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
+        className="text-gray-500 hover:bg-gray-100 rounded-full h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
         aria-label="Open sidebar"
       >
         {/* Optional: add icon like <MenuIcon /> */}
@@ -2768,7 +3095,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             setSelectedPlan(value);
           }}
         >
-          <SelectTrigger className="group h-7 sm:h-8 md:h-9 text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 rounded-full px-2 sm:px-3 md:px-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md hover:scale-105 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 w-auto min-w-[80px] sm:min-w-[100px] md:min-w-[120px]">
+          <SelectTrigger className="group h-7 sm:h-8 md:h-9 text-xs sm:text-sm font-semibold text-gray-800 rounded-full px-2 sm:px-3 md:px-4 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 shadow-sm hover:shadow-md hover:scale-105 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 transition-all duration-200 w-auto min-w-[80px] sm:min-w-[100px] md:min-w-[120px]">
             <div className="flex items-center space-x-1 sm:space-x-2">
               {selectedPlan === "premium" ? (
                 <>
@@ -2778,33 +3105,33 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
               ) : (
                 <>
                   <div className="relative">
-                    <Crown className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200" />
-                    <div className="absolute -top-0.5 -right-0.5 w-1 sm:w-1.5 md:w-2 h-1 sm:h-1.5 md:h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <Crown className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 text-gray-400 group-hover:text-gray-600 transition-colors duration-200" />
+                    <div className="absolute -top-0.5 -right-0.5 w-1 sm:w-1.5 md:w-2 h-1 sm:h-1.5 md:h-2 bg-teal-500 rounded-full animate-pulse"></div>
                   </div>
-                  <span className="text-xs sm:text-sm font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">Medibot</span>
+                  <span className="text-xs sm:text-sm font-semibold group-hover:text-teal-600 transition-colors duration-200">Medibot</span>
                 </>
               )}
-              <ChevronDown className="h-2 w-2 sm:h-3 sm:w-3 md:h-3 md:w-3 text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-all duration-200 group-data-[state=open]:rotate-180" />
+              <ChevronDown className="h-2 w-2 sm:h-3 sm:w-3 md:h-3 md:w-3 text-gray-500 group-hover:text-gray-700 transition-all duration-200 group-data-[state=open]:rotate-180" />
             </div>
           </SelectTrigger>
-          <SelectContent className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg text-gray-900 dark:text-gray-100 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-2 space-y-2 min-w-[260px] animate-in fade-in-0 zoom-in-95 duration-200">
-            <SelectItem value="premium" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 dark:hover:from-yellow-900/20 dark:hover:to-orange-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-yellow-200 dark:hover:border-yellow-700/50">
+          <SelectContent className="bg-white/95 backdrop-blur-lg text-gray-900 rounded-2xl shadow-2xl border border-gray-200/50 p-2 space-y-2 min-w-[260px] animate-in fade-in-0 zoom-in-95 duration-200">
+            <SelectItem value="premium" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-yellow-50 hover:to-orange-50 transition-all duration-200 cursor-pointer border border-transparent hover:border-yellow-200">
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="relative">
                   <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 group-hover:scale-110 transition-transform duration-200" />
                   <div className="absolute -top-0.5 sm:-top-1 -right-0.5 sm:-right-1 w-1.5 sm:w-2 h-1.5 sm:h-2 bg-yellow-400 rounded-full animate-pulse"></div>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-yellow-700 dark:group-hover:text-yellow-300 transition-colors duration-200">
+                  <span className="text-sm font-bold text-gray-900 group-hover:text-yellow-700 transition-colors duration-200">
                     Premium Plan
                   </span>
                   <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
-                    <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">₹99/month</span>
+                    <span className="text-xs font-semibold text-yellow-600">₹99/month</span>
                     <div className="px-1.5 sm:px-2 py-0.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-[9px] sm:text-[10px] font-bold rounded-full">
                       UPGRADE
                     </div>
                   </div>
-                  <div className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 leading-tight">
+                  <div className="text-[9px] sm:text-[10px] text-gray-500 mt-0.5 sm:mt-1 leading-tight">
                     • Unlimited conversations<br/>
                     • Priority support<br/>
                     • Advanced AI models
@@ -2812,22 +3139,22 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 </div>
               </div>
               <div className="flex flex-col items-end gap-0.5 sm:gap-1">
-                {selectedPlan === "premium" && <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 dark:text-green-400" />}
-                <div className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500">Tap to upgrade</div>
+                {selectedPlan === "premium" && <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />}
+                <div className="text-[9px] sm:text-[10px] text-gray-400">Tap to upgrade</div>
               </div>
             </SelectItem>
-            <SelectItem value="base" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-blue-200 dark:hover:border-blue-700/50">
+            <SelectItem value="base" className="group flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gradient-to-r hover:from-teal-50 hover:to-teal-50 transition-all duration-200 cursor-pointer border border-transparent hover:border-teal-200">
               <div className="flex items-center gap-2 sm:gap-3">
-                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 group-hover:scale-110 transition-transform duration-200" />
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-teal-500 group-hover:scale-110 transition-transform duration-200" />
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">Base Plan</span>
+                  <span className="text-sm font-bold text-gray-900 group-hover:text-teal-700 transition-colors duration-200">Base Plan</span>
                   <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1">
-                    <span className="text-xs font-semibold text-green-600 dark:text-green-400">Free forever</span>
-                    <div className="px-1.5 sm:px-2 py-0.5 bg-gradient-to-r from-green-400 to-blue-400 text-white text-[9px] sm:text-[10px] font-bold rounded-full">
+                    <span className="text-xs font-semibold text-green-600">Free forever</span>
+                    <div className="px-1.5 sm:px-2 py-0.5 bg-gradient-to-r from-green-400 to-teal-400 text-white text-[9px] sm:text-[10px] font-bold rounded-full">
                       ACTIVE
                     </div>
                   </div>
-                  <div className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1 leading-tight">
+                  <div className="text-[9px] sm:text-[10px] text-gray-500 mt-0.5 sm:mt-1 leading-tight">
                     • Basic conversations<br/>
                     • Standard AI models<br/>
                     • Community support
@@ -2835,8 +3162,8 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 </div>
               </div>
               <div className="flex flex-col items-end gap-0.5 sm:gap-1">
-                {selectedPlan === "base" && <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 dark:text-green-400" />}
-                <div className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500">Current plan</div>
+                {selectedPlan === "base" && <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />}
+                <div className="text-[9px] sm:text-[10px] text-gray-400">Current plan</div>
               </div>
             </SelectItem>
           </SelectContent>
@@ -2847,41 +3174,64 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     <div className="flex flex-row items-center gap-1 sm:gap-2 min-w-[120px] justify-end w-auto flex-shrink-0">
       {user ? (
         <>
-          <Button 
-            onClick={startNewChat} 
-            variant="ghost" 
-            size="icon" 
-            className="group relative bg-gradient-to-br from-purple-500/10 via-purple-600/15 to-purple-700/10 hover:from-purple-500/20 hover:via-purple-600/25 hover:to-purple-700/20 dark:from-purple-400/10 dark:via-purple-500/15 dark:to-purple-600/10 dark:hover:from-purple-400/20 dark:hover:via-purple-500/25 dark:hover:to-purple-600/20 text-purple-600 dark:text-purple-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:rotate-12 hover:shadow-lg hover:shadow-purple-500/20 border border-purple-200/30 dark:border-purple-400/20"
+          {isIncognito ? (
+            <Button
+              onClick={exitIncognito}
+              variant="ghost"
+              size="sm"
+              className="group relative bg-gray-900 hover:bg-gray-800 text-white rounded-xl h-7 sm:h-8 md:h-9 px-2 sm:px-3 transition-all duration-300 flex items-center gap-1.5"
+              title="Exit incognito — this conversation will be discarded"
+            >
+              <Ghost className="h-4 w-4" />
+              <span className="text-xs font-semibold hidden sm:inline">Exit Incognito</span>
+            </Button>
+          ) : (
+            <Button
+              onClick={enterIncognito}
+              variant="ghost"
+              size="icon"
+              className="group relative bg-gradient-to-br from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 border border-gray-200/50"
+              title="Incognito chat — not saved, no memory"
+            >
+              <Ghost className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 transition-transform duration-300" />
+            </Button>
+          )}
+
+          <Button
+            onClick={startNewChat}
+            variant="ghost"
+            size="icon"
+            className="group relative bg-gradient-to-br from-teal-500/10 via-teal-600/15 to-teal-700/10 hover:from-teal-500/20 hover:via-teal-600/25 hover:to-teal-700/20 text-teal-600 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:rotate-12 hover:shadow-lg hover:shadow-teal-500/20 border border-teal-200/30"
             title="Start New Chat"
           >
             <Plus className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 transition-transform duration-300" />
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-purple-400/0 via-purple-500/0 to-purple-600/0 group-hover:from-purple-400/10 group-hover:via-purple-500/5 group-hover:to-purple-600/10 transition-all duration-300"></div>
-            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-purple-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-teal-400/0 via-teal-500/0 to-teal-600/0 group-hover:from-teal-400/10 group-hover:via-teal-500/5 group-hover:to-teal-600/10 transition-all duration-300"></div>
+            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-teal-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300"></div>
           </Button>
-          
+
           <Button 
             onClick={handlePrescriptionAnalysis} 
             variant="ghost" 
             size="icon" 
-            className={`group relative bg-gradient-to-br from-blue-500/10 via-blue-600/15 to-cyan-500/10 hover:from-blue-500/20 hover:via-blue-600/25 hover:to-cyan-500/20 dark:from-blue-400/10 dark:via-blue-500/15 dark:to-cyan-400/10 dark:hover:from-blue-400/20 dark:hover:via-blue-500/25 dark:hover:to-cyan-400/20 text-blue-600 dark:text-blue-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:-rotate-6 hover:shadow-lg hover:shadow-blue-500/20 border border-blue-200/30 dark:border-blue-400/20 ${userProfile?.plan === 'base' ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`group relative bg-gradient-to-br from-teal-500/10 via-blue-600/15 to-cyan-500/10 hover:from-teal-500/20 hover:via-blue-600/25 hover:to-cyan-500/20 text-teal-600 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:-rotate-6 hover:shadow-lg hover:shadow-blue-500/20 border border-teal-200/30 ${userProfile?.plan === 'base' ? 'opacity-50 cursor-not-allowed' : ''}`}
             title={userProfile?.plan === 'base' ? "Prescription Analysis (PRO Feature)" : "Analyze Prescription"}
             disabled={userProfile?.plan === 'base'}
           >
             <Camera className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 transition-transform duration-300" />
             {userProfile?.plan === 'base' && (
-              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[6px] px-1 py-0.5 rounded font-bold">
+              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-500 to-orange-400 text-white text-[6px] px-1 py-0.5 rounded font-bold">
                 PRO
               </div>
             )}
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-400/0 via-blue-500/0 to-cyan-500/0 group-hover:from-blue-400/10 group-hover:via-blue-500/5 group-hover:to-cyan-500/10 transition-all duration-300"></div>
-            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-blue-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-teal-400/0 via-blue-500/0 to-cyan-500/0 group-hover:from-teal-400/10 group-hover:via-blue-500/5 group-hover:to-cyan-500/10 transition-all duration-300"></div>
+            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-teal-500 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-pulse transition-opacity duration-300"></div>
           </Button>
           
           <Button 
             onClick={handleHistoryDialog} 
             variant="ghost" 
             size="icon" 
-            className="group relative bg-gradient-to-br from-green-500/10 via-emerald-600/15 to-teal-500/10 hover:from-green-500/20 hover:via-emerald-600/25 hover:to-teal-500/20 dark:from-green-400/10 dark:via-emerald-500/15 dark:to-teal-400/10 dark:hover:from-green-400/20 dark:hover:via-emerald-500/25 dark:hover:to-teal-400/20 text-green-600 dark:text-green-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:rotate-180 hover:shadow-lg hover:shadow-green-500/20 border border-green-200/30 dark:border-green-400/20"
+            className="group relative bg-gradient-to-br from-green-500/10 via-emerald-600/15 to-teal-500/10 hover:from-green-500/20 hover:via-emerald-600/25 hover:to-teal-500/20 text-green-600 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:rotate-180 hover:shadow-lg hover:shadow-green-500/20 border border-green-200/30"
             title="View Chat History"
           >
             <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 transition-transform duration-500" />
@@ -2893,7 +3243,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             onClick={exportChat} 
             variant="ghost" 
             size="icon" 
-            className="group relative bg-gradient-to-br from-orange-500/10 via-amber-600/15 to-yellow-500/10 hover:from-orange-500/20 hover:via-amber-600/25 hover:to-yellow-500/20 dark:from-orange-400/10 dark:via-amber-500/15 dark:to-yellow-400/10 dark:hover:from-orange-400/20 dark:hover:via-amber-500/25 dark:hover:to-yellow-400/20 text-orange-600 dark:text-orange-400 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-500/20 border border-orange-200/30 dark:border-orange-400/20"
+            className="group relative bg-gradient-to-br from-orange-500/10 via-amber-600/15 to-yellow-500/10 hover:from-orange-500/20 hover:via-amber-600/25 hover:to-yellow-500/20 text-orange-600 rounded-xl h-7 w-7 sm:h-8 sm:w-8 md:h-9 md:w-9 transition-all duration-300 hover:scale-110 hover:-translate-y-1 hover:shadow-lg hover:shadow-orange-500/20 border border-orange-200/30"
             title="Export Chat"
           >
             <Download className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 group-hover:scale-125 group-hover:translate-y-0.5 transition-transform duration-300" />
@@ -2904,12 +3254,12 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       ) : (
         <>
           <Link href="/auth/signin">
-            <Button variant="outline" className="bg-transparent dark:bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 h-7 px-2 sm:h-8 sm:px-3 md:h-9 md:px-4 w-full sm:w-auto rounded-full text-xs">
+            <Button variant="outline" className="bg-transparent border-gray-300 text-gray-700 hover:bg-gray-100/50 h-7 px-2 sm:h-8 sm:px-3 md:h-9 md:px-4 w-full sm:w-auto rounded-full text-xs">
               Login
             </Button>
           </Link>
           <Link href="/auth/signup">
-            <Button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white hover:from-purple-700 hover:to-blue-600 h-7 px-2 sm:h-8 sm:px-3 md:h-9 md:px-4 w-full sm:w-auto rounded-full shadow-sm text-xs">
+            <Button className="bg-gradient-to-r from-teal-600 to-teal-500 text-white hover:from-teal-700 hover:to-teal-600 h-7 px-2 sm:h-8 sm:px-3 md:h-9 md:px-4 w-full sm:w-auto rounded-full shadow-sm text-xs">
               Get Started
             </Button>
           </Link>
@@ -2918,26 +3268,32 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     </div>
   </div>
 
+  {isIncognito && (
+    <div className="flex items-center justify-center gap-2 bg-gray-900 text-gray-100 text-xs sm:text-sm py-2 px-4">
+      <Ghost className="h-4 w-4" />
+      <span>Incognito chat — not saved, no memory of you, and discarded when you exit.</span>
+    </div>
+  )}
   <div className="relative flex-1 overflow-hidden">
     <ScrollArea className="h-full p-6" ref={scrollAreaRef}>
-      <div className="max-w-3xl mx-auto space-y-4">
+      <div className="max-w-4xl mx-auto space-y-4 px-4">
         {!user ? (
           <div className="min-h-full flex items-center justify-center px-2 sm:px-0">
             <div className="w-full max-w-md text-center space-y-8 mx-auto flex flex-col items-center justify-center">
               <div className="flex flex-col items-center space-y-6">
                 <div className="w-20 h-20 relative">
-                  <Image src="/logo.png" alt="MediBot Logo" width={80} height={80} className="rounded-full" />
+                  <Image src="/logo.png" alt="Medibot Logo" width={80} height={80} className="rounded-full" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to MediBot</h1>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">Please log in or sign up to start chatting.</p>
+                  <h1 className="text-3xl font-bold text-gray-900">Welcome to Medibot</h1>
+                  <p className="text-gray-500 text-sm">Please log in or sign up to start chatting.</p>
                 </div>
               </div>
               <div className="space-y-4 w-full">
                 <Link href="/auth/signin">
                   <Button
                     variant="outline"
-                    className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                    className="w-full h-12 text-gray-500 hover:text-gray-700"
                   >
                     Login
                   </Button>
@@ -2945,25 +3301,25 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 <Link href="/auth/signup">
                   <Button
                     variant="outline"
-                    className="w-full h-12 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                    className="w-full h-12 text-gray-500 hover:text-gray-700"
                   >
                     Signup
                   </Button>
                 </Link>
               </div>
               <div className="mt-8 w-full">
-                <div className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Start a conversation below or try these suggestions:</div>
+                <div className="text-lg font-semibold text-gray-800 mb-2">Start a conversation below or try these suggestions:</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
-                  <Button className="w-full flex items-center justify-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-blue-100 dark:hover:bg-blue-800 transition-all">
+                  <Button className="w-full flex items-center justify-center gap-2 bg-teal-50 text-teal-700 font-medium rounded-xl py-3 px-2 text-sm hover:bg-teal-100 transition-all">
                     🌡️ What are the symptoms of flu?
                   </Button>
-                  <Button className="w-full flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-green-100 dark:hover:bg-green-800 transition-all">
+                  <Button className="w-full flex items-center justify-center gap-2 bg-green-50 text-green-700 font-medium rounded-xl py-3 px-2 text-sm hover:bg-green-100 transition-all">
                     💊 How to manage high blood pressure?
                   </Button>
-                  <Button className="w-full flex items-center justify-center gap-2 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-purple-100 dark:hover:bg-purple-800 transition-all">
+                  <Button className="w-full flex items-center justify-center gap-2 bg-teal-50 text-teal-700 font-medium rounded-xl py-3 px-2 text-sm hover:bg-teal-100 transition-all">
                     🏃‍♀️ Best exercises for heart health
                   </Button>
-                  <Button className="w-full flex items-center justify-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 font-medium rounded-xl py-3 px-2 text-sm hover:bg-yellow-100 dark:hover:bg-yellow-800 transition-all">
+                  <Button className="w-full flex items-center justify-center gap-2 bg-yellow-50 text-yellow-700 font-medium rounded-xl py-3 px-2 text-sm hover:bg-yellow-100 transition-all">
                     🥗 Nutrition tips for diabetes
                   </Button>
                 </div>
@@ -2979,7 +3335,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   {/* Logo with enhanced styling */}
                   <div className="relative">
                     <div className="w-24 h-24 relative">
-                      <Image src="/logo.png" alt="MediBot Logo" width={96} height={96} className="rounded-full shadow-lg" />
+                      <Image src="/logo.png" alt="Medibot Logo" width={96} height={96} className="rounded-full shadow-lg" />
                     </div>
                     <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
                       <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
@@ -2988,11 +3344,11 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   
                   {/* Welcome text */}
                   <div className="space-y-3">
-                    <h1 className="text-5xl font-extrabold tracking-wide bg-gradient-to-r from-blue-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent drop-shadow-sm">
-  Welcome to MediBot
+                    <h1 className="text-5xl font-extrabold tracking-wide bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent drop-shadow-sm">
+  Welcome to Medibot
 </h1>
 
-                    <p className="text-gray-600 dark:text-gray-300 text-lg max-w-md mx-auto">
+                    <p className="text-gray-600 text-lg max-w-md mx-auto">
                       Your AI-powered health companion ready to answer medical questions and provide health guidance.
                     </p>
                    
@@ -3016,7 +3372,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             
             {/* Quick action hint */}
             <div className="text-center pb-4">
-              <p className="text-xs text-gray-400 dark:text-gray-500">
+              <p className="text-sm text-gray-600 font-medium">
                 💡 You can also type your own question in the chat box below
               </p>
             </div>
@@ -3032,7 +3388,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     {showScrollButton && (
       <button
         onClick={() => scrollToBottom('smooth')}
-        className="fixed bottom-24 right-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 z-50 scroll-button-enter scroll-button-pulse border border-blue-400/30"
+        className="fixed bottom-24 right-6 bg-teal-600 hover:bg-teal-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 z-50 scroll-button-enter scroll-button-pulse border border-teal-400/30"
         aria-label="Scroll to latest message"
         style={{
           transform: showScrollButton ? 'translateY(0)' : 'translateY(100px)',
@@ -3052,9 +3408,9 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
   </div>
   
   {user && (
-    <div className="sticky bottom-0 z-10 w-full bg-gray-50 dark:bg-gray-900 px-5 pt-4">
-      <div className="mx-auto max-w-3xl">
-        <div className="flex flex-col gap-2 rounded-3xl bg-white dark:bg-gray-800 p-4 shadow-lg focus-within:ring-2 focus-within:ring-blue-400 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-gray-900 transition-all duration-300 relative">
+    <div className="sticky bottom-0 z-10 w-full bg-gray-50 px-5 pt-4">
+      <div className="mx-auto max-w-4xl">
+        <div className="flex flex-col gap-2 rounded-3xl bg-white p-4 shadow-lg focus-within:ring-2 focus-within:ring-teal-400 focus-within:ring-offset-2 focus-within:ring-offset-white transition-all duration-300 relative">
           
           {/* Full-width Lottie background when recording */}
           {isRecording && (
@@ -3087,7 +3443,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
               placeholder={
                 isRecording ? "Listening..." : "Ask a health question or upload a file..."
               }
-              className="w-full resize-none bg-transparent text-sm placeholder-gray-500 dark:placeholder-gray-400 dark:text-white outline-none"
+              className="w-full resize-none bg-transparent text-sm placeholder-gray-500 outline-none"
               rows={1}
               maxLength={1000}
               disabled={loading}
@@ -3098,80 +3454,35 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
           <div className="flex justify-between items-center pt-2 z-20">
             <div className="flex items-center gap-2">
               <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger className="h-8 text-sm dark:text-white bg-transparent border-none shadow-none focus:ring-0 focus:outline-none">
+                <SelectTrigger className="h-8 text-sm bg-transparent border-none shadow-none focus:ring-0 focus:outline-none">
                   <SelectValue placeholder="Model" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-100 dark:bg-gray-800 dark:text-white text-sm border-gray-200 dark:border-gray-700">
-                  {/* Free Models - Open Source */}
-                  <div className="px-2 py-1 text-xs font-semibold text-green-600 dark:text-green-400 border-b border-gray-200 dark:border-gray-600">
-                    🆓 Free Models (Open Source)
-                  </div>
-                  <SelectItem value="llama-3.3-70b" className="pl-4">
+                <SelectContent className="bg-white text-sm border-gray-200 min-w-[260px]">
+                  <SelectItem value="medibot-care" className="pl-3 py-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-green-500">●</span>
-                      Llama 3.3 70B (Recommended)
+                      <span className="text-teal-500">●</span>
+                      <div className="flex flex-col text-left">
+                        <span className="font-semibold text-gray-900">Medibot Care</span>
+                        <span className="text-[11px] text-gray-500">Fast, friendly health guidance</span>
+                      </div>
                     </div>
                   </SelectItem>
-                  <SelectItem value="gpt-oss-120b" className="pl-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-500">●</span>
-                      gpt-oss-120b
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="llama-3.1-8b" className="pl-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-500">●</span>
-                      Llama 3.1 8B (Fast)
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="qwen-3-32b" className="pl-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-green-500">●</span>
-                      qwen-3-32b
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="medibot" className="pl-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-blue-500">●</span>
-                      MediBot (Legacy)
-                    </div>
-                  </SelectItem>
-                  
-                  {/* Premium Models - Paid APIs */}
-                  <div className="px-2 py-1 text-xs font-semibold text-yellow-600 dark:text-yellow-400 border-b border-gray-200 dark:border-gray-600 mt-2">
-                    👑 Premium Models
-                  </div>
-                  <SelectItem 
-                    value="gemini-2.0-flash" 
-                    className="pl-4"
+                  <SelectItem
+                    value="medibot-specialist"
+                    className="pl-3 py-2"
                     disabled={selectedPlan !== 'premium'}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-yellow-500">●</span>
-                      Gemini 2.0 Flash
-                      {selectedPlan !== 'premium' && <span className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded">PRO</span>}
-                    </div>
-                  </SelectItem>
-                  <SelectItem 
-                    value="gpt-4o" 
-                    className="pl-4"
-                    disabled={selectedPlan !== 'premium'}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-500">●</span>
-                      GPT-4o
-                      {selectedPlan !== 'premium' && <span className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded">PRO</span>}
-                    </div>
-                  </SelectItem>
-                  <SelectItem 
-                    value="claude-3-sonnet" 
-                    className="pl-4"
-                    disabled={selectedPlan !== 'premium'}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-500">●</span>
-                      Claude 3 Sonnet
-                      {selectedPlan !== 'premium' && <span className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded">PRO</span>}
+                      <span className="text-amber-500">●</span>
+                      <div className="flex flex-col text-left">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-gray-900">Medibot Specialist</span>
+                          {selectedPlan !== 'premium' && (
+                            <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">PRO</span>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-gray-500">Deeper analysis &amp; complex reasoning</span>
+                      </div>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -3180,7 +3491,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                 onClick={handleFileUpload}
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                className="h-8 w-8 text-gray-500 hover:text-gray-700"
                 title="Upload File"
               >
                 <Plus className="h-5 w-5" />
@@ -3217,7 +3528,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
               onClick={loading ? handleStopGeneration : handleSendMessage}
               disabled={!loading && (!message.trim() && !selectedFile)}
               data-testid={loading ? "stop-button" : "send-button"}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border dark:border-zinc-600"
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border"
               aria-label={loading ? "Stop Generation" : "Send Message"}
             >
               {loading ? (
@@ -3248,7 +3559,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
 
           {fileName && (
             <div className="flex items-center gap-2 pt-1 z-20">
-              <Badge className="bg-gray-100 dark:bg-gray-700 dark:text-white text-sm truncate max-w-[300px]">
+              <Badge className="bg-gray-100 text-sm truncate max-w-[300px]">
                 {fileName}
               </Badge>
               <Button
@@ -3266,7 +3577,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
       </div>
 
       <p className="mt-1 text-center text-sm text-gray-500 font-sans">
-        MediBot can make mistakes. Check important info.
+        Medibot can make mistakes. Check important info.
       </p>
     </div>
   )}
@@ -3274,10 +3585,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
   {/* Additional dialogs and components */}
   {user && (
     <Dialog open={prescriptionDialogOpen} onOpenChange={setPrescriptionDialogOpen}>
-      <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
+      <DialogContent className="bg-white max-w-2xl mx-auto max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg">
-            <Camera className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <Camera className="h-5 w-5 text-gray-500" />
             <span>Prescription Analysis</span>
           </DialogTitle>
           <DialogDescription>
@@ -3286,22 +3597,22 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
         </DialogHeader>
         {!analysisResult ? (
           <div className="space-y-4">
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
+            <p className="text-gray-500 text-sm">
               Upload a file for AI-powered analysis and information.
             </p>
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center">
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
               {analyzingPrescription ? (
                 <div className="space-y-4">
-                  <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">Analyzing file...</p>
+                  <div className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p className="text-gray-500 text-sm">Analyzing file...</p>
                 </div>
               ) : (
                 <>
-                  <Camera className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Upload prescription file</p>
+                  <Camera className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                  <p className="text-gray-500 text-sm mb-4">Upload prescription file</p>
                   <Button
                     onClick={handleFileUpload}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                    className="bg-teal-600 hover:bg-teal-700 text-white text-sm"
                   >
                     <Upload className="mr-2 h-4 w-4" />
                     Choose File
@@ -3339,26 +3650,26 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
               }}
               className="hidden"
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-gray-500">
               Supported formats: JPG, PNG, HEIC, PDF. For informational purposes only.
             </p>
           </div>
         ) : (
           <div className="space-y-6">
-            <Card className="bg-white dark:bg-gray-800 dark:border-gray-700">
+            <Card className="bg-white">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2 text-lg">
-                  <FileText className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                  <FileText className="h-5 w-5 text-gray-500" />
                   <span>Analysis Results</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Detected Medications</h4>
+                    <h4 className="font-semibold text-sm mb-2 text-gray-900">Detected Medications</h4>
                     <div className="flex flex-wrap gap-2">
                       {analysisResult.medications.map((med, index) => (
-                        <Badge key={index} className="bg-blue-600 text-white text-sm">
+                        <Badge key={index} className="bg-teal-600 text-white text-sm">
                           <Pill className="mr-2 h-3 w-3" />
                           {med}
                         </Badge>
@@ -3366,7 +3677,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                     </div>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Dosage Information</h4>
+                    <h4 className="font-semibold text-sm mb-2 text-gray-900">Dosage Information</h4>
                     <div className="flex flex-wrap gap-2">
                       {analysisResult.dosages.map((dosage, index) => (
                         <Badge key={index} variant="secondary" className="text-sm">
@@ -3377,28 +3688,28 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                   </div>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white">Instructions</h4>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                  <h4 className="font-semibold text-sm mb-2 text-gray-900">Instructions</h4>
+                  <p className="text-gray-500 text-sm bg-gray-100 p-3 rounded-lg">
                     {analysisResult.instructions}
                   </p>
                 </div>
                 {analysisResult.warnings?.length > 0 && (
                   <div>
-                    <h4 className="font-semibold text-sm mb-2 text-gray-900 dark:text-white flex items-center">
+                    <h4 className="font-semibold text-sm mb-2 text-gray-900 flex items-center">
                       <AlertCircle className="mr-2 h-5 w-5 text-yellow-500" />
                       <span>Warnings & Precautions</span>
                     </h4>
                     <div className="space-y-2">
                       {analysisResult.warnings.map((warning, index) => (
-                        <div key={index} className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-3 rounded-lg">
-                          <p className="text-yellow-700 dark:text-yellow-300 text-sm">{warning}</p>
+                        <div key={index} className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                          <p className="text-yellow-700 text-sm">{warning}</p>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-3 rounded-lg">
-                  <p className="text-blue-700 dark:text-blue-300 text-sm">
+                <div className="bg-teal-50 border border-teal-200 p-3 rounded-lg">
+                  <p className="text-teal-700 text-sm">
                     <strong>Important:</strong> This analysis is for informational purposes only. Always follow your doctor's instructions and consult your pharmacist.
                   </p>
                 </div>
@@ -3417,7 +3728,7 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
               </Button>
               <Button
                 onClick={() => setAnalysisResult(null)}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex-1 bg-teal-600 hover:bg-teal-700 text-white"
               >
                 Analyze Another
               </Button>
@@ -3430,10 +3741,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
   
   {user && (
     <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
-    <DialogContent className="bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white w-[520px] max-w-full mx-auto">
+    <DialogContent className="bg-white w-[520px] max-w-full mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2 text-lg">
-            <RotateCcw className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <RotateCcw className="h-5 w-5 text-gray-500" />
             <span>Recent Chats</span>
           </DialogTitle>
           <DialogDescription>
@@ -3445,10 +3756,10 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
             sessions.map((session) => (
               <div
                 key={session.id}
-                className={`p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer transition-colors ${
+                className={`p-4 rounded-xl border border-gray-200 cursor-pointer transition-colors ${
                   currentSession?.id === session.id
-                    ? "bg-blue-600/20 border-blue-600"
-                    : "bg-gray-100 dark:bg-gray-700 hover:bg-blue-600/10"
+                    ? "bg-teal-600/20 border-teal-600"
+                    : "bg-gray-100 hover:bg-teal-600/10"
                 }`}
               >
                 <div className="flex items-start justify-between">
@@ -3464,15 +3775,15 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
                       setHistoryDialogOpen(false);
                     }}
                   > 
-                    <h3 className="font-semibold text-sm text-gray-800 dark:text-white truncate">{session.title}</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs font-mono select-all break-all mt-1">
+                    <h3 className="font-semibold text-sm text-gray-800 truncate">{session.title}</h3>
+                    <p className="text-gray-500 text-xs font-mono select-all break-all mt-1">
                       ID: {session.id}
                     </p>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    <p className="text-gray-500 text-sm">
                       {session.messages.length} messages • {formatISTDateTime(session.updatedAt)}
                     </p>
                     {session.messages.length > 0 && (
-                      <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 truncate">
+                      <p className="text-gray-500 text-sm mt-1 truncate">
                         {session.messages[session.messages.length - 1]?.message || "No messages"}
                       </p>
                     )}
@@ -3508,13 +3819,108 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
               </div>
             ))
           ) : (
-            <p className="text-gray-500 dark:text-gray-400 text-sm text-center">
+            <p className="text-gray-500 text-sm text-center">
               No chat sessions found.
             </p>
           )}
         </div>
       </DialogContent>
     </Dialog>
+  )}
+
+  {/* Language upgrade gate modal */}
+  {languageGate && (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+      onClick={() => setLanguageGate(null)}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-gradient-to-r from-teal-600 to-blue-600 px-6 py-5 text-white">
+          <div className="flex items-center gap-2">
+            <Crown className="h-5 w-5 text-yellow-300" />
+            <h2 className="text-lg font-bold">Unlock {languageGate.native || languageGate.name}</h2>
+          </div>
+          <p className="text-sm text-white/90 mt-1">
+            {languageGate.native ? `${languageGate.native} (${languageGate.name})` : languageGate.name} is a Medibot Premium language.
+          </p>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-gray-700 leading-relaxed">
+            Your free plan includes <span className="font-semibold">8 languages</span> — English, Hindi, Bengali, Tamil, Telugu, Gujarati, Kannada and Malayalam.
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed mt-3">
+            Upgrade to <span className="font-semibold text-teal-700">Medibot Premium (₹99/month)</span> to chat in {languageGate.name} and 25+ more languages, plus voice in your native language.
+          </p>
+          <div className="mt-5 flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setLanguageGate(null)}
+            >
+              Maybe later
+            </Button>
+            <Button
+              className="flex-1 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white"
+              onClick={() => { setLanguageGate(null); router.push("/pricing"); }}
+            >
+              <Crown className="h-4 w-4 mr-1.5" />
+              Upgrade
+            </Button>
+          </div>
+          <p className="text-[11px] text-gray-400 text-center mt-3">
+            You can keep chatting for free in any of your 8 included languages.
+          </p>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* Usage limit upgrade modal */}
+  {usageGate && (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+      onClick={() => setUsageGate(null)}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-gradient-to-r from-teal-600 to-blue-600 px-6 py-5 text-white">
+          <div className="flex items-center gap-2">
+            <Crown className="h-5 w-5 text-yellow-300" />
+            <h2 className="text-lg font-bold">
+              You've used your free {usageGate === "image" ? "photo" : "report"} analyses
+            </h2>
+          </div>
+          <p className="text-sm text-white/90 mt-1">
+            Free plan includes {FREE_MONTHLY_LIMITS[usageGate]} {usageGate === "image" ? "symptom photo" : "lab report"} analyses per month.
+          </p>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-gray-700 leading-relaxed">
+            You've reached your monthly limit of <span className="font-semibold">{FREE_MONTHLY_LIMITS[usageGate]} free {usageGate === "image" ? "photo" : "report"} analyses</span>. Your quota resets at the start of next month.
+          </p>
+          <p className="text-sm text-gray-700 leading-relaxed mt-3">
+            Upgrade to <span className="font-semibold text-teal-700">Medibot Premium (₹99/month)</span> for <span className="font-semibold">unlimited</span> report and photo analysis, trend charts, and your doctor-visit PDF.
+          </p>
+          <div className="mt-5 flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setUsageGate(null)}>
+              Maybe later
+            </Button>
+            <Button
+              className="flex-1 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white"
+              onClick={() => { setUsageGate(null); router.push("/pricing"); }}
+            >
+              <Crown className="h-4 w-4 mr-1.5" />
+              Upgrade
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   )}
 </div>
       </div>

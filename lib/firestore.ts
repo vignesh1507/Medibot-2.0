@@ -47,12 +47,27 @@ export interface UserProfile {
     medicationReminders: boolean;
     appointmentReminders: boolean;
   };
+  // Monthly usage counters for free-tier limits. Stored here (not a new collection)
+  // so the existing users/{uid} owner-write rule covers it — no rule deploy needed.
+  usage?: {
+    month: string; // "YYYY-MM"
+    report: number;
+    image: number;
+  };
+}
+
+export interface ChatFileMeta {
+  name: string;
+  size: number; // bytes
+  type: string; // mime type
+  pageCount?: number; // best-effort for PDFs
 }
 
 export interface ChatMessage {
   id: string;
   userId: string;
   image?: string | null;
+  file?: ChatFileMeta | null; // metadata only — we do NOT store the file itself
   message: string;
   response: string;
   timestamp: Timestamp | Date;
@@ -188,7 +203,47 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
     const userSnap = await getDoc(userRef);
 
     if (userSnap.exists()) {
-      return userSnap.data() as UserProfile;
+      const profile = userSnap.data() as UserProfile & {
+        subscription?: { status?: string; endDate?: Timestamp | Date | string };
+      };
+
+      // DEV-ONLY premium preview override. Activates only in development AND only
+      // when NEXT_PUBLIC_PREVIEW_PREMIUM=true is set in .env.local (gitignored).
+      // Hard-guarded against production so it can never affect real users.
+      if (
+        process.env.NODE_ENV !== "production" &&
+        process.env.NEXT_PUBLIC_PREVIEW_PREMIUM === "true"
+      ) {
+        profile.plan = "premium";
+        return profile;
+      }
+
+      // Effective-plan computation: if the user is marked premium but their
+      // subscription has expired, treat them as base. This prevents a one-time
+      // payment from granting premium forever.
+      if (profile.plan === "premium" && profile.subscription?.endDate) {
+        const end = profile.subscription.endDate;
+        const endMs =
+          end instanceof Date
+            ? end.getTime()
+            : typeof end === "string"
+            ? Date.parse(end)
+            : typeof (end as any)?.toMillis === "function"
+            ? (end as any).toMillis()
+            : typeof (end as any)?.seconds === "number"
+            ? (end as any).seconds * 1000
+            : NaN;
+
+        if (!isNaN(endMs) && endMs < Date.now()) {
+          // Expired — reflect base locally and best-effort persist the downgrade.
+          profile.plan = "base";
+          updateDoc(userRef, { plan: "base" }).catch((e) =>
+            console.warn("Failed to persist subscription downgrade:", e),
+          );
+        }
+      }
+
+      return profile;
     }
     return null;
   } catch (error) {
@@ -250,7 +305,8 @@ export const addMessageToSession = async (
   message: string,
   response: string,
   type: "chat" | "summarizer" = "chat",
-  image: string | null = null
+  image: string | null = null,
+  file: ChatFileMeta | null = null
 ) => {
   try {
     const sessionRef = doc(db, "chatSessions", sessionId);
@@ -260,14 +316,34 @@ export const addMessageToSession = async (
       throw new Error("Session not found");
     }
 
+    // Firestore allows ~1 MB per document field. These caps are a safety guard
+    // against pathological inputs, NOT a feature — keep them high enough that real
+    // content (long lab-report analyses can be 10k+ chars) is never clipped.
+    const MAX_MESSAGE_CHARS = 50000;
+    const MAX_RESPONSE_CHARS = 200000;
+
+    // Build the file meta without any `undefined` nested fields (Firestore rejects undefined).
+    let cleanFile: ChatFileMeta | null = null;
+    if (file && typeof file.name === "string") {
+      cleanFile = {
+        name: file.name.slice(0, 200),
+        size: typeof file.size === "number" ? file.size : 0,
+        type: file.type || "application/octet-stream",
+      };
+      if (typeof file.pageCount === "number" && file.pageCount > 0) {
+        cleanFile.pageCount = file.pageCount;
+      }
+    }
+
     const newMessage: ChatMessage = {
       id: uuidv4(),
       userId,
-      message: message.slice(0, 1000) || "No message provided",
-      response: response.slice(0, 2000) || "No response provided",
+      message: message.slice(0, MAX_MESSAGE_CHARS) || "No message provided",
+      response: response.slice(0, MAX_RESPONSE_CHARS) || "No response provided",
       type: type || "chat",
       timestamp: new Date(),
       image: image ?? null,
+      file: cleanFile,
     };
 
     console.log("addMessageToSession: newMessage before cleaning:", newMessage);

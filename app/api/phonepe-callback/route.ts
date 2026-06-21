@@ -61,20 +61,27 @@ export async function GET(req: NextRequest) {
 
         // If payment successful, also update user's subscription
         if (isSuccess && userId && planName) {
-          // Update user subscription
+          const isYearly = planName.toLowerCase() !== 'premium';
+          const endDate = isYearly
+            ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 365 days
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);  // 30 days
+
+          // CRITICAL: the entire app gates premium features on the top-level
+          // `plan` field (userProfile.plan). We MUST set it here, in addition to
+          // the detailed `subscription` object, or paying users get no access.
           const userRef = admin_db.collection('users').doc(userId);
           await userRef.update({
+            plan: 'premium',
             subscription: {
               plan: planName.toLowerCase(),
               status: 'active',
               startDate: new Date(),
-              endDate: planName.toLowerCase() === 'premium' 
-                ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days for monthly
-                : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days for yearly
+              endDate,
               lastPaymentId: merchantTransactionId
             },
             updatedAt: new Date()
           });
+          console.log(`[PhonePe Callback] Upgraded user ${userId} to premium until ${endDate.toISOString()}`);
         }
 
         await paymentRef.update(updateData);

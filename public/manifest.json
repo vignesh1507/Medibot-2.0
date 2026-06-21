@@ -1,6 +1,6 @@
 {
-  "name": "MediBot - AI-Powered Health Assistant",
-  "short_name": "MediBot",
+  "name": "Medibot - AI-Powered Health Assistant",
+  "short_name": "Medibot",
   "description": "Your AI-powered health companion for medication management, prescription analysis, and personalized health insights",
   "start_url": "/",
   "display": "standalone",
@@ -16,14 +16,14 @@
       "sizes": "1200x800",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "MediBot Dashboard"
+      "label": "Medibot Dashboard"
     },
     {
       "src": "/mobileview.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "MediBot Mobile View"
+      "label": "Medibot Mobile View"
     }
   ],
   "icons": [
@@ -44,7 +44,7 @@
     {
       "name": "Chat with AI",
       "short_name": "Chat",
-      "description": "Start a conversation with MediBot AI assistant",
+      "description": "Start a conversation with Medibot AI assistant",
       "url": "/chat",
       "icons": [{ "src": "/chat.png", "sizes": "96x96" }]
     },
