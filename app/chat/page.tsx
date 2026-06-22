@@ -55,7 +55,6 @@ import {
   Check,
   CheckCircle,
   Crown,
-  Menu,
   Plus,
   Camera,
   RotateCcw,
@@ -1868,11 +1867,6 @@ CONVERSATION PATTERNS:
 
 const generateAIResponse = async (userMessage: string, selectedModel: string, messageId: string, userPlan: string = 'free', healthMemoryContext: string = '', incognito: boolean = false): Promise<string> => {
     // Handle "what's my age" and similar questions
-  console.log("=== API KEY DEBUG ===");
-  console.log("huggungface API Key exists:", !!process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY);
-  console.log("huggingface API Key length:", process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY?.length);
-  console.log("huggingface API Key first 10 chars:", process.env.NEXT_PUBLIC_HUGGINGFACE_API_KEY?.substring(0, 10));
-  console.log("====================");
     const ageQuestions = [
       "what's my age", "whats my age", "what is my age", "do you know my age", "tell me my age", "how old am i"
     ];
@@ -1947,7 +1941,9 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
 
     // Check if user has access to this model based on their plan
     if (config.plan === 'premium' && userPlan !== 'premium') {
-      throw new Error(`This model requires a Premium subscription. Please upgrade to access ${selectedModel}.`);
+      const gateErr: any = new Error(`This model requires a Premium subscription. Please upgrade to access ${selectedModel}.`);
+      gateErr.isPremiumGate = true;
+      throw gateErr;
     }
 
     const greetings = ["hi", "hello", "hey", "hola", "yo", "hii", "hi there", "hlo", "helloo", "good morning", "good afternoon", "good evening", "how are you", "wassup", "what's up", "sup"];
@@ -2397,8 +2393,18 @@ If the user asks about your developer, say: "I was developed by Vignesh Skanda f
     if (error.name === "AbortError") return "";
     console.error(`Error generating ${selectedModel} response:`, error);
 
+    // Case 1: user simply isn't premium — don't silently downgrade with a vague
+    // toast. Tell them clearly and (optionally) nudge to upgrade.
+    if (error?.isPremiumGate) {
+      toast.error("Medibot Specialist is a Premium feature — answering with Medibot Care instead.");
+      return generateAIResponse(userMessage, "medibot-care", messageId, "free", healthMemoryContext, incognito);
+    }
+
+    // Case 2: a genuine API failure on a premium model. Surface the real reason
+    // (status / message) instead of hiding it, so issues are diagnosable.
     if (selectedModel !== "medibot-care" && selectedModel !== "medibot") {
-      toast.warning("Switching to Medibot Care…");
+      const reason = (error?.message || "").toString().slice(0, 160);
+      toast.warning(`Medibot Specialist failed${reason ? ` (${reason})` : ""}. Falling back to Medibot Care…`);
       return generateAIResponse(userMessage, "medibot-care", messageId, userPlan, healthMemoryContext, incognito);
     }
 
@@ -3072,16 +3078,10 @@ If the user asks about your developer, say: "I was developed by Vignesh Skanda f
   {/* Transparent header, plan selector inline after Medibot name on all screens */}
   <div className="sticky top-0 z-20 flex flex-row items-center justify-between p-2 sm:p-3 md:p-4 border-b border-gray-200/80 bg-transparent shadow-none w-full min-h-[44px] sm:min-h-[56px] md:min-h-[64px]">
     {/* Left: Brand/Sidebar + Plan Selector */}
-    <div className="flex flex-row items-center gap-1 min-w-[100px] w-auto flex-shrink-0">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setSidebarOpen(true)}
-        className="lg:hidden text-gray-500 hover:bg-gray-100 rounded-full h-8 w-8"
-        aria-label="Open sidebar"
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
+    {/* Note: the sidebar toggle (hamburger) is rendered by the Sidebar component itself
+        as a fixed button on mobile/tablet. We add left padding here so the plan selector
+        clears that floating button instead of overlapping it. */}
+    <div className="flex flex-row items-center gap-1 min-w-[100px] w-auto flex-shrink-0 pl-14 lg:pl-0">
       {/* Brand Name with responsive font size */}
       {/* Plan Selector: visible on left for all screens */}
       <div className="ml-1">
