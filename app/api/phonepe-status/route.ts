@@ -58,16 +58,16 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      // Check payment status with PhonePe SDK
-      const statusResponse = await phonepeClient.checkStatus(transactionId);
-      
+      // Check payment status with PhonePe SDK (correct method is getOrderStatus)
+      const statusResponse = await phonepeClient.getOrderStatus(transactionId);
+
       // Update local database with the status
       if (admin_db && statusResponse) {
         const paymentRef = admin_db.collection('payments').doc(transactionId);
         const paymentDoc = await paymentRef.get();
-        
+
         if (paymentDoc.exists) {
-          const isSuccess = statusResponse.state === 'COMPLETED' && statusResponse.responseCode === 'SUCCESS';
+          const isSuccess = statusResponse.state === 'COMPLETED';
           
           await paymentRef.update({
             status: isSuccess ? 'completed' : 'failed',

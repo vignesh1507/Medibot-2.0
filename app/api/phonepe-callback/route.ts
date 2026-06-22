@@ -3,6 +3,27 @@ import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { credential } from "firebase-admin";
 
+const { StandardCheckoutClient, Env } = require("pg-sdk-node");
+
+// Initialize the PhonePe client so we can VERIFY the real payment status on
+// return (PhonePe does NOT send a status code in the redirect URL).
+const ppClientId = process.env.PHONEPE_CLIENT_ID?.trim();
+const ppClientSecret = process.env.PHONEPE_CLIENT_SECRET?.trim();
+const ppEnvSetting = process.env.PHONEPE_ENV?.toUpperCase();
+const ppEnv = ppEnvSetting === "PRODUCTION"
+  ? Env.PRODUCTION
+  : ppEnvSetting === "SANDBOX"
+    ? Env.SANDBOX
+    : process.env.NODE_ENV === "production" ? Env.PRODUCTION : Env.SANDBOX;
+let phonepeClient: any = null;
+if (ppClientId && ppClientSecret) {
+  try {
+    phonepeClient = StandardCheckoutClient.getInstance(ppClientId, ppClientSecret, 1, ppEnv);
+  } catch (error) {
+    console.error("Failed to initialize PhonePe client in callback:", error);
+  }
+}
+
 // Initialize Firebase Admin
 let admin_db: any = null;
 const projectId_cb = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
@@ -44,8 +65,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/pricing?status=failed&message=Missing transaction ID`);
     }
 
-    // Determine payment status based on PhonePe response
-    const isSuccess = code === 'PAYMENT_SUCCESS' || code === 'SUCCESS';
+    // VERIFY the real payment status with PhonePe's Order Status API. PhonePe does
+    // NOT pass a status code in the redirect URL, so the old code-param check
+    // always failed. We ask PhonePe directly what happened.
+    let isSuccess = false;
+    try {
+      if (phonepeClient) {
+        const statusResponse = await phonepeClient.getOrderStatus(merchantTransactionId);
+        const state = statusResponse?.state;
+        console.log(`[PhonePe Callback] Order ${merchantTransactionId} state:`, state);
+        isSuccess = state === "COMPLETED";
+      } else {
+        // Fallback to the legacy code param if the client couldn't init.
+        isSuccess = code === "PAYMENT_SUCCESS" || code === "SUCCESS";
+        console.warn("[PhonePe Callback] PhonePe client not initialized; using code param fallback.");
+      }
+    } catch (verifyErr) {
+      console.error("[PhonePe Callback] Status verification failed:", verifyErr);
+      isSuccess = false;
+    }
     const status = isSuccess ? 'success' : 'failed';
     
     // Update transaction status in Firestore
