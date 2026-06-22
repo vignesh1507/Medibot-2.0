@@ -62,8 +62,22 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     console.log("[PhonePe] Incoming request body:", body);
-    
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://medibot-ai.com";
+
+    // Derive the base URL from the ACTUAL request origin so the post-payment
+    // redirect always returns to the same domain the user is on — robust even if
+    // NEXT_PUBLIC_BASE_URL is misconfigured (e.g. left as localhost on Vercel).
+    // Only fall back to the env var / default if the origin can't be determined.
+    const originFromReq = (() => {
+      try {
+        const o = req.nextUrl?.origin;
+        if (o && !o.includes("localhost") && !o.includes("127.0.0.1")) return o;
+      } catch {}
+      const host = req.headers.get("host");
+      const proto = req.headers.get("x-forwarded-proto") || "https";
+      if (host && !host.includes("localhost") && !host.includes("127.0.0.1")) return `${proto}://${host}`;
+      return null;
+    })();
+    const baseUrl = originFromReq || process.env.NEXT_PUBLIC_BASE_URL || "https://medibot-ai.com";
     const { amount, userId, planName } = body;
 
     // Validate required fields

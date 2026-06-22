@@ -78,9 +78,9 @@ export const metadata: Metadata = {
   viewport: "width=device-width, initial-scale=1.0",
   manifest: "/manifest.json",
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
-    shortcut: "/logo.png",
+    icon: "/icon.png",
+    apple: "/icon.png",
+    shortcut: "/icon.png",
   },
   applicationName: "Medibot",
   appleWebApp: {

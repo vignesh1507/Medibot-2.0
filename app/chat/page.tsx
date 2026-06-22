@@ -176,6 +176,10 @@ function ChatContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [currentSession, setCurrentSession] = useState<ProcessedChatSession | null>(null);
+  // Always-fresh mirror of currentSession for use inside the Firestore snapshot
+  // callback (which otherwise closes over a stale value and wrongly resets the view).
+  const currentSessionRef = useRef<ProcessedChatSession | null>(null);
+  useEffect(() => { currentSessionRef.current = currentSession; }, [currentSession]);
   const [sessions, setSessions] = useState<ProcessedChatSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [prescriptionDialogOpen, setPrescriptionDialogOpen] = useState(false);
@@ -602,10 +606,8 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
       }
       
       console.log("✅ New temporary chat session created:", tempSessionId);
-      toast.success("Started a new conversation!");
     } catch (error) {
       console.error("Error creating new session:", error);
-      toast.error("Failed to start new conversation");
     } finally {
       setIsCreatingNewSession(false);
       setIsAnySessionCreationInProgress(false);
@@ -642,8 +644,9 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
           const sessionsWithMessages = normalizedSessions.filter(session => session.messages && session.messages.length > 0);
           setSessions(sessionsWithMessages);
           
-          // If app was closed, create new session instead of loading previous one
-          if (shouldCreateNewSession && !isCreatingNewSession && !isAnySessionCreationInProgress) {
+          // If app was closed, create new session instead of loading previous one —
+          // but only when nothing is already open (avoid re-firing on every snapshot).
+          if (shouldCreateNewSession && !currentSessionRef.current && !isCreatingNewSession && !isAnySessionCreationInProgress) {
             createNewChatSession();
             return;
           }
@@ -653,16 +656,19 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
             return;
           }
 
+          // CRITICAL: if the user is already viewing ANY session (temp or real),
+          // do NOT override it from a snapshot update. Snapshots fire on every
+          // Firestore write (incl. the user's own messages) — overriding here was
+          // resetting the view to a different/empty session after sending. We only
+          // auto-select a session on the FIRST load, when nothing is open yet.
+          if (currentSessionRef.current) {
+            return;
+          }
+
           const sessionIdFromUrl = searchParams ? searchParams.get('sessionId') : null;
           const lastSessionId = getLastSessionId();
           let selectedSession: ProcessedChatSession | undefined;
 
-          // Don't override if we already have a temporary session
-          if (currentSession && currentSession.id && currentSession.id.startsWith('temp-')) {
-            console.log("🔄 Keeping temporary session, not overriding");
-            return;
-          }
-          
           if (sessionIdFromUrl) {
             selectedSession = sessionsWithMessages.find((s) => s.id === sessionIdFromUrl);
           } else if (lastSessionId) {
@@ -744,10 +750,11 @@ const VoiceInputButton = ({ onResult, disabled, onStartRecording, onStopRecordin
             const hasRecentActivity = currentSession && currentSession.messages.length > 0 && 
               currentSession.updatedAt && (Date.now() - currentSession.updatedAt.getTime()) < 600000; // 10 minutes
             
-            if (wasClosedPreviously && !isCreatingNewSession && !isAnySessionCreationInProgress && !hasRecentActivity && !loading) {
-              console.log("📱 App returned after extended absence - creating new session");
-              createNewChatSession();
-            }
+            // NOTE: We intentionally do NOT auto-create a new session when the
+            // user returns to the tab. That was wiping the active chat (and firing
+            // duplicate "new conversation" toasts) just for switching tabs. Users
+            // start a new chat explicitly via the New Chat button.
+            void wasClosedPreviously; void hasRecentActivity;
             isHandlingVisibilityChange = false;
           }, 1000); // 1 second debounce
         }
@@ -1479,13 +1486,7 @@ CONVERSATION PATTERNS:
         }
       });
       sendMessageNotification(userMessage, botResponse);
-      
-      // Debounce success toast to prevent duplicates
-      const now = Date.now();
-      if (now - lastToastTime > 2000) { // Only show if last toast was more than 2 seconds ago
-        toast.success("Message sent successfully");
-        setLastToastTime(now);
-      }
+      // (Removed the "Message sent successfully" toast — it was noise on every send.)
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(`Failed to send message: ${error.message || "Unknown error"}`);
