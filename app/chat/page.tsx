@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TextType from "@/components/TextType";
-import AISuggestions from "@/components/AISuggestions";
 import {
   detectEmergency,
   EmergencyBanner,
@@ -3356,26 +3355,6 @@ If the user asks about your developer, say: "I was developed by Vignesh Skanda f
                   </div>
                 </div>
               </div>
-            </div>
-            
-            {/* Enhanced Pre-Questions Section */}
-            <div className="pb-6 px-2">
-              <div className="max-w-4xl mx-auto">
-                <AISuggestions 
-                  onSuggestionClick={(suggestion) => {
-                    setMessage(suggestion);
-                    setTimeout(() => handleSendMessage(), 100);
-                  }}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-            
-            {/* Quick action hint */}
-            <div className="text-center pb-4">
-              <p className="text-sm text-gray-600 font-medium">
-                💡 You can also type your own question in the chat box below
-              </p>
             </div>
           </div>
         ) : (
