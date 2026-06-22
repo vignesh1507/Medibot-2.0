@@ -3077,10 +3077,10 @@ If the user asks about your developer, say: "I was developed by Vignesh Skanda f
         variant="ghost"
         size="icon"
         onClick={() => setSidebarOpen(true)}
-        className="text-gray-500 hover:bg-gray-100 rounded-full h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
+        className="lg:hidden text-gray-500 hover:bg-gray-100 rounded-full h-8 w-8"
         aria-label="Open sidebar"
       >
-        {/* Optional: add icon like <MenuIcon /> */}
+        <Menu className="h-5 w-5" />
       </Button>
       {/* Brand Name with responsive font size */}
       {/* Plan Selector: visible on left for all screens */}

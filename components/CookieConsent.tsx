@@ -223,17 +223,17 @@ export default function CookieConsent() {
                       transition={{ delay: 0.4, duration: 0.4 }}
                       className="lg:flex-shrink-0"
                     >
-                      <div className="flex flex-col gap-3 min-w-[300px]">
+                      <div className="flex flex-col gap-3 w-full lg:min-w-[300px]">
                         <Button
                           onClick={handleAcceptAll}
-                          className="relative bg-gradient-to-r from-[#0E7490] via-[#0891B2] to-[#06B6D4] hover:from-[#0C6A83] hover:via-[#0E7490] hover:to-[#0891B2] text-white px-6 py-3 rounded-xl font-bold text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 group overflow-hidden"
+                          className="relative w-full bg-gradient-to-r from-[#0E7490] via-[#0891B2] to-[#06B6D4] hover:from-[#0C6A83] hover:via-[#0E7490] hover:to-[#0891B2] text-white px-6 py-3 rounded-xl font-bold text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 group overflow-hidden"
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                           <Check className="w-4 h-4 transition-transform group-hover:scale-110 relative z-10" />
                           <span className="relative z-10">Accept All Cookies</span>
                         </Button>
-                        
-                        <div className="flex gap-2">
+
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Button
                             onClick={() => setShowDetails(true)}
                             variant="outline"
