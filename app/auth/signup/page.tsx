@@ -23,7 +23,7 @@ export default function SignUpPage() {
     rememberMe: false,
   })
   const [loading, setLoading] = useState(false)
-  const { signInWithGoogle, signInWithFacebook } = useAuth()
+  const { signInWithGoogle } = useAuth()
   const router = useRouter()
 
   const actionCodeSettings = {
@@ -72,19 +72,6 @@ export default function SignUpPage() {
       router.push("/profile-setup")
     } catch (error: any) {
       toast.error(error.message || "Failed to sign up with Google")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleFacebookSignUp = async () => {
-    setLoading(true)
-    try {
-      await signInWithFacebook()
-      toast.success("Account created with Facebook successfully!")
-      router.push("/profile-setup")
-    } catch (error: any) {
-      toast.error(error.message || "Failed to sign up with Facebook")
     } finally {
       setLoading(false)
     }
@@ -214,7 +201,7 @@ export default function SignUpPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1">
               <Button
                 type="button"
                 onClick={handleGoogleSignUp}
@@ -229,18 +216,6 @@ export default function SignUpPage() {
                   <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
                 </svg>
                 Google
-              </Button>
-              <Button
-                type="button"
-                onClick={handleFacebookSignUp}
-                disabled={loading}
-                variant="outline"
-                className="h-9 bg-gray-50 border-gray-300 text-gray-900 hover:bg-gray-100 rounded-lg transition-all text-sm"
-              >
-                <svg className="mr-2 h-4 w-4 flex-shrink-0" fill="#1877F2" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-                Facebook
               </Button>
             </div>
 
