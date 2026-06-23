@@ -9,9 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { AuthGuard } from "@/components/auth-guard"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
-import { sendSignInLinkToEmail } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 import { toast } from "sonner"
 
@@ -19,17 +18,15 @@ export default function SignUpPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    password: "",
+    confirmPassword: "",
     agreeToTerms: false,
     rememberMe: false,
   })
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { signInWithGoogle } = useAuth()
+  const { signUp, signInWithGoogle } = useAuth()
   const router = useRouter()
-
-  const actionCodeSettings = {
-    url: (typeof window !== 'undefined' ? `${window.location.origin}/auth/complete-signup?email=${encodeURIComponent(formData.email)}` : `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/complete-signup`),
-    handleCodeInApp: true,
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,26 +36,40 @@ export default function SignUpPage() {
       return
     }
 
-    if (!formData.email) {
-      toast.error('Please provide your email')
+    if (!formData.email || !formData.password) {
+      toast.error('Please provide your email and a password')
+      return
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match')
       return
     }
 
     setLoading(true)
     try {
-      // send email sign-in link; account will be created when the user clicks the link
-      await sendSignInLinkToEmail(auth, formData.email, actionCodeSettings)
-      // store ephemeral signup data to complete signup after verification
-      sessionStorage.setItem('signup_email', formData.email)
-      sessionStorage.setItem('signup_name', formData.name || '')
-  // store remember preference so completion can apply persistence
-  sessionStorage.setItem('signup_remember', formData.rememberMe ? 'true' : 'false')
+      // Apply the user's "remember me" preference before creating the account
+      try {
+        const { browserLocalPersistence, browserSessionPersistence, setPersistence } = await import('firebase/auth')
+        await setPersistence(auth, formData.rememberMe ? browserLocalPersistence : browserSessionPersistence)
+      } catch (persistErr) {
+        console.error('Error setting persistence:', persistErr)
+      }
 
-      toast.success('Verification link sent. Check your inbox to complete signup.')
+      // Create the account with email + password, then send a verification email.
+      // The password is handed straight to Firebase — never stored in the browser.
+      await signUp(formData.email, formData.password, formData.name)
+
+      toast.success('Account created! Check your inbox to verify your email.')
       router.push('/verify-email')
     } catch (error: any) {
-      console.error('sendSignInLinkToEmail error', error)
-      toast.error(error.message || 'Failed to send verification link')
+      console.error('signUp error', error)
+      toast.error(error?.message || 'Failed to create account')
     } finally {
       setLoading(false)
     }
@@ -151,6 +162,40 @@ export default function SignUpPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-gray-900 font-medium mb-1 text-sm">Password</label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a password (min. 6 characters)"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="bg-gray-50 border-gray-300 text-gray-900 h-10 rounded-lg focus:ring-2 focus:ring-teal-500/50 pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-gray-900 font-medium mb-1 text-sm">Confirm Password</label>
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Re-enter your password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                className="bg-gray-50 border-gray-300 text-gray-900 h-10 rounded-lg focus:ring-2 focus:ring-teal-500/50"
+                required
+              />
+            </div>
+
             {/* Remember Me Checkbox */}
             <div className="flex items-center mb-2">
               <input
@@ -187,7 +232,7 @@ export default function SignUpPage() {
               disabled={loading}
               className="w-full h-10 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white rounded-lg shadow-lg font-medium transition-all duration-200"
             >
-              {loading ? "Sending Verification..." : "Send Verification Link"}
+              {loading ? "Creating Account..." : "Create Account"}
             </Button>
 
             <div className="relative my-4">
