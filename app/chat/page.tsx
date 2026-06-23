@@ -1948,8 +1948,23 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
 
     const greetings = ["hi", "hello", "hey", "hola", "yo", "hii", "hi there", "hlo", "helloo", "good morning", "good afternoon", "good evening", "how are you", "wassup", "what's up", "sup"];
     const userMessageLower = userMessage.trim().toLowerCase();
-    
-    if (!incognito && greetings.some(greeting => userMessageLower === greeting || userMessageLower.startsWith(greeting + " "))) {
+
+    // Only treat the message as a greeting when it is *just* a greeting (optionally
+    // followed by a trivial filler like "there"/"medibot"). Previously any message
+    // that merely STARTED with a greeting word — e.g. "hey i have a cough..." — was
+    // hijacked and answered with a generic hello instead of the real question.
+    const greetingFillers = ["there", "medibot", "bot", "doc", "doctor", "buddy"];
+    const cleanedGreeting = userMessageLower.replace(/[!.,?]+/g, "").replace(/\s+/g, " ").trim();
+    const isPureGreeting = greetings.some((greeting) => {
+      if (cleanedGreeting === greeting) return true;
+      if (cleanedGreeting.startsWith(greeting + " ")) {
+        const rest = cleanedGreeting.slice(greeting.length).trim();
+        return rest.length > 0 && rest.split(" ").every((w) => greetingFillers.includes(w));
+      }
+      return false;
+    });
+
+    if (!incognito && isPureGreeting) {
       // Get user's name from profile or infer from conversations
       let userName = "";
       if (userProfile?.displayName) {
