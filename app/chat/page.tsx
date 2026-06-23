@@ -3259,7 +3259,7 @@ If the user asks about your developer, say: "I was developed by Vignesh Skanda f
             </Button>
           </Link>
           <Link href="/auth/signup">
-            <Button className="bg-gradient-to-r from-teal-600 to-teal-500 text-white hover:from-teal-700 hover:to-teal-600 h-7 px-2 sm:h-8 sm:px-3 md:h-9 md:px-4 w-full sm:w-auto rounded-full shadow-sm text-xs">
+            <Button className="bg-gradient-to-r from-teal-600 to-blue-600 text-white hover:from-teal-700 hover:to-blue-700 h-7 px-2 sm:h-8 sm:px-3 md:h-9 md:px-4 w-full sm:w-auto rounded-full shadow-sm text-xs">
               Get Started
             </Button>
           </Link>

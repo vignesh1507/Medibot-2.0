@@ -276,7 +276,7 @@ export default function HistoryPage() {
                 <RefreshCw className="h-4 w-4" />
               </Button>
               <Link href="/chat">
-                <Button className="bg-teal-600 hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2">
+                <Button className="bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white rounded-lg text-sm px-4 py-2">
                   <Plus className="mr-1 h-4 w-4" /> New
                 </Button>
               </Link>
@@ -299,12 +299,12 @@ export default function HistoryPage() {
               </p>
               <div className="flex justify-center gap-4">
                 <Link href="/auth/signin">
-                  <Button className="bg-teal-600 hover:bg-teal-600 text-white">
+                  <Button className="bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white">
                     Login
                   </Button>
                 </Link>
                 <Link href="/auth/signup">
-                  <Button className="bg-teal-600 hover:bg-teal-600 text-white">
+                  <Button className="bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white">
                     Signup
                   </Button>
                 </Link>
@@ -320,7 +320,7 @@ export default function HistoryPage() {
                   : "You haven't started any conversations yet."}
               </p>
               <Link href="/chat">
-                <Button className="bg-teal-600 hover:bg-teal-600 text-white">
+                <Button className="bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white">
                   <Plus className="mr-2 h-4 w-4" /> Start New Chat
                 </Button>
               </Link>

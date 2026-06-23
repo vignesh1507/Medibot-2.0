@@ -590,7 +590,7 @@ export default function ProfilePage() {
                       <Button
                         type="submit"
                         disabled={loading || Object.keys(errors).length > 0}
-                        className="bg-teal-600 hover:bg-teal-700 text-white font-semibold w-full"
+                        className="bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white font-semibold w-full"
                         aria-label="Update profile"
                       >
                         {loading ? "Updating..." : "Update Profile"}

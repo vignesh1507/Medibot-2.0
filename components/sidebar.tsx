@@ -236,7 +236,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                       className={cn(
                         "flex items-center font-sans h-12 rounded-xl transition-all duration-200",
                         isActive
-                          ? "bg-teal-600 text-white shadow"
+                          ? "bg-gradient-to-r from-teal-600 to-blue-600 text-white shadow"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted",
                         collapsed ? "justify-center" : "px-4"
                       )}

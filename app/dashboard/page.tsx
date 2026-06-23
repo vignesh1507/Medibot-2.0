@@ -171,7 +171,7 @@ export default function DashboardPage() {
               {/* Welcome Section */}
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-2">
                 <div>
-                  <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mb-2">Welcome back, <span className="text-primary">{userProfile?.displayName || "User"}</span>!</h2>
+                  <h2 className="text-3xl md:text-4xl font-extrabold text-foreground mb-2">Welcome back, <span className="bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent">{userProfile?.displayName || "User"}</span>!</h2>
                   <p className="text-base text-muted-foreground">Your personalized health overview for today</p>
                 </div>
                

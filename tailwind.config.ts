@@ -1,5 +1,10 @@
 const config = {
-  darkMode: false,
+  // Use the "class" strategy so `dark:` variants only apply when a `.dark` class
+  // is present. Since the app forces light mode (next-themes forcedTheme="light"),
+  // that class is never added — so `dark:` styles stay inert regardless of the
+  // user's OS setting. (darkMode:false now behaves like "media", which let the
+  // OS dark mode leak into the UI, e.g. light text on the verify-email page.)
+  darkMode: "class",
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",

@@ -63,6 +63,7 @@ export default function MedicationsPage() {
         console.log("Notification permission:", permission);
         
         // Register service worker
+        let swRegistration: ServiceWorkerRegistration | undefined;
         if ('serviceWorker' in navigator) {
           try {
             // Force update by unregistering first
@@ -83,10 +84,10 @@ export default function MedicationsPage() {
               messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
               appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
             }).toString();
-            const registration = await navigator.serviceWorker.register(`/firebase-messaging-sw.js?${swConfig}`, {
+            swRegistration = await navigator.serviceWorker.register(`/firebase-messaging-sw.js?${swConfig}`, {
               updateViaCache: 'none'
             });
-            console.log('Service Worker registered:', registration);
+            console.log('Service Worker registered:', swRegistration);
             
             // Wait for service worker to be ready
             await navigator.serviceWorker.ready;
@@ -98,7 +99,10 @@ export default function MedicationsPage() {
         
         if (permission === "granted") {
           console.log("Getting FCM token...");
-          const fcmToken = await getToken(messaging, { vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY || "" });
+          const fcmToken = await getToken(messaging, {
+            vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY || "",
+            serviceWorkerRegistration: swRegistration,
+          });
           console.log("FCM token received:", fcmToken ? "Yes" : "No");
           
           if (fcmToken) {
@@ -677,7 +681,7 @@ export default function MedicationsPage() {
                 </p>
                 <Button
                   onClick={handleAddMedication}
-                  className="bg-teal-600 hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2"
+                  className="bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white rounded-lg text-sm px-4 py-2"
                 >
                   <Plus className="mr-1 h-4 w-4" /> Set a Reminder
                 </Button>
@@ -691,7 +695,7 @@ export default function MedicationsPage() {
               <DialogTrigger asChild>
                 <Button
                   onClick={handleAddMedication}
-                  className="bg-teal-600 hover:bg-teal-600 text-white rounded-lg text-sm px-4 py-2"
+                  className="bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white rounded-lg text-sm px-4 py-2"
                 >
                   <Plus className="mr-1 h-4 w-4" /> Add Medication
                 </Button>
@@ -826,7 +830,7 @@ export default function MedicationsPage() {
                     </Button>
                     <Button
                       type="submit"
-                      className="flex-1 bg-teal-600 hover:bg-teal-600 text-white"
+                      className="flex-1 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white"
                     >
                       {editingMedication ? "Update" : "Add"} Medication
                     </Button>

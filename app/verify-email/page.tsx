@@ -137,10 +137,10 @@ export default function VerifyEmailPage() {
           </div>
 
           <div className="space-y-3">
-            <Button 
-              onClick={handleManualCheck} 
+            <Button
+              onClick={handleManualCheck}
               disabled={isVerifying}
-              className="w-full"
+              className="w-full bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white"
               variant="default"
             >
               {isVerifying ? (

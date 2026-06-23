@@ -53,7 +53,7 @@ export default function HomePage() {
   const accentBorder = "border-teal-500";
   const accentText = "text-teal-500";
 
-  const buttonClasses = `h-10 px-6 ${primaryColor} text-white border ${primaryBorder} rounded-lg text-base font-medium shadow-none ${primaryHover} hover:border-teal-700 hover:text-white`;
+  const buttonClasses = `h-10 px-6 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white border border-transparent rounded-lg text-base font-medium shadow-none hover:text-white`;
   const secondaryButtonClasses = `h-10 px-6 ${secondaryColor} ${secondaryText} border ${secondaryBorder} rounded-lg text-base font-medium shadow-none ${secondaryHover} hover:border-[#CBD5E1] hover:text-[#475569]`;
   const accentButtonClasses = `h-10 px-6 ${accentColor} text-white border ${accentBorder} rounded-lg text-base font-medium shadow-none ${accentHover} hover:border-teal-700 hover:text-white`;
 
@@ -381,7 +381,7 @@ export default function HomePage() {
             className="flex flex-col sm:flex-row items-center gap-2 sm:space-x-4"
           >
             <Link href="/auth/signin" className="w-full sm:w-auto">
-              <Button className={`${secondaryButtonClasses} w-full sm:w-auto`}>
+              <Button className="h-10 px-6 bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white border border-transparent rounded-lg text-base font-medium shadow-none w-full sm:w-auto">
                 Sign In
               </Button>
             </Link>
@@ -427,7 +427,7 @@ export default function HomePage() {
               id="hero-heading"
             >
               Transform Your Health with{" "}
-              <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent">
                 Medibot
               </span>
             </motion.h1>
@@ -449,7 +449,7 @@ export default function HomePage() {
             >
               <Button
                 asChild
-                className={`inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-600`}
+                className={`inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-600`}
               >
                 <Link href="/auth/signup">Get Started Free</Link>
               </Button>
@@ -480,7 +480,7 @@ export default function HomePage() {
           </span>
           <h2 id="features-heading" className="text-4xl md:text-5xl font-bold text-[#475569]">
             Take Control of Your{" "}
-            <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent">
               Health
             </span>
           </h2>
@@ -623,7 +623,7 @@ export default function HomePage() {
               </span>
               <h2 className="text-3xl md:text-4xl font-bold text-[#475569] mb-6">
                 Health Management{" "}
-                <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent">
                   On The Go
                 </span>
               </h2>
@@ -703,7 +703,7 @@ export default function HomePage() {
               </span>
               <h2 className="text-3xl md:text-4xl font-bold text-[#475569] mb-6">
                 Your Personal{" "}
-                <span className="bg-gradient-to-r from-teal-500 to-teal-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent">
                   Health Companion
                 </span>
               </h2>
@@ -778,7 +778,7 @@ export default function HomePage() {
                 className="p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-gray-200 shadow-md"
               >
                 <div className="flex justify-center mb-3">{stat.icon}</div>
-                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent mb-2">
+                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent mb-2">
                   {stat.number}
                 </div>
                 <div className="text-[#64748B] text-lg">{stat.label}</div>
@@ -813,7 +813,7 @@ export default function HomePage() {
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-[#475569]">
             Choose Your{" "}
-            <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent">
               Plan
             </span>
           </h2>
@@ -893,7 +893,7 @@ export default function HomePage() {
                     asChild
                     className={`${
                       plan.highlighted
-                        ? "bg-gradient-to-r from-teal-600 to-teal-500 text-white hover:from-teal-700 hover:to-teal-700"
+                        ? "bg-gradient-to-r from-teal-600 to-blue-600 text-white hover:from-teal-700 hover:to-blue-700"
                         : buttonClasses
                     } w-full`}
                   >
@@ -922,7 +922,7 @@ export default function HomePage() {
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-[#475569]">
             Trusted{" "}
-            <span className="bg-gradient-to-r from-teal-500 to-teal-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent">
               Collaborations
             </span>
           </h2>
@@ -964,7 +964,7 @@ export default function HomePage() {
                 <div className={`inline-flex p-4 bg-[#E6FAF8] rounded-lg mb-4`}>
                   {collab.icon}
                 </div>
-                <div className="text-3xl font-bold bg-gradient-to-r from-teal-500 to-teal-600 bg-clip-text text-transparent mb-2">
+                <div className="text-3xl font-bold bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent mb-2">
                   {collab.count}
                 </div>
                 <h3 className="text-xl font-semibold text-[#475569] mb-3">
@@ -998,7 +998,7 @@ export default function HomePage() {
           </span>
           <h2 className="text-4xl md:text-5xl font-bold text-[#475569]">
             Frequently Asked{" "}
-            <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent">
               Questions
             </span>
           </h2>
@@ -1102,7 +1102,7 @@ export default function HomePage() {
 
           <h2 className="text-4xl md:text-5xl font-bold text-[#475569] mb-6">
             Ready to Transform Your{" "}
-            <span className="bg-gradient-to-r from-teal-600 to-teal-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-teal-700 via-indigo-600 to-teal-500 bg-clip-text text-transparent">
               Healthcare
             </span>
             ?
@@ -1114,7 +1114,7 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row justify-center gap-6">
             <Link href="/auth/signup">
               <Button
-                className={`${buttonClasses} w-60 h-14 text-lg bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-700 text-white`}
+                className={`${buttonClasses} w-60 h-14 text-lg bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white`}
               >
                 Get Started Free
               </Button>
