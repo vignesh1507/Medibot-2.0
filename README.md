@@ -1,4 +1,4 @@
-# MediBot - AI-Powered Health Assistant 
+# MediBot - AI-Powered Health Assistant
 
 <p align="center">
   <img src="assets/medibot-banner.png" alt="MediBot Banner" width="100%"/>
