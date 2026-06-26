@@ -13,6 +13,8 @@
  * - All output framed as "things to discuss with your doctor."
  */
 
+import { geminiGenerate } from "@/lib/aiClient";
+
 // Fallback chain — tries each in order until one succeeds.
 const GEMINI_MODEL_CHAIN = [
   "gemini-2.5-flash",  // Primary
@@ -266,19 +268,17 @@ ${ANALYSIS_PROMPT}`;
  * Returns the markdown analysis. Throws with a user-friendly message on hard failures.
  */
 export async function analyzeLabReport(file: File, userQuestion?: string): Promise<LabAnalysisResult> {
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("AI analyzer is not configured. Please contact support.");
-  }
-
   const supportedTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic"];
   if (!supportedTypes.includes(file.type)) {
     throw new Error(`This file type (${file.type || "unknown"}) is not supported for analysis. Please upload a PDF or image.`);
   }
 
-  const MAX_BYTES = 15 * 1024 * 1024;
+  // The file is sent to our own API route (which holds the AI key), so it must
+  // fit under the serverless request-body limit. 3 MB raw keeps the base64
+  // payload comfortably under that ceiling.
+  const MAX_BYTES = 3 * 1024 * 1024;
   if (file.size > MAX_BYTES) {
-    throw new Error("File is too large. Please upload a report under 15 MB.");
+    throw new Error("File is too large. Please upload a report under 3 MB.");
   }
 
   const base64 = await fileToBase64(file);
@@ -334,14 +334,12 @@ ${SYMPTOM_PHOTO_PROMPT}`;
     // Non-streaming generateContent. This returns the full response in one JSON
     // body. We read EVERY part in candidates[0].content.parts and concatenate them
     // (Gemini splits long outputs across multiple parts within the single candidate).
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
     let response: Response;
     try {
-      response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      response = await geminiGenerate({
+        model,
+        contents: body.contents,
+        generationConfig: body.generationConfig,
       });
     } catch (e) {
       lastError = new Error("Couldn't reach the AI analyzer. Check your internet connection.");

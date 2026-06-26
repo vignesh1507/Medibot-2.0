@@ -10,6 +10,8 @@
  * user to take anything or suggesting dosages for their situation.
  */
 
+import { geminiGenerate } from "@/lib/aiClient";
+
 const GEMINI_MODEL_CHAIN = ["gemini-2.5-flash", "gemini-2.5-pro"];
 
 function fileToBase64(file: File): Promise<string> {
@@ -71,17 +73,13 @@ export interface MedicineResult {
   modelUsed: string;
 }
 
-async function callGemini(parts: any[], apiKey: string): Promise<MedicineResult> {
-  const body = {
-    contents: [{ parts }],
-    generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
-  };
+async function callGemini(parts: any[]): Promise<MedicineResult> {
+  const generationConfig = { temperature: 0.2, maxOutputTokens: 8192 };
   let lastError: Error | null = null;
   for (const model of GEMINI_MODEL_CHAIN) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     let res: Response;
     try {
-      res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      res = await geminiGenerate({ model, contents: [{ parts }], generationConfig });
     } catch {
       lastError = new Error("Couldn't reach the analyzer. Check your connection.");
       continue;
@@ -111,8 +109,6 @@ async function callGemini(parts: any[], apiKey: string): Promise<MedicineResult>
 
 /** Look up a medicine by typed name. */
 export async function analyzeMedicineByName(name: string): Promise<MedicineResult> {
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("Analyzer is not configured. Please contact support.");
   const clean = name.trim();
   if (!clean) throw new Error("Please enter a medicine name.");
   const prompt = `You are Medibot's medicine information assistant. The user wants general information about a medicine they named: "${clean}".
@@ -122,15 +118,13 @@ If this is a recognizable medicine (generic or brand), provide its general infor
 ${SAFETY}
 
 ${OUTPUT_FORMAT}`;
-  return callGemini([{ text: prompt }], apiKey);
+  return callGemini([{ text: prompt }]);
 }
 
 /** Identify and explain a medicine from a photo of its strip/box. */
 export async function analyzeMedicinePhoto(file: File): Promise<MedicineResult> {
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("Analyzer is not configured. Please contact support.");
   if (!file.type.startsWith("image/")) throw new Error("Please upload an image of the medicine.");
-  if (file.size > 15 * 1024 * 1024) throw new Error("Image is too large (max 15 MB).");
+  if (file.size > 3 * 1024 * 1024) throw new Error("Image is too large (max 3 MB).");
   const base64 = await fileToBase64(file);
   const prompt = `You are Medibot's medicine information assistant. The user uploaded a PHOTO of a medicine (strip, box, bottle, or label). Read any visible name/text to identify the medicine, then provide general information about it.
 
@@ -139,5 +133,5 @@ If you cannot clearly read or identify the medicine from the photo, say so plain
 ${SAFETY}
 
 ${OUTPUT_FORMAT}`;
-  return callGemini([{ inlineData: { mimeType: file.type, data: base64 } }, { text: prompt }], apiKey);
+  return callGemini([{ inlineData: { mimeType: file.type, data: base64 } }, { text: prompt }]);
 }

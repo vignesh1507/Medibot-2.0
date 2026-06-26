@@ -20,6 +20,7 @@ import {
 import { buildHealthTimeline, buildAIMemoryContext } from "@/lib/healthTimeline";
 import { autoLogFromUserMessage } from "@/lib/healthAutoLogger";
 import { analyzeLabReport, parseReportFindings } from "@/lib/analyzeLabReport";
+import { geminiGenerate } from "@/lib/aiClient";
 import { LabReportRenderer, isLabReportResponse, wrapLabReport } from "@/components/LabReportRenderer";
 import { ChatFileCard } from "@/components/ChatFileCard";
 import { buildFileMeta } from "@/lib/fileMeta";
@@ -276,17 +277,15 @@ function ChatContent() {
   // Auto-switch to free model if user downgrades to base plan
   useEffect(() => {
     // Medibot brand-only model lineup. Underlying provider details are hidden from users.
-    const modelMap: Record<string, { api: string; model: string; key: string; plan: 'free' | 'premium' }> = {
+    const modelMap: Record<string, { api: string; model: string; plan: 'free' | 'premium' }> = {
       "medibot-care": {
         api: "gemini",
         model: "gemini-2.5-flash",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
         plan: "free",
       },
       "medibot-specialist": {
         api: "gemini",
         model: "gemini-2.5-pro",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
         plan: "premium",
       },
     };
@@ -1913,31 +1912,27 @@ const generateAIResponse = async (userMessage: string, selectedModel: string, me
     setAbortController(controller);
 
     // Medibot brand-only lineup — underlying provider details are hidden from users.
-    const modelMap: Record<string, { api: string; model: string; key: string; plan: 'free' | 'premium' }> = {
+    const modelMap: Record<string, { api: string; model: string; plan: 'free' | 'premium' }> = {
       "medibot-care": {
         api: "gemini",
         model: "gemini-2.5-flash",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
         plan: "free",
       },
       "medibot-specialist": {
         api: "gemini",
         model: "gemini-2.5-pro",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
         plan: "premium",
       },
       // Legacy alias — old chat sessions saved with "medibot" still work
       "medibot": {
         api: "gemini",
         model: "gemini-2.5-flash",
-        key: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
         plan: "free",
       },
     };
 
     const config = modelMap[selectedModel];
     if (!config) throw new Error(`Invalid model: ${selectedModel}`);
-    if (!config.key) throw new Error(`${config.api.toUpperCase()} API key is not configured.`);
 
     // Check if user has access to this model based on their plan
     if (config.plan === 'premium' && userPlan !== 'premium') {
@@ -2211,29 +2206,21 @@ If the user asks about your developer, say: "I was developed by Vignesh Skanda f
 
     let content: string | undefined;
 
-    // ✅ Gemini API Integration
-    if (config.api === "gemini") {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.key}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: optimizedPrompt }] }],
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 65536,
-              topP: 0.95,
-              topK: 1,
-              stopSequences: [],
-              candidateCount: 1,
-            },
-          }),
-          signal: controller.signal,
-        }
-      );
+    // ✅ Gemini via our own server route — the API key stays server-side.
+    {
+      const response = await geminiGenerate({
+        model: config.model,
+        contents: [{ parts: [{ text: optimizedPrompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 65536,
+          topP: 0.95,
+          topK: 1,
+          stopSequences: [],
+          candidateCount: 1,
+        },
+        signal: controller.signal,
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -2247,148 +2234,6 @@ If the user asks about your developer, say: "I was developed by Vignesh Skanda f
       if (data.candidates?.[0]?.finishReason === "SAFETY" || 
           data.candidates?.[0]?.finishReason === "OTHER") {
         console.warn("Gemini response was filtered or truncated:", data.candidates[0].finishReason);
-      }
-    }
-
-    // ✅ Anthropic Claude API Integration
-    else if (config.api === "anthropic") {
-      const response = await fetch(
-        `https://api.anthropic.com/v1/messages`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": config.key,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model: config.model,
-            max_tokens: 8192,
-            temperature: 0.7,
-            messages: [
-              {
-                role: "user",
-                content: optimizedPrompt,
-              },
-            ],
-          }),
-          signal: controller.signal,
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      content = data.content?.[0]?.text;
-    }
-    // ✅ HuggingFace API Integration (via backend proxy)
-    else if (config.api === "huggingface") {
-      const response = await fetch('/api/huggingface', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: config.model,
-          prompt: optimizedPrompt,
-        }),
-        signal: controller.signal,
-      });
-    
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HuggingFace API error: ${response.status}`);
-      }
-    
-      const data = await response.json();
-      content = data.generated_text;
-    }
-    // ✅ OpenAI / Groq
-    else {
-      const url = config.api === "groq"
-        ? "https://api.groq.com/openai/v1/chat/completions"
-        : "https://api.openai.com/v1/chat/completions";
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${config.key}`,
-        },
-        body: JSON.stringify({
-          model: config.model,
-          messages: [
-            {
-              role: "system",
-              content: "You are a helpful health assistant named Medibot created by Vignesh Skanda from Medibot.",
-            },
-            {
-              role: "user",
-              content: optimizedPrompt,
-            },
-          ],
-          temperature: 0.7,
-          max_tokens: 8192,
-          top_p: 0.95,
-          frequency_penalty: 0,
-          presence_penalty: 0,
-          stop: null,
-        }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`${config.api.toUpperCase()} API error: ${response.status} - ${errorText}`);
-      }
-
-      const data: OpenAIResponse | GroqResponse = await response.json();
-      content = data.choices?.[0]?.message?.content;
-      
-      // Check if response was truncated
-      if (data.choices?.[0]?.finish_reason === "length") {
-        console.warn("Response was truncated due to length limit");
-        // Try again with a more concise prompt
-        const shortPrompt = `You are Medibot. Answer this health question completely: ${userMessage}`;
-        
-        const retryResponse = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${config.key}`,
-          },
-          body: JSON.stringify({
-            model: config.model,
-            messages: [
-              {
-                role: "system",
-                content: "You are a helpful health assistant. Always complete your responses.",
-              },
-              {
-                role: "user",
-                content: shortPrompt,
-              },
-            ],
-            temperature: 0.7,
-            max_tokens: 8192,
-            top_p: 0.95,
-            frequency_penalty: 0,
-            presence_penalty: 0,
-            stop: null,
-          }),
-          signal: controller.signal,
-        });
-        
-        if (retryResponse.ok) {
-          const retryData: OpenAIResponse | GroqResponse = await retryResponse.json();
-          const retryContent = retryData.choices?.[0]?.message?.content;
-          if (retryContent) {
-            content = retryContent;
-          }
-        }
       }
     }
 
@@ -2434,39 +2279,29 @@ If the user asks about your developer, say: "I was developed by Vignesh Skanda f
     try {
       setAnalyzingPrescription(true);
       const fileBase64 = await fileToBase64(file);
-      const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-      if (!geminiApiKey) throw new Error("Gemini API key is not configured.");
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [
+      const response = await geminiGenerate({
+        model: "gemini-2.0-flash",
+        contents: [
+          {
+            parts: [
               {
-                parts: [
-                  {
-                    text:
-                      "Analyze this prescription image or PDF and extract medications, dosages, instructions, and warnings. Return JSON with fields: medications (array), dosages (array), instructions (string), warnings (array).",
-                  },
-                  {
-                    inlineData: {
-                      mimeType: file.type,
-                      data: fileBase64,
-                    },
-                  },
-                ],
+                text:
+                  "Analyze this prescription image or PDF and extract medications, dosages, instructions, and warnings. Return JSON with fields: medications (array), dosages (array), instructions (string), warnings (array).",
+              },
+              {
+                inlineData: {
+                  mimeType: file.type,
+                  data: fileBase64,
+                },
               },
             ],
-            generationConfig: {
-              temperature: 0.5,
-              maxOutputTokens: 500,
-            },
-          }),
-        }
-      );
+          },
+        ],
+        generationConfig: {
+          temperature: 0.5,
+          maxOutputTokens: 500,
+        },
+      });
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
